@@ -55,14 +55,16 @@ jobs:
 
   formal:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - name: install yosys + z3
         run: sudo apt-get update && sudo apt-get install -y yosys z3
       # ring containment is proven by k-induction, which is N-INDEPENDENT:
-      # N=4 and N=8 prove the theorem; the shipping N=32 is belt-and-braces
-      # and runs in the dispatchable formal-deep workflow, off the per-push
-      # path (a single N=32 k-induction step can exceed the CI budget).
-      - name: rings (N=4,8), ECC, address mask, debug lock
-        run: bash scripts/formal.sh 4 8
+      # ONE N proves the theorem. CI runs N=4 (plus ECC, address mask,
+      # debug lock); N=8 and the shipping N=32 are belt-and-braces in the
+      # dispatchable formal-deep workflow. Every proof is wrapped in a
+      # per-call 300s cap (scripts/formal.sh smt()), so a runner-slow
+      # solver names itself in the log instead of eating the job budget.
+      - name: ring (N=4), ECC, address mask, debug lock
+        run: bash scripts/formal.sh 4
