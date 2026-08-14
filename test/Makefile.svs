@@ -1,0 +1,13 @@
+# ZIRH-3 - the SV scenario suites (boot stories for now; the chip
+# suite arrives with the chip top)
+SRC_DIR := $(CURDIR)/../src
+BUILD := sim_build/svs
+.PHONY: boot clean
+boot: $(BUILD)/boot.vvp
+	vvp $(BUILD)/boot.vvp
+$(BUILD)/boot.vvp: sv/zirh_boot_scenarios_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
+	mkdir -p $(BUILD)
+	iverilog -g2012 -I$(SRC_DIR) -s zirh_boot_scenarios_tb -o $@ \
+	  sv/zirh_boot_scenarios_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
+clean:
+	rm -rf $(BUILD)

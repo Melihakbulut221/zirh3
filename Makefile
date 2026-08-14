@@ -1,0 +1,36 @@
+# ZIRH-3 - one command per proof class
+#
+#   make units      six block suites (cocotb + iverilog)
+#   make sv         SV boot-scenario suite
+#   make formal     yosys-smtbmc + z3 proofs
+#   make tmr        synthesis-integrity (replicas survive)
+#   make lint       verilator, warning-clean policy
+#   make trace      requirements <-> tests, no orphans
+#   make everything
+
+.PHONY: units sv formal tmr lint trace everything
+
+units:
+	$(MAKE) -C test -B -f Makefile.boot
+	$(MAKE) -C test -B -f Makefile.qspi
+	$(MAKE) -C test -B -f Makefile.clkobs
+	$(MAKE) -C test -B -f Makefile.dbg
+	$(MAKE) -C test -B -f Makefile.sram39
+	$(MAKE) -C test -B -f Makefile.bist
+
+sv:
+	$(MAKE) -C test -f Makefile.svs boot
+
+formal:
+	bash scripts/formal.sh
+
+tmr:
+	bash scripts/check_tmr.sh
+
+lint:
+	bash scripts/lint.sh
+
+trace:
+	python3 scripts/trace_check.py
+
+everything: lint trace tmr units sv formal

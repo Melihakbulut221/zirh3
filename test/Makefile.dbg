@@ -1,0 +1,16 @@
+# ZIRH P2 - debug isolation gate unit suite
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+
+COMPILE_ARGS += -DZIRH_ASSERTIONS
+COMPILE_ARGS += -I$(PWD)/../src
+SIM_BUILD = sim_build/dbg
+
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_dbg_gate.v
+
+TOPLEVEL = zirh_dbg_gate
+COCOTB_TEST_MODULES = test_dbg_gate
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

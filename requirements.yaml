@@ -1,0 +1,99 @@
+# ZIRH-3 requirements - the traceability chain from the first commit
+# (PROGRAM.md H49). scripts/trace_check.py gates CI on it: every
+# requirement names its tests and its evidence, no orphans either way.
+requirements:
+  - id: Z3-R1
+    text: A single upset in any one TMR replica of any imported block
+      shall never reach a voted output, in any cycle.
+    tests:
+      - formal/f_ring.sv
+    evidence: BMC + k-induction at N=4/8/32 in the formal workflow,
+      inherited proof carried live, not cited
+
+  - id: Z3-R2
+    text: The memory word shall correct any single-bit storage error,
+      detect any double-bit error, and detect ANY read from a wrong
+      row as uncorrectable (address-in-ECC).
+    tests:
+      - formal/f_ecc.sv
+      - formal/f_amask.sv
+      - test/test_sram39.py
+    evidence: SECDED exhaustive proof + even-weight fold proof +
+      the 5-slice suite with double-bit and background-scrub cases
+
+  - id: Z3-R3
+    text: The memory shall carry a background scrubber that walks the
+      whole address space at a fixed rate, itself TMR with a
+      safe-state trap, so rare-read words cannot accumulate errors.
+    tests:
+      - test/test_sram39.py
+    evidence: scrub beat and scrub-fix cases in the suite;
+      SCRUB_DIV_LOG2 parameter proven at 3
+
+  - id: Z3-R4
+    text: A word built from five physical macro slices shall reduce
+      any single-macro multi-bit upset to at most one logical bit
+      per word.
+    tests:
+      - test/test_sram39.py
+    evidence: the corrupted-merge case; the generate-loop slice
+      structure (one definition, five instances)
+
+  - id: Z3-R5
+    text: The boot controller shall verify the STORED image by
+      read-back CRC before running it, refuse corrupt or oversize or
+      wrong-magic images, survive interrupted loads, and revert a
+      bank the watchdog fails toward the other bank and then the
+      immutable golden copy.
+    tests:
+      - test/test_boot.py
+      - test/sv/zirh_boot_scenarios_tb.sv
+    evidence: cocotb contract suite + eight SV stories including
+      storage_lie, where only a lying memory can prove the read-back
+      claim
+
+  - id: Z3-R6
+    text: The QSPI controller shall stream boot images from external
+      MRAM in x1 and x4 modes with backpressure expressed as SCK
+      freeze, never dropping or duplicating a byte.
+    tests:
+      - test/test_qspi.py
+    evidence: mode-0 timing, QOR dummy cycles and freeze cases in
+      the suite; embedded assertions live in simulation
+
+  - id: Z3-R7
+    text: The debug port shall be lockable for flight at POR, deny
+      all access when locked, and trap its own TMR mismatch to the
+      LOCKED state.
+    tests:
+      - test/test_dbg_gate.py
+      - formal/f_dbg.sv
+    evidence: lock ladder proof + suite
+
+  - id: Z3-R8
+    text: A clock-loss event on the main clock shall be detected and
+      latched by an observer running on an independent oscillator,
+      with a two-flop synchronized handoff.
+    tests:
+      - test/test_clkobs.py
+    evidence: main-clock-kill case in the suite; the observer
+      deliberately carries no main-clock assertions
+
+  - id: Z3-R9
+    text: The march/pattern BIST engine shall drive the macro word
+      through checkerboard and march elements in static and dynamic
+      modes and report per-address failures raw.
+    tests:
+      - test/test_bist.py
+    evidence: pattern engine suite; the A6 bare-macro experiment
+      builds on this engine
+
+  - id: Z3-R10
+    text: Every TMR structure in the library shall survive synthesis
+      with its replicas intact, proven by counting on the optimized
+      netlist, with expectations MEASURED and updated only alongside
+      the RTL.
+    tests:
+      - scripts/check_tmr.sh
+    evidence: per-block synthesis-integrity run in CI; measured
+      numbers recorded at import

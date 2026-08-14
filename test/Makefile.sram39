@@ -1,0 +1,23 @@
+# ZIRH-2 program P1 - sliced SRAM word unit test
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
+
+SIM_BUILD = sim_build/sram39
+
+COMPILE_ARGS += -DFUNCTIONAL
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_ASSERTIONS
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
+
+# fast scrub beat so the sweep completes inside simulation time
+COMPILE_ARGS += -Pzirh_sram39.SCRUB_DIV_LOG2=3
+TOPLEVEL = zirh_sram39
+COCOTB_TEST_MODULES = test_sram39
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

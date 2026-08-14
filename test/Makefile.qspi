@@ -1,0 +1,24 @@
+# ZIRH P2 - QSPI-MRAM controller + full boot-from-MRAM suite
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
+
+SIM_BUILD = sim_build/qspi
+
+COMPILE_ARGS += -DFUNCTIONAL
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_ASSERTIONS
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_boot_ctrl.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_qspi.v
+VERILOG_SOURCES += $(PWD)/tb_qspi.v
+
+TOPLEVEL = tb_qspi
+COCOTB_TEST_MODULES = test_qspi
+
+include $(shell cocotb-config --makefiles)/Makefile.sim
