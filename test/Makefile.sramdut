@@ -1,0 +1,16 @@
+SRC_DIR := $(CURDIR)/../src
+SRAM_V := $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
+BUILD := sim_build/sramdut
+.PHONY: all clean
+all: $(BUILD)/sramdut.vvp
+	vvp $(BUILD)/sramdut.vvp
+$(BUILD)/sramdut.vvp: tb_sram_dut.v $(SRC_DIR)/zirh_sram_dut.v
+	mkdir -p $(BUILD)
+	iverilog -g2012 -DZIRH_SIM_ENV -DFUNCTIONAL -I$(SRC_DIR) \
+	  -s tb_sram_dut -o $@ tb_sram_dut.v \
+	  $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
+	  $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
+	  $(SRC_DIR)/zirh_tmr_lib.v $(SRC_DIR)/zirh_sram_bist.v \
+	  $(SRC_DIR)/zirh_sram39.v $(SRC_DIR)/zirh_sram_dut.v
+clean:
+	rm -rf $(BUILD)

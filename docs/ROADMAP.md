@@ -70,3 +70,21 @@ holding reset) and its plain-flop count is guarded so no replica
 sneaks in unnoticed. Z3-R12 enters traceability. The SoC cluster
 import is the remaining step; it attaches to this same conditioned
 reset and this same subsystem.
+
+## Cycle 4 (2026-08-16): the raw-cross-section instrument (A6)
+
+The second evidence leg the brief names: src/zirh_sram_dut.v drives
+five BARE RM_IHPSG13 macros - no SECDED, no scrubber, no voting -
+through the proven pattern engine and exposes every mismatch as a raw
+(fail_adr, fail_map) record: which address failed and which of the
+five macros failed there. That per-macro bit map is what lets a
+ground analysis separate single-bit upsets from multi-bit upsets
+inside one physical macro - the MBU correlation the brief asks for -
+and no published beam data exists for these open-PDK macros, so the
+dataset alone is citable. It is the deliberate opposite of
+zirh_sram39: same five macros, but here nothing corrects them. The
+clean-array smoke is the pre-beam baseline (zero failures with no
+radiation - the floor a campaign subtracts); the engine is TMR while
+the macros under test are not. Reuses the proven macro binding and
+pattern engine unchanged - integration, not new datapath. Z3-R13 in
+traceability.

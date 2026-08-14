@@ -129,6 +129,12 @@ run_check "zirh_por_ro   (POR + RO clock, no TMR by design)" \
     zirh_por_ro.v
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
+run_check "zirh_sram_dut  (A6: 5 bare macros + BIST engine)" \
+    zirh_sram_dut 18 158 zirh_tmr_ff \
+    zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_sram_dut.v
+EXTRA_CMDS=""
+
+EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # Integration count is 48 replica-FFs / 959 FFs MEASURED - lower than
 # the 72 the five blocks carry standalone because this skeleton ties
 # off many inputs (signon, wd_fail, the debug SBA, BIST), and a

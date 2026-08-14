@@ -124,3 +124,16 @@ requirements:
       brown-out re-arm) + die-level smoke (self-conditioned reset
       brings up the subsystem, loader in charge, debug locked); the
       POR/RO source carries no TMR by design and its count is guarded
+  - id: Z3-R13
+    text: The SRAM DUT experiment shall drive five BARE macros (no
+      SECDED, no scrubber, no voting) through pattern scans and expose
+      every mismatch as a raw (address, per-macro bit-map) record, so a
+      beam campaign reads the unprotected macro's SEU/MBU cross-section
+      directly and the ground analysis can separate single-bit from
+      multi-bit upsets within one physical macro.
+    tests:
+      - test/tb_sram_dut.v
+      - scripts/check_tmr.sh
+    evidence: clean-array baseline smoke (zero failures with no
+      radiation - the floor a campaign subtracts); the pattern engine
+      is TMR while the macros under test are deliberately not

@@ -20,6 +20,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.memsys
 	$(MAKE) -C test -B -f Makefile.porro
 	$(MAKE) -C test -B -f Makefile.die
+	$(MAKE) -C test -B -f Makefile.sramdut
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot
