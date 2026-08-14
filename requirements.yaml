@@ -110,3 +110,17 @@ requirements:
     evidence: zirh3_memsys elaboration smoke (golden strap -> no bank,
       POR debug lock, clean err) + the integration synthesis-integrity
       entry; per-block merge guards remain authoritative
+  - id: Z3-R12
+    text: The die shall condition its own system reset from the raw pad
+      reset plus a brown-out signal (hold through a settle window,
+      release synchronized, re-arm on power dropout) and generate its
+      own independent oscillator for the clock-loss observer, so the
+      standalone die needs no external system reset or observer clock.
+    tests:
+      - test/tb_por_ro.v
+      - test/tb_die.v
+      - scripts/check_tmr.sh
+    evidence: POR sequence smoke (settle hold, clean release, RO runs,
+      brown-out re-arm) + die-level smoke (self-conditioned reset
+      brings up the subsystem, loader in charge, debug locked); the
+      POR/RO source carries no TMR by design and its count is guarded

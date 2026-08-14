@@ -50,3 +50,23 @@ inputs and a constant-input register constant-folds - not a merge -
 so the per-block checks stay the authoritative merge guard. The
 CPU/SoC cluster import is the next step; this is the substrate it
 attaches to.
+
+## Cycle 3 (2026-08-16): the die makes its own reset and clock
+
+The genuinely-new dedicated-die silicon docs/SCOPE.md named, built and
+verified: src/zirh_por_ro.v conditions the system reset from the raw
+pad reset and a brown-out signal - holds through a settle window,
+releases synchronized, re-arms on any power dropout - and generates
+the independent ring-oscillator clock the clock-loss observer needs,
+the one a TT harness handed ZIRH-2 for free. src/zirh3_die.v is the
+standalone-die wrapper: it takes only a pad reset and power-good and
+makes everything else itself, attaching por_ro to the memory
+subsystem. Both pass elaboration/sequence smokes (settle hold, clean
+release, brown-out re-arm; the die self-conditions its reset and
+brings the loader up with debug locked), lint clean, and hold through
+synthesis - the POR/RO source honestly carries no TMR by design (a
+triplicated power-on counter is not the intent; it fails safe by
+holding reset) and its plain-flop count is guarded so no replica
+sneaks in unnoticed. Z3-R12 enters traceability. The SoC cluster
+import is the remaining step; it attaches to this same conditioned
+reset and this same subsystem.

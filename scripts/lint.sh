@@ -32,7 +32,8 @@ SRAM_V=${PDK_ROOT:?set PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
 # be instantiated
 fail=0
 for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
-           zirh_dbg_gate zirh_sram_bist zirh3_memsys; do
+           zirh_dbg_gate zirh_sram_bist zirh_por_ro \
+           zirh3_memsys zirh3_die; do
   $VL --lint-only -Wall --timing \
       -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \
       -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ \

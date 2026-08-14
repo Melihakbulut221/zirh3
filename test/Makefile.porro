@@ -1,0 +1,11 @@
+SRC_DIR := $(CURDIR)/../src
+BUILD := sim_build/porro
+.PHONY: all clean
+all: $(BUILD)/porro.vvp
+	vvp $(BUILD)/porro.vvp
+$(BUILD)/porro.vvp: tb_por_ro.v $(SRC_DIR)/zirh_por_ro.v
+	mkdir -p $(BUILD)
+	iverilog -g2012 -DZIRH_SIM_ENV -I$(SRC_DIR) -s tb_por_ro -o $@ \
+	  tb_por_ro.v $(SRC_DIR)/zirh_por_ro.v
+clean:
+	rm -rf $(BUILD)
