@@ -9,7 +9,12 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
-      - name: install yosys + z3
-        run: sudo apt-get update && sudo apt-get install -y yosys z3
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11'}
+      - name: install yosys (apt) and z3 (pip)
+        run: |
+          sudo apt-get update && sudo apt-get install -y yosys
+          pip install z3-solver
+          z3 --version
       - name: ring containment at N=8 and N=32
         run: bash scripts/formal.sh 8 32

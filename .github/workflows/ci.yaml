@@ -58,8 +58,14 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
-      - name: install yosys + z3
-        run: sudo apt-get update && sudo apt-get install -y yosys z3
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11'}
+      - name: install yosys (apt) and z3 (pip - apt's z3 is ~8x slower,
+          it tripped the ecc proof's 300s cap; measured)
+        run: |
+          sudo apt-get update && sudo apt-get install -y yosys
+          pip install z3-solver
+          z3 --version
       # ring containment is proven by k-induction, which is N-INDEPENDENT:
       # ONE N proves the theorem. CI runs N=4 (plus ECC, address mask,
       # debug lock); N=8 and the shipping N=32 are belt-and-braces in the
