@@ -1,0 +1,15 @@
+name: formal-deep
+on: workflow_dispatch
+# The belt-and-braces N=32 ring proof, on demand. The theorem is already
+# gated at N=4/8 in ci.yaml (k-induction is N-independent); this confirms
+# it at the shipping ring length when a release wants the extra assurance.
+jobs:
+  ring32:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - name: install yosys + z3
+        run: sudo apt-get update && sudo apt-get install -y yosys z3
+      - name: ring containment at N=32
+        run: bash scripts/formal.sh 32
