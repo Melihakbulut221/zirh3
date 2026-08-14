@@ -120,6 +120,21 @@ run_check "zirh_sram39   (sliced SECDED + scrubber)" \
     zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v
 EXTRA_CMDS=""
 
+EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
+# Integration count is 48 replica-FFs / 959 FFs MEASURED - lower than
+# the 72 the five blocks carry standalone because this skeleton ties
+# off many inputs (signon, wd_fail, the debug SBA, BIST), and a
+# register with a constant input constant-folds to a constant, which
+# is NOT a replica merge. The authoritative merge guard is the
+# per-block checks above (18/21/12/3/18, each proven intact); this
+# entry is a regression tripwire on the integration as wired, and its
+# number will move legitimately as tie-offs change with the SoC import.
+run_check "zirh3_memsys  (integration: loader+bank+qspi+clkobs+dbg)" \
+    zirh3_memsys 48 959 zirh_tmr_ff \
+    zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_boot_ctrl.v \
+    zirh_qspi.v zirh_clkobs.v zirh_dbg_gate.v zirh3_memsys.v
+EXTRA_CMDS=""
+
 echo "--------------------------------"
 if [ "${failures}" -gt 0 ]; then
     echo "FAIL: ${failures} check(s) failed"

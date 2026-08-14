@@ -17,6 +17,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.dbg
 	$(MAKE) -C test -B -f Makefile.sram39
 	$(MAKE) -C test -B -f Makefile.bist
+	$(MAKE) -C test -B -f Makefile.memsys
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

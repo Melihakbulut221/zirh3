@@ -97,3 +97,16 @@ requirements:
       - scripts/check_tmr.sh
     evidence: per-block synthesis-integrity run in CI; measured
       numbers recorded at import
+  - id: Z3-R11
+    text: The memory/boot subsystem shall integrate the loader, the
+      sliced SECDED bank, the QSPI image source, the clock-loss
+      observer and the debug gate into one harness-independent unit
+      that comes out of reset with the loader in charge, the debug
+      port locked, and no spurious TMR error - every block keeping its
+      replicas through synthesis.
+    tests:
+      - test/tb_memsys.v
+      - scripts/check_tmr.sh
+    evidence: zirh3_memsys elaboration smoke (golden strap -> no bank,
+      POR debug lock, clean err) + the integration synthesis-integrity
+      entry; per-block merge guards remain authoritative

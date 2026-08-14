@@ -32,3 +32,21 @@ N=4/8 plus ECC, address mask and debug lock; the N=32 confirmation
 moves to a dispatchable formal-deep workflow, off the per-push path.
 The zirh2 formal proof - identical RTL - already carries N=32 in its
 own CI, so nothing is lost, only re-shaped to where the minutes live.
+
+## Cycle 2 (2026-08-16): the memory subsystem stands up
+
+The first integration artifact: src/zirh3_memsys.v wires the verified
+blocks into one harness-independent subsystem - the trusted loader as
+boot master, the 5-slice SECDED bank as the memory it fills (a
+stronger demonstration than ZIRH-2's 64 B ECC RAM), the QSPI
+controller as the external-MRAM image source, the clock-loss observer
+on its independent oscillator, and the debug gate holding the port
+locked at POR. It elaborates, lints clean per-block, passes an
+elaboration smoke (golden strap leaves the loader in charge, debug
+locked, no spurious TMR error at rest), and holds its replicas
+through synthesis. The integration replica count (48, down from the
+blocks' standalone 72) is documented: this skeleton ties off many
+inputs and a constant-input register constant-folds - not a merge -
+so the per-block checks stay the authoritative merge guard. The
+CPU/SoC cluster import is the next step; this is the substrate it
+attaches to.
