@@ -88,3 +88,20 @@ radiation - the floor a campaign subtracts); the engine is TMR while
 the macros under test are not. Reuses the proven macro binding and
 pattern engine unchanged - integration, not new datapath. Z3-R13 in
 traceability.
+
+## Cycle 5 (2026-08-16): the SoC cluster arrives, lint-clean (import step 1)
+
+The first rung of the SoC-import ladder (docs/SOC-IMPORT.md): the
+SERV-based computing cluster is now present in the tree and
+warning-clean. SERV 1.3.0 (17 files, vendored unmodified, pin in
+src/serv/VERSION) plus the mask ROM and its committed firmware, the
+single-master bus with its watchdog, and the command/telemetry UART
+path - and zirh_soc.v, which already carries the ISP fetch mux built
+for ZIRH-2 (the exact port that will attach the CPU to this repo's
+loader and sliced bank). It elaborates as one design and lints clean
+under the same policy: SERV is vendored and exempt, only zirh-authored
+soc-layer warnings fail the build, and there are none. The CPU cluster
+is proven-present; the remaining ladder rungs (retarget the SoC cocotb
+suites, attach to the memsys bank via the proven mux, full-die
+synthesis integrity) are the next focused step, and the plan makes
+each one assembly.
