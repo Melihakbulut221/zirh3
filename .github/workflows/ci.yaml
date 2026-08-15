@@ -28,6 +28,8 @@ jobs:
         run: bash scripts/check_tmr.sh
       - name: F28 - scan-insertion rehearsal (stitched chain shifts)
         run: PDK_ROOT=$HOME/.ciel bash scripts/dft_scan.sh
+      - name: rung 3 pilot B - tool-applied TMR (function, mask, heal)
+        run: PDK_ROOT=$HOME/.ciel bash scripts/tmr_pilot.sh
 
   units:
     runs-on: ubuntu-24.04
@@ -59,6 +61,8 @@ jobs:
         run: make -C test -B -f Makefile.jtag
       - name: Cycle 14 - the new core's first breath (VexRiscv smoke)
         run: make -C test -B -f Makefile.vex
+      - name: rung 3 pilot A - triple-core lockstep under fire
+        run: make -C test -B -f Makefile.vextmr
       - name: imported SoC cluster suite
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.soc
       - name: rungs 3-4 - the top's ISP contract + bank as CPU memory

@@ -34,7 +34,7 @@ fail=0
 for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
            zirh_dbg_gate zirh_sram_bist zirh_por_ro \
            zirh_sram_dut zirh_isp_rx zirh_jtag_dm zirh_mbist \
-           zirh_vex_wrap \
+           zirh_vex_wrap zirh_vex_tmr \
            zirh3_memsys zirh3_die; do
   $VL --lint-only -Wall --timing \
       -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \

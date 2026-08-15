@@ -353,3 +353,28 @@ Throughput arithmetic for the record: RV32IM at ~1 DMIPS/MHz-class
 IPC against the bit-serial core's ~1/40th - the VA10805-parity
 ladder's compute leg is climbed at equal clock, and the 50 MHz
 closure campaign remains as the clock leg.
+
+## Cycle 14, rung 3 (2026-08-16): the protection pilot - two answers, measured
+
+How do you protect a pipelined core you must not edit? Both answers
+now exist in this tree, proven on real SG13G2 cells. Pilot A wraps
+three vendored cores behind one voted bus: a corrupted core diverges
+silently behind the voters - two thousand cycles of wrong intent
+never touching memory - and the sticky divergence flag hands
+recovery to the reset ladder the die already trusts. Its price is
+the honest limit that a diverged core stays diverged. Pilot B is
+zirh_tmr_reg's voted feedback applied by TOOL: the scan stitcher's
+machinery one voter deeper, tripling every flop in the synthesized
+netlist and giving the voter the original Q net, so every consumer -
+the combinational cone and each replica's own D path - reads the
+majority. The stitched carrier tracks its golden model, masks a
+pinned replica, and HEALS it on release: the self-correcting
+property the RTL library has carried since ZIRH-1, now available to
+logic the RTL never wrote. The core transform measures 3.5x cells
+with the caveat written down: most of those flops are the
+instruction-cache array, which hardens as a macro, not as
+triplicated logic - the true cost is the ~2.3k core-state flops.
+The decision is deliberately deferred to measurement: pilot B is the
+program's philosophy and the default; pilot A is the fallback if the
+per-flop voter's timing cost breaks the 50 MHz closure. The clock
+campaign - the parity ladder's remaining leg - picks the winner.

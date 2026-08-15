@@ -251,3 +251,18 @@ requirements:
       and a capture cycle overwrites the loaded ones with the true
       reset state (the three reset-to-one flops read back as the only
       ones)
+  - id: Z3-R23
+    text: The compute upgrade shall have a proven protection path. Two
+      candidates are demonstrated on real cells and measured - triple-core
+      lockstep (voted bus, sticky divergence flag, recovery via the
+      existing reset ladder) and tool-applied flop triplication with
+      voted feedback (per-flop self-heal, RTL untouched) - and the
+      50 MHz closure campaign selects between them on measured timing.
+    tests:
+      - test/tb_vex_tmr.v
+      - scripts/tmr_pilot.sh
+    evidence: pilot A - a corrupted core is outvoted for 2000 cycles
+      and flagged sticky; pilot B - the stitched netlist tracks the
+      golden model, masks a pinned replica for 100 cycles, and heals
+      it on release; core transform measured at 3.5x cells with the
+      cache-array caveat recorded

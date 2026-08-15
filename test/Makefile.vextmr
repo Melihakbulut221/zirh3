@@ -1,0 +1,12 @@
+SRC_DIR := $(CURDIR)/../src
+BUILD := sim_build/vextmr
+.PHONY: all clean
+all: $(BUILD)/vextmr.vvp
+	vvp $(BUILD)/vextmr.vvp
+$(BUILD)/vextmr.vvp: tb_vex_tmr.v $(SRC_DIR)/zirh_vex_tmr.v $(SRC_DIR)/zirh_vex_wrap.v $(SRC_DIR)/vex/VexRiscv_Lite.v
+	mkdir -p $(BUILD)
+	iverilog -g2012 -s tb_vex_tmr -o $@ tb_vex_tmr.v \
+	  $(SRC_DIR)/zirh_vex_tmr.v $(SRC_DIR)/zirh_vex_wrap.v \
+	  $(SRC_DIR)/zirh_tmr_lib.v $(SRC_DIR)/vex/VexRiscv_Lite.v
+clean:
+	rm -rf $(BUILD)
