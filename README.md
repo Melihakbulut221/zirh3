@@ -14,6 +14,10 @@ SRAM macros, a boot path from external MRAM, a lockable debug port -
 on the free IHP OpenMPW ~2 mm2 open-source slot, so the rehearsal
 waits behind the DATA gate, not a money gate.
 
+## Block diagram
+
+![ZIRH-3 as built](docs/fig/block_diagram.svg)
+
 ## What lives here now
 
 The verified block library, imported at its proven state and kept
