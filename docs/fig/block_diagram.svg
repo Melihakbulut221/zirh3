@@ -1,197 +1,274 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 780" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 940" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#455a64"/>
     </marker>
-    <marker id="arrP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="#8a6d3b"/>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#a03c3c"/>
     </marker>
   </defs>
   <style>
     .title   { font-size: 19px; font-weight: 700; fill: #1a252f; }
     .sub     { font-size: 11.5px; fill: #5a6b78; }
     .gtitle  { font-size: 13px; font-weight: 700; }
-    .btitle  { font-size: 12px; font-weight: 600; fill: #1a252f; }
     .btext   { font-size: 10px; fill: #43535f; }
     .mono    { font-family: 'SFMono-Regular',Consolas,Menlo,monospace; }
-    .pin     { font-size: 10px; font-weight: 600; fill: #ffffff; }
+    .pin     { font-size: 9.5px; font-weight: 600; fill: #ffffff; }
     .pinlbl  { font-size: 9px; fill: #5a6b78; }
     .wire    { stroke: #455a64; stroke-width: 1.4; fill: none; }
-    .pwire   { stroke: #8a6d3b; stroke-width: 1.4; fill: none; stroke-dasharray: 6 4; }
+    .rwire   { stroke: #a03c3c; stroke-width: 1.2; fill: none; }
     .note    { font-size: 10.5px; fill: #5a6b78; font-style: italic; }
   </style>
 
-  <rect x="0" y="0" width="1040" height="780" fill="#ffffff"/>
+  <rect x="0" y="0" width="1100" height="940" fill="#ffffff"/>
 
-  <text x="520" y="34" text-anchor="middle" class="title">ZIRH-3 - the dedicated-die rehearsal, as built</text>
-  <text x="520" y="52" text-anchor="middle" class="sub">every solid box elaborates, lints clean and holds its replicas through synthesis today - dashed = the next ladder rung (docs/SOC-IMPORT.md)</text>
+  <text x="550" y="34" text-anchor="middle" class="title">ZIRH-3 - the compute die, as built (the SoC-import ladder is complete)</text>
+  <text x="550" y="52" text-anchor="middle" class="sub">every block lints clean and holds its replicas through synthesis: 70 measured TMR replicas / 4192 flops, checked in CI on every push (scripts/check_tmr.sh)</text>
 
   <!-- ================= input pin pills ================= -->
   <g class="mono">
-    <rect x="8" y="86" width="52" height="18" rx="9" fill="#37474f"/>
-    <text x="34" y="99" text-anchor="middle" class="pin">clk</text>
-    <text x="8" y="126" class="pinlbl">PAD_RESET</text>
-    <rect x="8" y="130" width="52" height="18" rx="9" fill="#37474f"/>
-    <text x="34" y="143" text-anchor="middle" class="pin">rst_n</text>
+    <rect x="8" y="86" width="60" height="18" rx="9" fill="#37474f"/>
+    <text x="38" y="99" text-anchor="middle" class="pin">clk</text>
+    <text x="8" y="126" class="pinlbl">PAD RESET</text>
+    <rect x="8" y="130" width="60" height="18" rx="9" fill="#37474f"/>
+    <text x="38" y="143" text-anchor="middle" class="pin">rst_n</text>
     <text x="8" y="170" class="pinlbl">BROWN-OUT</text>
     <rect x="8" y="174" width="60" height="18" rx="9" fill="#8c2f23"/>
     <text x="38" y="187" text-anchor="middle" class="pin">pwr_good</text>
-    <text x="8" y="332" class="pinlbl">BOOT_STRAP</text>
-    <rect x="8" y="336" width="60" height="18" rx="9" fill="#8c2f23"/>
-    <text x="38" y="349" text-anchor="middle" class="pin">strap[1:0]</text>
-    <text x="8" y="392" class="pinlbl">HOST ISP (UART)</text>
-    <rect x="8" y="396" width="60" height="18" rx="9" fill="#1f5f8b"/>
-    <text x="38" y="409" text-anchor="middle" class="pin">uart_rx</text>
-    <text x="8" y="452" class="pinlbl">MRAM QSPI</text>
-    <rect x="8" y="456" width="60" height="18" rx="9" fill="#1f7a7a"/>
-    <text x="38" y="469" text-anchor="middle" class="pin">io[3:0]+cs</text>
-    <text x="8" y="510" class="pinlbl">JTAG DEBUG</text>
-    <rect x="8" y="514" width="60" height="18" rx="9" fill="#6a3fa0"/>
-    <text x="38" y="527" text-anchor="middle" class="pin">tck/tms/tdi/tdo</text>
+    <text x="8" y="292" class="pinlbl">SHARED UART</text>
+    <rect x="8" y="296" width="60" height="18" rx="9" fill="#1f5f8b"/>
+    <text x="38" y="309" text-anchor="middle" class="pin">uart_rx</text>
+    <text x="8" y="372" class="pinlbl">BOOT STRAP</text>
+    <rect x="8" y="376" width="60" height="18" rx="9" fill="#8c2f23"/>
+    <text x="38" y="389" text-anchor="middle" class="pin">strap</text>
+    <text x="8" y="474" class="pinlbl">FLIGHT FUSE</text>
+    <rect x="8" y="478" width="60" height="18" rx="9" fill="#8c2f23"/>
+    <text x="38" y="491" text-anchor="middle" class="pin">dbg_unlock</text>
+    <text x="8" y="552" class="pinlbl">JTAG DEBUG</text>
+    <rect x="8" y="556" width="60" height="18" rx="9" fill="#6a3fa0"/>
+    <text x="38" y="569" text-anchor="middle" class="pin">tck tms tdi</text>
+    <rect x="8" y="578" width="60" height="18" rx="9" fill="#6a3fa0"/>
+    <text x="38" y="591" text-anchor="middle" class="pin">tdo trst_n</text>
   </g>
 
   <!-- ================= por_ro ================= -->
-  <rect x="100" y="76" width="230" height="130" rx="12" fill="#fdeaea" stroke="#a03c3c" stroke-width="1.8"/>
-  <text x="116" y="98" class="gtitle" fill="#7c2d2d">zirh_por_ro - the die's own</text>
-  <text x="215" y="116" text-anchor="middle" class="btext">POR/brown-out conditioning:</text>
-  <text x="215" y="129" text-anchor="middle" class="btext">settle-window hold, synchronized</text>
-  <text x="215" y="142" text-anchor="middle" class="btext">release, re-arm on power dropout</text>
-  <text x="215" y="160" text-anchor="middle" class="btext">+ the independent ring-oscillator</text>
-  <text x="215" y="173" text-anchor="middle" class="btext">clock the observer needs (no TMR</text>
-  <text x="215" y="186" text-anchor="middle" class="btext">by design: fails safe by holding reset)</text>
-  <text x="215" y="200" text-anchor="middle" class="btext mono">Cycle 3 - tb_por_ro, tb_die</text>
+  <rect x="100" y="80" width="230" height="120" rx="12" fill="#fdeaea" stroke="#a03c3c" stroke-width="1.8"/>
+  <text x="116" y="101" class="gtitle" fill="#7c2d2d">zirh_por_ro</text>
+  <text x="215" y="118" text-anchor="middle" class="btext">the die's own reset and observer clock:</text>
+  <text x="215" y="131" text-anchor="middle" class="btext">POR/brown-out conditioning, settle-window</text>
+  <text x="215" y="144" text-anchor="middle" class="btext">hold, re-arm on dropout + the independent</text>
+  <text x="215" y="157" text-anchor="middle" class="btext">ring oscillator (no TMR by design:</text>
+  <text x="215" y="170" text-anchor="middle" class="btext">fails safe by holding reset)</text>
+  <text x="215" y="188" text-anchor="middle" class="btext mono">Cycle 3 - tb_por_ro, tb_die</text>
 
-  <path d="M60 95 L100 95" class="wire" marker-end="url(#arr)"/>
-  <path d="M60 139 L100 139" class="wire" marker-end="url(#arr)"/>
+  <path d="M68 95 L100 95" class="wire" marker-end="url(#arr)"/>
+  <path d="M68 139 L100 139" class="wire" marker-end="url(#arr)"/>
   <path d="M68 183 L100 183" class="wire" marker-end="url(#arr)"/>
 
-  <!-- reset + ro rails -->
-  <path d="M330 110 L420 110 L420 250" class="wire" marker-end="url(#arr)"/>
-  <text x="360" y="105" class="pinlbl">sys_rst_n (to every solid block)</text>
-  <path d="M330 175 L732 175 L732 418 L640 418 L640 430" class="wire" marker-end="url(#arr)"/>
-  <text x="360" y="170" class="pinlbl">ro_clk + ro_rst_n (independent domain, into the observer)</text>
+  <!-- sys_rst_n rail: from the POR block into the rows below -->
+  <path d="M215 200 L215 228" class="rwire"/>
+  <path d="M150 228 L725 228" class="rwire"/>
+  <path d="M180 228 L180 250" class="rwire" marker-end="url(#arrR)"/>
+  <path d="M415 228 L415 240" class="rwire" marker-end="url(#arrR)"/>
+  <path d="M720 228 L720 240" class="rwire" marker-end="url(#arrR)"/>
+  <text x="440" y="224" class="pinlbl" fill="#a03c3c">sys_rst_n - the conditioned reset every block runs on (also the gate, clkobs, bank, hk, tlm)</text>
 
-  <!-- ================= memsys group ================= -->
-  <rect x="100" y="250" width="640" height="330" rx="12" fill="#e9f0fb" stroke="#3b6fc9" stroke-width="1.8"/>
-  <text x="116" y="272" class="gtitle" fill="#2a4d8f">zirh3_memsys - the proven substrate (Cycle 2)</text>
+  <!-- ro_clk into the observer -->
+  <path d="M330 150 L770 150" class="wire" marker-end="url(#arr)"/>
+  <text x="420" y="145" class="pinlbl">ro_clk + ro_rst_n - the independent observer domain</text>
 
-  <rect x="116" y="290" width="180" height="120" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="206" y="308" text-anchor="middle" class="btitle mono">zirh_boot_ctrl</text>
-  <text x="206" y="323" text-anchor="middle" class="btext">trusted loader, PROTECT=1:</text>
-  <text x="206" y="336" text-anchor="middle" class="btext">MAGIC/len/ver/CRC32 image,</text>
-  <text x="206" y="349" text-anchor="middle" class="btext">READ-BACK verify of stored</text>
-  <text x="206" y="362" text-anchor="middle" class="btext">words, A/B banks, watchdog</text>
-  <text x="206" y="375" text-anchor="middle" class="btext">revert ladder, ISP</text>
-  <text x="206" y="393" text-anchor="middle" class="btext mono">8 SV stories + storage_lie</text>
+  <!-- ================= clkobs ================= -->
+  <rect x="770" y="80" width="240" height="120" rx="12" fill="#fff8e8" stroke="#b08a2e" stroke-width="1.8"/>
+  <text x="786" y="101" class="gtitle" fill="#7d6220">zirh_clkobs</text>
+  <text x="890" y="118" text-anchor="middle" class="btext">clock-loss observer on the die's own</text>
+  <text x="890" y="131" text-anchor="middle" class="btext">oscillator: sees a main-clock SEFI the</text>
+  <text x="890" y="144" text-anchor="middle" class="btext">synchronous die cannot, latches the sticky</text>
+  <text x="890" y="157" text-anchor="middle" class="btext">event, counts losses survived (deliberately</text>
+  <text x="890" y="170" text-anchor="middle" class="btext">no main-clock assertions)</text>
+  <text x="890" y="188" text-anchor="middle" class="btext mono">TMR state, 12 replicas</text>
 
-  <rect x="320" y="290" width="200" height="120" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="420" y="308" text-anchor="middle" class="btitle mono">zirh_sram39</text>
-  <text x="420" y="323" text-anchor="middle" class="btext">the bank: 32+6+1 SECDED word</text>
-  <text x="420" y="336" text-anchor="middle" class="btext">across FIVE 1024x8 macros -</text>
-  <text x="420" y="349" text-anchor="middle" class="btext">an MBU in one macro is one</text>
-  <text x="420" y="362" text-anchor="middle" class="btext">logical bit; background scrubber;</text>
-  <text x="420" y="375" text-anchor="middle" class="btext">address-in-ECC (wrong row =</text>
-  <text x="420" y="388" text-anchor="middle" class="btext">always uncorrectable)</text>
-  <text x="420" y="403" text-anchor="middle" class="btext mono">f_ecc + f_amask proofs</text>
+  <!-- ================= isp_rx ================= -->
+  <rect x="100" y="250" width="160" height="110" rx="10" fill="#e8f1fa" stroke="#3b6fc9" stroke-width="1.5"/>
+  <text x="180" y="271" text-anchor="middle" class="gtitle" fill="#2a4d8f">zirh_isp_rx</text>
+  <text x="180" y="290" text-anchor="middle" class="btext">UART receiver at the</text>
+  <text x="180" y="303" text-anchor="middle" class="btext">reset baud - the ISP</text>
+  <text x="180" y="316" text-anchor="middle" class="btext">stream's front door</text>
+  <text x="180" y="334" text-anchor="middle" class="btext mono">DIV = RESET_DIV</text>
 
-  <rect x="544" y="290" width="180" height="120" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="634" y="308" text-anchor="middle" class="btitle mono">zirh_qspi</text>
-  <text x="634" y="323" text-anchor="middle" class="btext">QSPI-MRAM image source:</text>
-  <text x="634" y="336" text-anchor="middle" class="btext">x1 READ / x4 quad-output,</text>
-  <text x="634" y="349" text-anchor="middle" class="btext">backpressure = SCK freeze,</text>
-  <text x="634" y="362" text-anchor="middle" class="btext">transport-agnostic stream</text>
-  <text x="634" y="375" text-anchor="middle" class="btext">into the loader (host UART</text>
-  <text x="634" y="388" text-anchor="middle" class="btext">is the other transport)</text>
+  <!-- shared uart pin: dot + two listeners -->
+  <path d="M68 305 L100 305" class="wire" marker-end="url(#arr)"/>
+  <circle cx="84" cy="305" r="2.6" fill="#455a64"/>
+  <path d="M84 305 L84 212 L640 212 L640 240" class="wire" marker-end="url(#arr)"/>
+  <text x="238" y="208" class="pinlbl">one pad, two listeners: the ISP receiver and the CPU console RX</text>
 
-  <rect x="116" y="430" width="285" height="130" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="258" y="447" text-anchor="middle" class="btitle mono">zirh_jtag_dm + zirh_dbg_gate</text>
-  <text x="258" y="461" text-anchor="middle" class="btext">IEEE 1149.1 TAP + RISC-V DTM/DM:</text>
-  <text x="258" y="474" text-anchor="middle" class="btext">IDCODE, DTMCS, DMI -> halt / ndmreset /</text>
-  <text x="258" y="487" text-anchor="middle" class="btext">system-bus-access. The gate below latches</text>
-  <text x="258" y="500" text-anchor="middle" class="btext">LOCKED at POR: every debug effect reaches</text>
-  <text x="258" y="513" text-anchor="middle" class="btext">the core ONLY if the flight fuse permits -</text>
-  <text x="258" y="526" text-anchor="middle" class="btext">inert in flight, live on the bench. TAP is a</text>
-  <text x="258" y="539" text-anchor="middle" class="btext">transport (not TMR); DM state is TMR.</text>
-  <text x="258" y="554" text-anchor="middle" class="btext mono">Cycle 8 (F27) - f_dbg: lock is absorbing</text>
-  <rect x="425" y="430" width="299" height="130" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="574" y="448" text-anchor="middle" class="btitle mono">zirh_clkobs</text>
-  <text x="574" y="463" text-anchor="middle" class="btext">clock-loss observer on the POR block's</text>
-  <text x="574" y="476" text-anchor="middle" class="btext">independent oscillator: sees a main-clock</text>
-  <text x="574" y="489" text-anchor="middle" class="btext">SEFI the synchronous die cannot, latches</text>
-  <text x="574" y="502" text-anchor="middle" class="btext">the sticky event, counts losses survived -</text>
-  <text x="574" y="515" text-anchor="middle" class="btext">deliberately no main-clock assertions</text>
-  <text x="574" y="528" text-anchor="middle" class="btext">(the main clock is the thing that dies)</text>
-  <text x="574" y="546" text-anchor="middle" class="btext mono">TMR state, 12 replicas</text>
+  <!-- ================= boot_ctrl ================= -->
+  <rect x="300" y="240" width="230" height="140" rx="10" fill="#e8f1fa" stroke="#3b6fc9" stroke-width="1.5"/>
+  <text x="415" y="261" text-anchor="middle" class="gtitle" fill="#2a4d8f">zirh_boot_ctrl (PROTECT=1)</text>
+  <text x="415" y="280" text-anchor="middle" class="btext">the trusted loader: MAGIC/len/ver/CRC32</text>
+  <text x="415" y="293" text-anchor="middle" class="btext">image, READ-BACK verify of STORED words,</text>
+  <text x="415" y="306" text-anchor="middle" class="btext">A/B banks, watchdog revert ladder -</text>
+  <text x="415" y="319" text-anchor="middle" class="btext">holds the CPU, programs the bank through</text>
+  <text x="415" y="332" text-anchor="middle" class="btext">the bus, releases on commit</text>
+  <text x="415" y="350" text-anchor="middle" class="btext mono">8 SV stories + storage_lie</text>
+  <text x="415" y="364" text-anchor="middle" class="btext mono">f_boot: reject is absorbing</text>
 
-  <path d="M296 350 L320 350" class="wire" marker-end="url(#arr)"/>
-  <text x="298" y="344" class="pinlbl">fills</text>
-  <path d="M544 350 L520 350" class="wire" marker-end="url(#arr)"/>
+  <path d="M260 305 L300 305" class="wire" marker-end="url(#arr)"/>
+  <text x="266" y="300" class="pinlbl">bytes</text>
+  <path d="M68 385 L280 385 L280 370 L300 370" class="wire" marker-end="url(#arr)"/>
+  <path d="M530 290 L580 290" class="wire" marker-end="url(#arr)"/>
+  <text x="533" y="283" class="pinlbl">ISP mux</text>
 
-  <path d="M68 345 L92 345 L92 330 L116 330" class="wire" marker-end="url(#arr)"/>
-  <path d="M68 405 L92 405 L92 370 L116 370" class="wire" marker-end="url(#arr)"/>
-  <text x="72" y="384" class="pinlbl">via u_isp_rx</text>
-  <path d="M68 523 L100 523 L100 495 L116 495" class="wire" marker-end="url(#arr)"/>
-  <path d="M68 465 L88 465 L88 420 L634 420 L634 410" class="wire" marker-end="url(#arr)"/>
+  <!-- ================= soc ================= -->
+  <rect x="580" y="240" width="280" height="190" rx="12" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.8"/>
+  <text x="596" y="261" class="gtitle" fill="#5b3391">zirh_soc - the compute cluster</text>
+  <text x="720" y="280" text-anchor="middle" class="btext">SERV RV32I (vendored, pinned) + mask ROM</text>
+  <text x="720" y="293" text-anchor="middle" class="btext">with the golden firmware + single-master</text>
+  <text x="720" y="306" text-anchor="middle" class="btext">bus with timeout + the shared UART.</text>
+  <text x="720" y="319" text-anchor="middle" class="btext">The ISP mux holds, programs, releases;</text>
+  <text x="720" y="332" text-anchor="middle" class="btext">the TX mux interleaves CPU bytes and</text>
+  <text x="720" y="345" text-anchor="middle" class="btext">telemetry frames on one pin</text>
+  <text x="720" y="365" text-anchor="middle" class="btext mono">slot 2 UART - slot 3 hk - slot 4 bank</text>
+  <text x="720" y="381" text-anchor="middle" class="btext mono">boots ROM or the loaded bank</text>
+  <text x="720" y="399" text-anchor="middle" class="btext mono">Cycles 5-12 - rungs 1-6, suite 6/6</text>
 
-  <!-- ================= sram_dut ================= -->
-  <rect x="760" y="250" width="250" height="150" rx="12" fill="#e9f5ec" stroke="#2e8b57" stroke-width="1.8"/>
-  <text x="776" y="272" class="gtitle" fill="#1f6b41">zirh_sram_dut - A6</text>
-  <text x="885" y="290" text-anchor="middle" class="btext">the raw-cross-section instrument:</text>
-  <text x="885" y="303" text-anchor="middle" class="btext">five BARE macros - no SECDED, no</text>
-  <text x="885" y="316" text-anchor="middle" class="btext">scrubber, no voting - swept by the</text>
-  <text x="885" y="329" text-anchor="middle" class="btext">TMR'd pattern engine; every mismatch</text>
-  <text x="885" y="342" text-anchor="middle" class="btext">streams out raw as (fail_adr,</text>
-  <text x="885" y="355" text-anchor="middle" class="btext">fail_map): the per-macro MBU record</text>
-  <text x="885" y="368" text-anchor="middle" class="btext">no published open-PDK dataset has</text>
-  <text x="885" y="386" text-anchor="middle" class="btext mono">Cycle 4 - clean-array baseline</text>
-
-  <!-- ================= soc cluster (imported, attachment pending) ========== -->
-  <rect x="760" y="430" width="250" height="150" rx="12" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.8"/>
-  <text x="776" y="452" class="gtitle" fill="#5b3391">zirh_soc - ATTACHED (rung 3)</text>
-  <text x="885" y="470" text-anchor="middle" class="btext">SERV RV32I (vendored, pinned) +</text>
-  <text x="885" y="483" text-anchor="middle" class="btext">mask ROM with committed firmware +</text>
-  <text x="885" y="496" text-anchor="middle" class="btext">single-master bus with watchdog +</text>
-  <text x="885" y="509" text-anchor="middle" class="btext">command/telemetry UART - suite 3/3</text>
-  <text x="885" y="522" text-anchor="middle" class="btext">(boot, echo, living CPU); carries</text>
-  <text x="885" y="535" text-anchor="middle" class="btext">zirh3_top: loader fills its bank via</text>
-  <text x="885" y="548" text-anchor="middle" class="btext">the proven ISP mux - loaded code RUNS</text>
-  <text x="885" y="566" text-anchor="middle" class="btext mono">Cycles 5-9 - rungs 1-3, ISP 3/3</text>
-
-  <!-- rung-3 dashed attachment -->
-  <path d="M760 505 L742 505 L742 350 L724 350" class="pwire" marker-end="url(#arrP)"/>
-  <text x="753" y="424" class="pinlbl" fill="#8a6d3b" transform="rotate(90 753 424)">later rung: sram39 as CPU data memory</text>
-
-  <!-- ================= die wrapper outline ================= -->
-  <rect x="88" y="64" width="668" height="530" rx="14" fill="none" stroke="#5f6b76" stroke-width="1.6" stroke-dasharray="2 3"/>
-  <text x="100" y="614" class="pinlbl">zirh3_die - takes only clk + pad reset + power-good and makes everything else itself (Cycle 3, tb_die)</text>
-
-  <!-- ================= observability pills ================= -->
+  <!-- pins out: anchored bracket from the soc edge -->
+  <path d="M860 330 L930 330" class="wire"/>
+  <path d="M930 266 L930 410" class="wire"/>
+  <path d="M930 266 L944 266" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 290 L944 290" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 314 L944 314" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 338 L944 338" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 362 L944 362" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 386 L944 386" class="wire" marker-end="url(#arr)"/>
+  <path d="M930 410 L944 410" class="wire" marker-end="url(#arr)"/>
   <g class="mono">
-    <rect x="936" y="86" width="96" height="18" rx="9" fill="#455a64"/>
-    <text x="984" y="99" text-anchor="middle" class="pin">sys_rst_n</text>
-    <rect x="936" y="110" width="96" height="18" rx="9" fill="#455a64"/>
-    <text x="984" y="123" text-anchor="middle" class="pin">clk_ok</text>
-    <rect x="936" y="134" width="96" height="18" rx="9" fill="#8c2f23"/>
-    <text x="984" y="147" text-anchor="middle" class="pin">evt_clk_loss</text>
-    <rect x="936" y="158" width="96" height="18" rx="9" fill="#8c2f23"/>
-    <text x="984" y="171" text-anchor="middle" class="pin">evt_ecc_*</text>
-    <rect x="936" y="182" width="96" height="18" rx="9" fill="#455a64"/>
-    <text x="984" y="195" text-anchor="middle" class="pin">boot_sel</text>
-    <rect x="936" y="206" width="96" height="18" rx="9" fill="#8c2f23"/>
-    <text x="984" y="219" text-anchor="middle" class="pin">err (TMR)</text>
+    <rect x="948" y="257" width="112" height="18" rx="9" fill="#1f5f8b"/>
+    <text x="1004" y="270" text-anchor="middle" class="pin">uart_tx</text>
+    <rect x="948" y="281" width="112" height="18" rx="9" fill="#455a64"/>
+    <text x="1004" y="294" text-anchor="middle" class="pin">sys_rst_n</text>
+    <rect x="948" y="305" width="112" height="18" rx="9" fill="#455a64"/>
+    <text x="1004" y="318" text-anchor="middle" class="pin">boot_sel</text>
+    <rect x="948" y="329" width="112" height="18" rx="9" fill="#8c2f23"/>
+    <text x="1004" y="342" text-anchor="middle" class="pin">evt_boot_accept</text>
+    <rect x="948" y="353" width="112" height="18" rx="9" fill="#8c2f23"/>
+    <text x="1004" y="366" text-anchor="middle" class="pin">evt_boot_reject</text>
+    <rect x="948" y="377" width="112" height="18" rx="9" fill="#6a3fa0"/>
+    <text x="1004" y="390" text-anchor="middle" class="pin">dbg_locked</text>
+    <rect x="948" y="401" width="112" height="18" rx="9" fill="#8c2f23"/>
+    <text x="1004" y="414" text-anchor="middle" class="pin">err (TMR)</text>
   </g>
-  <path d="M756 152 L920 152" class="wire"/>
-  <path d="M920 95 L920 219" class="wire"/>
-  <path d="M920 95 L936 95" class="wire" marker-end="url(#arr)"/>
-  <path d="M920 119 L936 119" class="wire" marker-end="url(#arr)"/>
-  <path d="M920 143 L936 143" class="wire" marker-end="url(#arr)"/>
-  <path d="M920 167 L936 167" class="wire" marker-end="url(#arr)"/>
-  <path d="M920 191 L936 191" class="wire" marker-end="url(#arr)"/>
-  <path d="M920 215 L936 215" class="wire" marker-end="url(#arr)"/>
-  <text x="770" y="147" class="pinlbl">observability</text>
+  <text x="866" y="325" class="pinlbl">pins out</text>
+  <text x="948" y="434" class="pinlbl">err = OR of eight voters</text>
+  <text x="948" y="446" class="pinlbl">(boot, jtag, gate, clkobs,</text>
+  <text x="948" y="458" class="pinlbl">soc, bank, hk, tlm)</text>
+
+  <!-- ================= signon strip ================= -->
+  <rect x="100" y="404" width="430" height="66" rx="10" fill="#fdf3e3" stroke="#b07d2e" stroke-width="1.5"/>
+  <text x="116" y="422" class="gtitle" fill="#7d5a20">watchdog-revert signon (the last rung's contract)</text>
+  <text x="315" y="438" text-anchor="middle" class="btext">a committed bank SIGNS ON when its firmware writes CPU_SIG (hk pulses cpu_alive);</text>
+  <text x="315" y="451" text-anchor="middle" class="btext">the watchdog verdict is grace-gated one full period; a watchdog revert counts as a</text>
+  <text x="315" y="464" text-anchor="middle" class="btext">reject - isp_hold never re-arms against the golden CPU</text>
+
+  <path d="M380 404 L380 380" class="wire" marker-end="url(#arr)"/>
+  <text x="292" y="398" class="pinlbl">signon_i + wd_fail_i into the loader</text>
+
+  <!-- ================= jtag_dm ================= -->
+  <rect x="100" y="500" width="200" height="130" rx="10" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.5"/>
+  <text x="200" y="521" text-anchor="middle" class="gtitle" fill="#5b3391">zirh_jtag_dm</text>
+  <text x="200" y="540" text-anchor="middle" class="btext">IEEE 1149.1 TAP + RISC-V</text>
+  <text x="200" y="553" text-anchor="middle" class="btext">DTM/DM: IDCODE, DTMCS, DMI -</text>
+  <text x="200" y="566" text-anchor="middle" class="btext">halt, ndmreset, System Bus</text>
+  <text x="200" y="579" text-anchor="middle" class="btext">Access. TAP is a transport</text>
+  <text x="200" y="592" text-anchor="middle" class="btext">(not TMR); DM state is TMR</text>
+  <text x="200" y="610" text-anchor="middle" class="btext mono">Cycle 8 (F27) + rung 5</text>
+
+  <path d="M68 565 L100 565" class="wire" marker-end="url(#arr)"/>
+  <path d="M100 587 L68 587" class="wire" marker-end="url(#arr)"/>
+  <path d="M300 555 L340 555" class="wire" marker-end="url(#arr)"/>
+  <text x="303" y="549" class="pinlbl">raw req</text>
+
+  <!-- ================= dbg_gate ================= -->
+  <rect x="340" y="500" width="180" height="130" rx="10" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.5"/>
+  <text x="430" y="521" text-anchor="middle" class="gtitle" fill="#5b3391">zirh_dbg_gate</text>
+  <text x="430" y="540" text-anchor="middle" class="btext">the flight lock: latched</text>
+  <text x="430" y="553" text-anchor="middle" class="btext">LOCKED at POR unless the</text>
+  <text x="430" y="566" text-anchor="middle" class="btext">fuse says bench; masks every</text>
+  <text x="430" y="579" text-anchor="middle" class="btext">debug effect toward the core</text>
+  <text x="430" y="592" text-anchor="middle" class="btext">and the bus</text>
+  <text x="430" y="610" text-anchor="middle" class="btext mono">f_dbg: lock is absorbing</text>
+
+  <path d="M68 487 L430 487 L430 500" class="wire" marker-end="url(#arr)"/>
+  <path d="M520 555 L580 555" class="wire" marker-end="url(#arr)"/>
+  <text x="524" y="549" class="pinlbl">gated SBA</text>
+
+  <!-- ================= arbiter ================= -->
+  <rect x="580" y="500" width="120" height="100" rx="10" fill="#eef2f5" stroke="#5f6b76" stroke-width="1.5"/>
+  <text x="640" y="521" text-anchor="middle" class="gtitle" fill="#3d4852">bank arbiter</text>
+  <text x="640" y="540" text-anchor="middle" class="btext">SBA wins while it</text>
+  <text x="640" y="553" text-anchor="middle" class="btext">holds cyc - possible</text>
+  <text x="640" y="566" text-anchor="middle" class="btext">only UNLOCKED, so a</text>
+  <text x="640" y="579" text-anchor="middle" class="btext">flight CPU never</text>
+  <text x="640" y="592" text-anchor="middle" class="btext">contends</text>
+
+  <path d="M640 430 L640 500" class="wire" marker-end="url(#arr)"/>
+  <text x="648" y="452" class="pinlbl">slot 4 (0x4000)</text>
+  <path d="M700 550 L780 550" class="wire" marker-end="url(#arr)"/>
+  <text x="744" y="544" class="pinlbl">one port</text>
+
+  <!-- ================= sram39 ================= -->
+  <rect x="780" y="480" width="230" height="160" rx="12" fill="#e9f0fb" stroke="#3b6fc9" stroke-width="1.8"/>
+  <text x="796" y="501" class="gtitle" fill="#2a4d8f">zirh_sram39 - the bank</text>
+  <text x="895" y="520" text-anchor="middle" class="btext">32+6+1 SECDED word across FIVE</text>
+  <text x="895" y="533" text-anchor="middle" class="btext">1024x8 macros - an MBU in one</text>
+  <text x="895" y="546" text-anchor="middle" class="btext">macro is one logical bit;</text>
+  <text x="895" y="559" text-anchor="middle" class="btext">background scrubber; address-in-</text>
+  <text x="895" y="572" text-anchor="middle" class="btext">ECC (wrong row = uncorrectable).</text>
+  <text x="895" y="585" text-anchor="middle" class="btext">CPU data memory AND the</text>
+  <text x="895" y="598" text-anchor="middle" class="btext">debugger's peek/poke target</text>
+  <text x="895" y="616" text-anchor="middle" class="btext mono">f_ecc + f_amask proofs</text>
+
+  <!-- ================= slot-3 and telemetry return ================= -->
+  <path d="M580 400 L558 400 L558 680" class="wire" marker-end="url(#arr)"/>
+  <text x="548" y="602" class="pinlbl" transform="rotate(90 548 602)">slot 3: hk regs</text>
+  <path d="M740 680 L740 430" class="wire" marker-end="url(#arr)"/>
+  <text x="731" y="646" class="pinlbl" transform="rotate(-90 731 646)">v2 frames into the shared TX</text>
+
+  <!-- ================= hk ================= -->
+  <rect x="360" y="680" width="230" height="150" rx="12" fill="#e9f5ec" stroke="#2e8b57" stroke-width="1.8"/>
+  <text x="376" y="701" class="gtitle" fill="#1f6b41">zirh_hk - housekeeping</text>
+  <text x="475" y="720" text-anchor="middle" class="btext">the SEU counters (plain vs TMR A/B,</text>
+  <text x="475" y="733" text-anchor="middle" class="btext">raw and escaped), ECC and bus-timeout</text>
+  <text x="475" y="746" text-anchor="middle" class="btext">tallies, boot count, the CPU SIGNATURE</text>
+  <text x="475" y="759" text-anchor="middle" class="btext">register, and the CPU WATCHDOG</text>
+  <text x="475" y="772" text-anchor="middle" class="btext">(resets the SoC only - the die's</text>
+  <text x="475" y="785" text-anchor="middle" class="btext">conditioned reset stands)</text>
+  <text x="475" y="803" text-anchor="middle" class="btext mono">slot 3 - cpu_alive + wd_rst</text>
+  <text x="475" y="817" text-anchor="middle" class="btext mono">out to the signon logic</text>
+
+  <path d="M360 715 L320 715 L320 470" class="wire" marker-end="url(#arr)"/>
+  <text x="310" y="640" class="pinlbl" transform="rotate(90 310 640)">cpu_alive + wd_rst</text>
+
+  <!-- ================= tlm2 ================= -->
+  <rect x="650" y="680" width="180" height="150" rx="12" fill="#e9f5ec" stroke="#2e8b57" stroke-width="1.8"/>
+  <text x="666" y="701" class="gtitle" fill="#1f6b41">zirh_tlm2</text>
+  <text x="740" y="720" text-anchor="middle" class="btext">the telemetry framer: 20-byte</text>
+  <text x="740" y="733" text-anchor="middle" class="btext">unprompted v2 frames - sync,</text>
+  <text x="740" y="746" text-anchor="middle" class="btext">status, every counter, boot</text>
+  <text x="740" y="759" text-anchor="middle" class="btext">count, CPU signature, XOR</text>
+  <text x="740" y="772" text-anchor="middle" class="btext">checksum - interleaved with</text>
+  <text x="740" y="785" text-anchor="middle" class="btext">CPU bytes on the one TX pin</text>
+  <text x="740" y="803" text-anchor="middle" class="btext mono">a living, changing cpu_sig</text>
+  <text x="740" y="817" text-anchor="middle" class="btext mono">is the sign-on proof</text>
+
+  <path d="M590 750 L650 750" class="wire" marker-end="url(#arr)"/>
+  <text x="594" y="744" class="pinlbl">counters + sig</text>
+
+  <!-- ================= die outline ================= -->
+  <rect x="88" y="64" width="934" height="790" rx="14" fill="none" stroke="#5f6b76" stroke-width="1.6" stroke-dasharray="2 3"/>
+  <text x="100" y="872" class="pinlbl">zirh3_top - takes only clk + pad reset + power-good and makes everything else itself; boots ROM or a loaded image, runs code in its ECC bank, reports on telemetry, reverts a bad bank, offers ISP and JTAG behind their protection boundaries</text>
 
   <!-- footnote -->
-  <text x="520" y="646" text-anchor="middle" class="note">Provenance: every block arrives at its proven state from zirh2 with its suites, formal proofs and synthesis-integrity numbers attached;</text>
-  <text x="520" y="662" text-anchor="middle" class="note">12 measured replica/flop checks run in CI on every push. The pad ring, ESD and physical macro hardening remain the named new-design area (docs/SCOPE.md).</text>
-  <text x="520" y="684" text-anchor="middle" class="note">The gate this repository is built around: B10 - integration proceeds, tape-out waits for ZIRH-1/2 beam data. ZIRH-2 measures; ZIRH-3 is what the measurements are for.</text>
+  <text x="550" y="898" text-anchor="middle" class="note">Provenance: every block arrived at its proven state from zirh2 with its suites, formal proofs and synthesis-integrity numbers attached; the measured</text>
+  <text x="550" y="914" text-anchor="middle" class="note">replica/flop checks run in CI on every push. The pad ring, ESD and physical macro hardening remain the named new-design area (docs/SCOPE.md).</text>
+  <text x="550" y="932" text-anchor="middle" class="note">The gate this repository is built around: B10 - integration is complete, tape-out waits for ZIRH-1/2 beam data. ZIRH-2 measures; ZIRH-3 is what the measurements are for.</text>
 </svg>
