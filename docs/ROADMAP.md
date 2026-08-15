@@ -121,3 +121,19 @@ dead at its first fetch - the file is now part of this repository.
 The cluster boots the committed firmware and answers on its pins;
 rung 3 (attach it to the memsys bank through the proven ISP mux) is
 next.
+
+## Cycle 7 (2026-08-16): the programming interface reaches a pin
+
+Owner review caught two things at once. First, the diagram had
+dangling arrows - rails ending in empty space, observability pills
+with no wires - now every net terminates where it belongs and all six
+status pills ride one trunk. Second, and more substantively: the
+host-ISP transport was a byte-stream PORT, not a pin - the UART
+receiver (zirh_isp_rx, proven on the ZIRH-2 die) had not come over.
+It is now on this die too: uart_rx_i is a pin, the receiver runs at
+the reset baud under the conditioned reset, and strap 11 selects it
+as the loader's transport with QSPI as the other. The die smoke
+passes unchanged, the die measures 1009 flops with replicas still at
+48, and the diagram now shows the interface the silicon would
+actually have. A diagram review that finds a missing block is a
+design review - which is what the figure is for.

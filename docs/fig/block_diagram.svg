@@ -39,9 +39,9 @@
     <text x="8" y="332" class="pinlbl">BOOT_STRAP</text>
     <rect x="8" y="336" width="60" height="18" rx="9" fill="#8c2f23"/>
     <text x="38" y="349" text-anchor="middle" class="pin">strap[1:0]</text>
-    <text x="8" y="392" class="pinlbl">HOST ISP</text>
+    <text x="8" y="392" class="pinlbl">HOST ISP (UART)</text>
     <rect x="8" y="396" width="60" height="18" rx="9" fill="#1f5f8b"/>
-    <text x="38" y="409" text-anchor="middle" class="pin">uart/host</text>
+    <text x="38" y="409" text-anchor="middle" class="pin">uart_rx</text>
     <text x="8" y="452" class="pinlbl">MRAM QSPI</text>
     <rect x="8" y="456" width="60" height="18" rx="9" fill="#1f7a7a"/>
     <text x="38" y="469" text-anchor="middle" class="pin">io[3:0]+cs</text>
@@ -63,10 +63,10 @@
   <path d="M68 183 L100 183" class="wire" marker-end="url(#arr)"/>
 
   <!-- reset + ro rails -->
-  <path d="M330 110 L560 110" class="wire" marker-end="url(#arr)"/>
+  <path d="M330 110 L420 110 L420 250" class="wire" marker-end="url(#arr)"/>
   <text x="360" y="105" class="pinlbl">sys_rst_n (to every solid block)</text>
-  <path d="M330 175 L740 175 L740 236" class="wire" marker-end="url(#arr)"/>
-  <text x="360" y="170" class="pinlbl">ro_clk + ro_rst_n (independent domain)</text>
+  <path d="M330 175 L732 175 L732 418 L640 418 L640 430" class="wire" marker-end="url(#arr)"/>
+  <text x="360" y="170" class="pinlbl">ro_clk + ro_rst_n (independent domain, into the observer)</text>
 
   <!-- ================= memsys group ================= -->
   <rect x="100" y="250" width="640" height="330" rx="12" fill="#e9f0fb" stroke="#3b6fc9" stroke-width="1.8"/>
@@ -122,13 +122,11 @@
 
   <path d="M296 350 L320 350" class="wire" marker-end="url(#arr)"/>
   <text x="298" y="344" class="pinlbl">fills</text>
-  <path d="M634 410 L634 424 L574 424 L574 430" class="wire" opacity="0"/>
   <path d="M544 350 L520 350" class="wire" marker-end="url(#arr)"/>
 
   <path d="M68 345 L92 345 L92 330 L116 330" class="wire" marker-end="url(#arr)"/>
   <path d="M68 405 L92 405 L92 370 L116 370" class="wire" marker-end="url(#arr)"/>
-  <path d="M68 465 L84 465 L84 588 L634 588 L634 560" class="wire" opacity="0"/>
-  <path d="M68 465 L88 465 L88 415 L544 415 L544 400 L544 400" class="wire" opacity="0"/>
+  <text x="72" y="384" class="pinlbl">via u_isp_rx</text>
   <path d="M68 465 L88 465 L88 420 L634 420 L634 410" class="wire" marker-end="url(#arr)"/>
 
   <!-- ================= sram_dut ================= -->
@@ -178,8 +176,15 @@
     <rect x="936" y="206" width="96" height="18" rx="9" fill="#8c2f23"/>
     <text x="984" y="219" text-anchor="middle" class="pin">err (TMR)</text>
   </g>
-  <path d="M756 90 L936 95" class="wire" opacity="0"/>
-  <path d="M756 80 L900 80 L900 95 L936 95" class="wire" marker-end="url(#arr)"/>
+  <path d="M756 152 L920 152" class="wire"/>
+  <path d="M920 95 L920 219" class="wire"/>
+  <path d="M920 95 L936 95" class="wire" marker-end="url(#arr)"/>
+  <path d="M920 119 L936 119" class="wire" marker-end="url(#arr)"/>
+  <path d="M920 143 L936 143" class="wire" marker-end="url(#arr)"/>
+  <path d="M920 167 L936 167" class="wire" marker-end="url(#arr)"/>
+  <path d="M920 191 L936 191" class="wire" marker-end="url(#arr)"/>
+  <path d="M920 215 L936 215" class="wire" marker-end="url(#arr)"/>
+  <text x="770" y="147" class="pinlbl">observability</text>
 
   <!-- footnote -->
   <text x="520" y="646" text-anchor="middle" class="note">Provenance: every block arrives at its proven state from zirh2 with its suites, formal proofs and synthesis-integrity numbers attached;</text>

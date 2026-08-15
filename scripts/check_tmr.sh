@@ -150,11 +150,11 @@ run_check "zirh3_memsys  (integration: loader+bank+qspi+clkobs+dbg)" \
 EXTRA_CMDS=""
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
-run_check "zirh3_die     (die wrapper: por_ro + memsys)" \
-    zirh3_die 48 975 zirh_tmr_ff \
+run_check "zirh3_die     (die: por_ro + isp_rx + memsys)" \
+    zirh3_die 48 1009 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_boot_ctrl.v \
     zirh_qspi.v zirh_clkobs.v zirh_dbg_gate.v zirh_por_ro.v \
-    zirh3_memsys.v zirh3_die.v
+    zirh_isp_rx.v zirh3_memsys.v zirh3_die.v
 EXTRA_CMDS=""
 
 echo "--------------------------------"

@@ -11,7 +11,7 @@ module tb_die;
   zirh3_die #(.POR_CYCLES(64)) dut (
     .clk(clk), .rst_n_pad(rst_n_pad), .pwr_good_i(pwr_good),
     .boot_strap_i(2'b00), .dbg_unlock_strap_i(1'b0),
-    .host_valid_i(1'b0), .host_data_i(8'h0), .host_ready_o(),
+    .uart_rx_i(1'b1),
     .qspi_io_i(4'h0), .qspi_io_o(), .qspi_io_oe(), .qspi_sck_o(), .qspi_csn_o(),
     .dm_debug_req_i(1'b0), .dm_ndmreset_i(1'b0), .dbg_locked_o(dbg_locked),
     .sys_rst_n_o(sys_rst_n), .clk_ok_o(clk_ok), .evt_clk_loss_o(),

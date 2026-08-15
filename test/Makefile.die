@@ -14,6 +14,7 @@ $(BUILD)/die.vvp: tb_die.v $(SRC_DIR)/zirh3_die.v
 	  $(SRC_DIR)/zirh_sram39.v $(SRC_DIR)/zirh_boot_ctrl.v \
 	  $(SRC_DIR)/zirh_qspi.v $(SRC_DIR)/zirh_clkobs.v \
 	  $(SRC_DIR)/zirh_dbg_gate.v $(SRC_DIR)/zirh_por_ro.v \
+	  $(SRC_DIR)/zirh_isp_rx.v \
 	  $(SRC_DIR)/zirh3_memsys.v $(SRC_DIR)/zirh3_die.v
 clean:
 	rm -rf $(BUILD)

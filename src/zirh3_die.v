@@ -29,9 +29,10 @@ module zirh3_die #(
     input  wire [1:0]  boot_strap_i,
     input  wire        dbg_unlock_strap_i,
 
-    input  wire        host_valid_i,
-    input  wire [7:0]  host_data_i,
-    output wire        host_ready_o,
+    // host ISP arrives as a PIN: UART bytes at the reset baud through
+    // the loader's own receiver (the ZIRH-2 pattern) - strap 11 selects
+    // this transport, QSPI is the other
+    input  wire        uart_rx_i,
 
     input  wire [3:0]  qspi_io_i,
     output wire [3:0]  qspi_io_o,
@@ -55,6 +56,8 @@ module zirh3_die #(
 );
 
     wire sys_rst_n, ro_clk, ro_rst_n;
+    wire [7:0] isp_rx_data;
+    wire       isp_rx_valid;
 
     zirh_por_ro #(.POR_CYCLES(POR_CYCLES)) u_porro (
         .clk        (clk),
@@ -66,6 +69,14 @@ module zirh3_die #(
     );
     assign sys_rst_n_o = sys_rst_n;
 
+    zirh_isp_rx #(.DIV(174)) u_isp_rx (
+        .clk    (clk),
+        .rst_n  (sys_rst_n),
+        .rx_i   (uart_rx_i),
+        .data_o (isp_rx_data),
+        .valid_o(isp_rx_valid)
+    );
+
     zirh3_memsys #(
         .BANK_WORDS(BANK_WORDS), .SCRUB_DIV_LOG2(SCRUB_DIV_LOG2)
     ) u_memsys (
@@ -75,9 +86,9 @@ module zirh3_die #(
         .ro_rst_n          (ro_rst_n),
         .boot_strap_i      (boot_strap_i),
         .dbg_unlock_strap_i(dbg_unlock_strap_i),
-        .host_valid_i      (host_valid_i),
-        .host_data_i       (host_data_i),
-        .host_ready_o      (host_ready_o),
+        .host_valid_i      (isp_rx_valid),
+        .host_data_i       (isp_rx_data),
+        .host_ready_o      (),
         .qspi_io_i         (qspi_io_i),
         .qspi_io_o         (qspi_io_o),
         .qspi_io_oe        (qspi_io_oe),
