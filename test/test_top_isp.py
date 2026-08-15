@@ -38,6 +38,10 @@ def sw(rs2, rs1, off):
            (0x2 << 12) | ((off & 0x1F) << 7) | 0x23
 
 
+def lw(rd, rs1, off):
+    return ((off & 0xFFF) << 20) | (rs1 << 15) | (0x2 << 12) | (rd << 7) | 0x03
+
+
 def jal(rd, off):
     imm = off & 0x1FFFFF
     return (((imm >> 20) & 1) << 31) | (((imm >> 1) & 0x3FF) << 21) | \
@@ -171,3 +175,44 @@ async def test_golden_strap_is_yesterdays_chip(dut):
             break
     else:
         raise AssertionError("golden-strap ROM echo never appeared")
+
+
+# the bank prober: write a pattern to the sliced bank at 0x4000, read it
+# back through the corrected port, and emit a byte on the UART that is
+# 'Z' ONLY if the readback matched (t2 + ('Z' - 0xA5) == 'Z' iff t2 ==
+# 0xA5). A broken bank shouts a different byte; a dead one says nothing.
+BANK_BASE = 0x4000
+PROBE = [
+    lui(5, BANK_BASE >> 12),      # t0 = 0x4000
+    addi(6, 0, 0xA5),             # t1 = pattern
+    sw(6, 5, 0),                  # bank[0] = 0xA5
+    lw(7, 5, 0),                  # t2 = bank[0] (corrected port)
+    addi(7, 7, 0x5A - 0xA5),      # t2 += 'Z' - pattern
+    lui(8, UART_BASE >> 12),      # t3 = 0x2000
+    sw(7, 8, 4),                  # UART_TXDATA = t2
+    jal(0, -8),                   # keep shouting the verdict
+]
+
+
+@cocotb.test()
+async def test_loaded_code_uses_the_sliced_bank(dut):
+    """Rung 4: the five-macro SECDED bank is CPU data memory. A loaded
+    program writes it, reads it back through the corrected port, and
+    reports the verdict on the TX pin: 'Z' means the round trip
+    matched. The bank the beam campaign will scrub is now the bank the
+    software actually uses."""
+    await start(dut, strap=1)
+
+    for b in image(PROBE):
+        await uart_send(dut, b)
+    await ClockCycles(dut.clk, 500)
+
+    assert int(dut.boot_sel_o.value) == 1, "probe image must commit"
+
+    for _ in range(40):
+        b = await uart_capture(dut, 80_000)
+        if b == 0x5A:
+            break
+        assert b not in (0xFF,), "bank readback mismatched"
+    else:
+        raise AssertionError("bank-probe verdict never reached the pin")

@@ -184,3 +184,24 @@ synthesis integrity measures 45 replicas / 2984 flops with every
 block's count intact. Remaining named rungs: the sram39 sliced bank
 as CPU data memory on a bus slot, the SBA-to-bus route, and the
 hk/telemetry cluster with the watchdog-revert signon.
+
+## Cycle 10 (2026-08-16): rung 4 - the sliced bank is the software's memory
+
+zirh_soc exports a second bus slot (0x4000, mirroring the proven s3
+pattern) and the five-macro SECDED bank sits on it as CPU data memory:
+a loaded program writes it, reads it back through the corrected port,
+and shouts the verdict byte on the TX pin - 'Z' only if the round trip
+matched. The bank the beam campaign will scrub is now the bank the
+software actually uses, which is what makes its counters mean
+something. The hunt was the cycle's real story: the lw kept latching
+X and five probes walked the blame down the stack - commit was clean,
+the CPU was alive and looping, the write acked full-word at row zero,
+and the macro STILL read X - until the compile line confessed: the PDK
+macro's behavioral write path lives behind a FUNCTIONAL define the new
+makefile didn't carry, so the model swallowed writes silently and
+every read was X. The proven sram39 suite had the define all along;
+the fix is one line and the lesson is the night's oldest - a model
+that accepts a write without storing it is another tool returning
+success without doing the work. Suite 4/4; full-top integrity at 51
+replicas / 3253 flops; Z3-R17 in traceability. Remaining rungs:
+SBA-to-bus, hk/telemetry with the watchdog signon.

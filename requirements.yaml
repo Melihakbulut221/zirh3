@@ -175,3 +175,14 @@ requirements:
       audible on the pin, corrupt-CRC fallback proven by the ROM's
       echo, golden-strap regression; 45 replicas / 2984 flops measured
       on the full top
+  - id: Z3-R17
+    text: The five-macro sliced SECDED bank shall serve as CPU data
+      memory on the system bus - a loaded program shall write it, read
+      it back through the corrected port, and the round trip shall be
+      observable from outside the die.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: the rung-4 bank-prober - loaded code writes 0x4000,
+      reads back corrected, and shouts the verdict byte on the TX pin;
+      full-top synthesis integrity at 51 replicas / 3253 flops

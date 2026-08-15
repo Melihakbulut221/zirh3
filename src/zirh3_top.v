@@ -132,7 +132,10 @@ module zirh3_top #(
         .err_o(clkobs_err));
 
     // --- the imported cluster, attached through the proven mux --------------
-    wire soc_err, s3_cyc;
+    wire soc_err, s3_cyc, s4_cyc, s4_ack;
+    wire [31:0] s_adr, s_dat, s4_rdt;
+    wire [3:0]  s4_sel;
+    wire        s_we;
     zirh_soc #(
         .ROM_HEX(ROM_HEX), .RESET_DIV(RESET_DIV)
     ) u_soc (
@@ -155,13 +158,34 @@ module zirh3_top #(
         // slot 3 (housekeeping) acked immediately until hk arrives -
         // the torture harness's proven tie-off; a dead-slot zero-ack
         // would put every firmware hk write through the bus watchdog
-        .s3_cyc_o(s3_cyc), .s3_adr_o(), .s3_dat_o(), .s3_we_o(),
+        .s3_cyc_o(s3_cyc), .s3_adr_o(s_adr), .s3_dat_o(s_dat),
+        .s3_we_o(s_we),
         .s3_rdt_i(32'h0), .s3_ack_i(s3_cyc),
+        // slot 4: the sliced SECDED bank as CPU data memory (0x4000)
+        .s4_cyc_o(s4_cyc), .s4_sel_o(s4_sel),
+        .s4_rdt_i(s4_rdt), .s4_ack_i(s4_ack),
         .evt_bus_timeout_o(), .evt_ecc_corr_o(), .evt_ecc_uncorr_o(),
         .rx_ferr_o(),
         .err_o(soc_err));
 
-    assign err_o = bl_err | jtag_err | gate_err | clkobs_err | soc_err;
+    // --- the sliced SECDED bank on the data bus (rung 4) --------------------
+    // five 1024x8 macros, one logical word, scrubbed in the background;
+    // the CPU reads and writes it at 0x4000 like any slave, and every
+    // access rides the corrected port
+    wire bank_err;
+    zirh_sram39 #(.SCRUB_DIV_LOG2(10)) u_bank (
+        .clk(clk), .rst_n(sys_rst_n),
+        .scrub_en_i(1'b1),
+        .cyc_i(s4_cyc), .adr_i(s_adr), .dat_i(s_dat), .sel_i(s4_sel),
+        .we_i(s_we), .rdt_o(s4_rdt), .ack_o(s4_ack),
+        .evt_corr_o(), .evt_uncorr_o(), .evt_scrub_corr_o(),
+        .err_o(bank_err),
+        .bist_start_i(1'b0), .bist_mode_i(2'd0), .bist_busy_o(),
+        .bist_pass_o(), .bist_fail_cnt_o(), .bist_fail_adr_o(),
+        .bist_fail_map_o());
+
+    assign err_o = bl_err | jtag_err | gate_err | clkobs_err | soc_err
+                 | bank_err;
 
 endmodule
 

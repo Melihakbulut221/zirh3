@@ -21,6 +21,11 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_jtag_dm.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_dbg_gate.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_clkobs.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_por_ro.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
+SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh3_top.v
 
 TOPLEVEL = zirh3_top
@@ -32,5 +37,9 @@ COMPILE_ARGS += -Pzirh3_top.RESET_DIV=20
 COMPILE_ARGS += -Pzirh3_top.POR_CYCLES=16
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
+# the PDK macro's behavioral write path lives behind FUNCTIONAL - without
+# it the model swallows writes silently and every read is X (measured:
+# the lw-X hunt of rung 4; the sram39 suite carries the same define)
+COMPILE_ARGS += -DFUNCTIONAL
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

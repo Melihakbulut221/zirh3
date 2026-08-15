@@ -76,6 +76,14 @@ module zirh_soc #(
     input  wire [31:0] s3_rdt_i,
     input  wire        s3_ack_i,
 
+    // slot 4 slave interface, exported for the sliced SECDED bank
+    // (zirh_sram39 lives at the top: its macros, scrubber and BIST are
+    // die-level property, the soc only speaks bus to it) - ZIRH-3
+    output wire        s4_cyc_o,
+    output wire [3:0]  s4_sel_o,
+    input  wire [31:0] s4_rdt_i,
+    input  wire        s4_ack_i,
+
     // observability
     output wire       evt_bus_timeout_o,
     output wire       evt_ecc_corr_o,
@@ -280,9 +288,17 @@ module zirh_soc #(
     assign s_rdt[127:96]  = s3_rdt_i;
     assign s_ack[3]       = s3_ack_i;
 
-    // slots 4..7: unpopulated - the bus watchdog owns them
-    assign s_rdt[255:128] = 128'h0;
-    assign s_ack[7:4]     = 4'b0;
+    // slot 4: exported to the top for the sliced SECDED bank (0x4000);
+    // adr/dat/we ride the shared s3 export lines - one master, the
+    // per-slot cyc is the select
+    assign s4_cyc_o       = s_cyc[4];
+    assign s4_sel_o       = s_sel;
+    assign s_rdt[159:128] = s4_rdt_i;
+    assign s_ack[4]       = s4_ack_i;
+
+    // slots 5..7: unpopulated - the bus watchdog owns them
+    assign s_rdt[255:160] = 96'h0;
+    assign s_ack[7:5]     = 3'b0;
 
     assign err_o = err_bus | err_uart;
 
