@@ -205,3 +205,25 @@ that accepts a write without storing it is another tool returning
 success without doing the work. Suite 4/4; full-top integrity at 51
 replicas / 3253 flops; Z3-R17 in traceability. Remaining rungs:
 SBA-to-bus, hk/telemetry with the watchdog signon.
+
+## Cycle 11 (2026-08-16): rung 5 - the debugger reaches memory, through the gate
+
+The JTAG System Bus Access master now reaches real memory: a small
+priority arbiter at the top lets the debugger's gated SBA read and
+write the sliced bank while the CPU is running, without halting it.
+The priority is safe by construction - SBA can only assert its cycle
+UNLOCKED, and the gate forces it inert in flight, so a flight CPU
+never contends with a debug peek. The smoke proves both halves: with
+the fuse set, a JTAG debugger pokes 0xBEEF into the bank and reads it
+back through the corrected port; with the fuse clear, the gate holds
+the whole SBA master inert and a word seeded while unlocked survives
+an attempted overwrite while locked. Two authoring bugs surfaced and
+were fixed on the way - a DMI payload that padded the 2-bit op field
+to 8 bits, shifting the address and data fields (found by probing the
+DMI decode, exactly the value the earlier JTAG cycle taught), and the
+FUNCTIONAL define the bank needs. The arbiter is combinational, so the
+top holds at 51 replicas / 3253 flops. All three debug/programming
+paths are now not just present but exercised end to end through their
+boundaries: ISP load, JTAG halt, and JTAG memory access. Z3-R18 in
+traceability. The remaining rung is the hk/telemetry cluster with the
+watchdog-revert signon.

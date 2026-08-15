@@ -186,3 +186,15 @@ requirements:
     evidence: the rung-4 bank-prober - loaded code writes 0x4000,
       reads back corrected, and shouts the verdict byte on the TX pin;
       full-top synthesis integrity at 51 replicas / 3253 flops
+  - id: Z3-R18
+    text: The debugger's System Bus Access master shall read and write
+      system memory (the sliced bank) WITHOUT halting the core, taking
+      priority over the CPU on the shared port, and every such access
+      shall pass through the flight-locked gate: live on the bench,
+      wholly inert in flight.
+    tests:
+      - test/tb_sba.v
+      - scripts/check_tmr.sh
+    evidence: the SBA smoke - unlocked, a JTAG debugger pokes 0xBEEF
+      into the bank and reads it back; locked, the gate holds the SBA
+      inert and a seeded word survives an attempted overwrite

@@ -105,23 +105,34 @@ module zirh3_top #(
 
     // --- JTAG debug module, gated by the flight lock ------------------------
     wire dm_req_raw, dm_ndm_raw, jtag_err, gate_err;
+    wire        dm_sba_cyc, dm_sba_we;
+    wire [31:0] dm_sba_adr, dm_sba_dat;
+    wire        sba_cyc, sba_we;           // gated, into the arbiter
+    wire [31:0] sba_adr, sba_dat;
+    wire [31:0] sba_rdt;                   // read return from the bank
+    wire        sba_ack;
+
     zirh_jtag_dm u_jtag (
         .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o), .trst_n(trst_n_i),
         .clk(clk), .rst_n(sys_rst_n), .core_halted_i(1'b0),
         .dm_debug_req_o(dm_req_raw), .dm_ndmreset_o(dm_ndm_raw),
-        .dm_sba_cyc_o(), .dm_sba_adr_o(), .dm_sba_dat_o(), .dm_sba_we_o(),
-        .sba_rdt_i(32'd0), .sba_ack_i(1'b0), .err_o(jtag_err));
+        .dm_sba_cyc_o(dm_sba_cyc), .dm_sba_adr_o(dm_sba_adr),
+        .dm_sba_dat_o(dm_sba_dat), .dm_sba_we_o(dm_sba_we),
+        .sba_rdt_i(sba_rdt), .sba_ack_i(sba_ack), .err_o(jtag_err));
 
-    // gated debug: SERV has no halt port yet, so the gated outputs are
-    // observability today and the core hookup is the debug-capable-core
-    // step; the LOCK boundary is what this top proves
+    // the gate masks the DM's every request; the SBA path now reaches
+    // real memory (the sliced bank), so a debugger can peek/poke without
+    // halting the core - inert in flight, live on the bench, exactly
+    // like the halt request. SERV has no halt port yet, so debug_req is
+    // still observability; the SBA memory path is what rung 5 adds.
     zirh_dbg_gate u_gate (
         .clk(clk), .rst_n(sys_rst_n), .unlock_strap_i(dbg_unlock_strap_i),
         .dm_debug_req_i(dm_req_raw), .dm_ndmreset_i(dm_ndm_raw),
-        .dm_sba_cyc_i(1'b0), .dm_sba_adr_i(32'd0), .dm_sba_dat_i(32'd0),
-        .dm_sba_we_i(1'b0),
-        .debug_req_o(), .ndmreset_o(), .sba_cyc_o(), .sba_adr_o(),
-        .sba_dat_o(), .sba_we_o(),
+        .dm_sba_cyc_i(dm_sba_cyc), .dm_sba_adr_i(dm_sba_adr),
+        .dm_sba_dat_i(dm_sba_dat), .dm_sba_we_i(dm_sba_we),
+        .debug_req_o(), .ndmreset_o(),
+        .sba_cyc_o(sba_cyc), .sba_adr_o(sba_adr),
+        .sba_dat_o(sba_dat), .sba_we_o(sba_we),
         .locked_o(dbg_locked_o), .err_o(gate_err));
 
     // --- clock-loss observer on the die's own oscillator --------------------
@@ -168,21 +179,38 @@ module zirh3_top #(
         .rx_ferr_o(),
         .err_o(soc_err));
 
-    // --- the sliced SECDED bank on the data bus (rung 4) --------------------
-    // five 1024x8 macros, one logical word, scrubbed in the background;
-    // the CPU reads and writes it at 0x4000 like any slave, and every
-    // access rides the corrected port
+    // --- the sliced SECDED bank on the data bus (rungs 4-5) -----------------
+    // five 1024x8 macros, one logical word, scrubbed in the background.
+    // Two masters share its single port: the CPU at slot 4 (0x4000), and
+    // the debugger's gated System Bus Access (rung 5). SBA takes priority
+    // when it holds cyc - which it can only do UNLOCKED (the gate forces
+    // it inert in flight), so a flight CPU never contends with a debug
+    // peek. The bank's own ~ack framing keeps each transaction clean.
     wire bank_err;
+    wire        bank_cyc = sba_cyc | s4_cyc;
+    wire [31:0] bank_adr = sba_cyc ? sba_adr : s_adr;
+    wire [31:0] bank_dat = sba_cyc ? sba_dat : s_dat;
+    wire [3:0]  bank_sel = sba_cyc ? 4'hF   : s4_sel;
+    wire        bank_we  = sba_cyc ? sba_we : s_we;
+    wire [31:0] bank_rdt;
+    wire        bank_ack;
+
     zirh_sram39 #(.SCRUB_DIV_LOG2(10)) u_bank (
         .clk(clk), .rst_n(sys_rst_n),
         .scrub_en_i(1'b1),
-        .cyc_i(s4_cyc), .adr_i(s_adr), .dat_i(s_dat), .sel_i(s4_sel),
-        .we_i(s_we), .rdt_o(s4_rdt), .ack_o(s4_ack),
+        .cyc_i(bank_cyc), .adr_i(bank_adr), .dat_i(bank_dat),
+        .sel_i(bank_sel), .we_i(bank_we), .rdt_o(bank_rdt), .ack_o(bank_ack),
         .evt_corr_o(), .evt_uncorr_o(), .evt_scrub_corr_o(),
         .err_o(bank_err),
         .bist_start_i(1'b0), .bist_mode_i(2'd0), .bist_busy_o(),
         .bist_pass_o(), .bist_fail_cnt_o(), .bist_fail_adr_o(),
         .bist_fail_map_o());
+
+    // route the shared ack/data back to whichever master owns the cycle
+    assign sba_rdt = bank_rdt;
+    assign sba_ack = bank_ack & sba_cyc;
+    assign s4_rdt  = bank_rdt;
+    assign s4_ack  = bank_ack & s4_cyc & ~sba_cyc;
 
     assign err_o = bl_err | jtag_err | gate_err | clkobs_err | soc_err
                  | bank_err;

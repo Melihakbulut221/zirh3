@@ -162,7 +162,7 @@ run_check "zirh3_die     (die: por_ro + isp_rx + jtag + memsys)" \
 EXTRA_CMDS=""
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
-run_check "zirh3_top     (rungs 3-4: loader + cluster + bank)" \
+run_check "zirh3_top     (rungs 3-5: loader + cluster + bank + SBA)" \
     zirh3_top 51 3253 zirh_tmr_ff \
     zirh_tmr_lib.v serv/serv_aligner.v serv/serv_alu.v serv/serv_bufreg.v \
     serv/serv_bufreg2.v serv/serv_compdec.v serv/serv_csr.v \
