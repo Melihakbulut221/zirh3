@@ -50,6 +50,10 @@ jobs:
             22f2a25f1734796de3debbbf29cf697cbbc54081
       - name: unit suites
         run: PDK_ROOT=$HOME/.ciel make units
+      - name: JTAG debug port suite
+        run: make -C test -B -f Makefile.jtag
+      - name: imported SoC cluster suite
+        run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.soc
       - name: SV boot scenarios
         run: make sv
 

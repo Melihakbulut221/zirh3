@@ -150,3 +150,13 @@ requirements:
       haltreq is held inert by the locked gate (the DM asks, the gate
       refuses) and reaches the core only when the fuse permits; the DM
       control state is TMR, the TAP transport deliberately is not
+  - id: Z3-R15
+    text: The imported SoC cluster (SERV core, mask ROM with firmware,
+      single-master bus with watchdog, UART) shall boot the committed
+      firmware and answer on its pins - proving the ZIRH-2 verification
+      methodology carries to this tree unchanged before it is wired to
+      the memory subsystem.
+    tests:
+      - test/test_soc.py
+    evidence: the SoC cocotb suite retargeted, 3/3 (boot, echo through
+      the pins, the living-CPU contract); import ladder rung 2

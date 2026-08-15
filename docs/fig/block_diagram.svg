@@ -45,6 +45,9 @@
     <text x="8" y="452" class="pinlbl">MRAM QSPI</text>
     <rect x="8" y="456" width="60" height="18" rx="9" fill="#1f7a7a"/>
     <text x="38" y="469" text-anchor="middle" class="pin">io[3:0]+cs</text>
+    <text x="8" y="510" class="pinlbl">JTAG DEBUG</text>
+    <rect x="8" y="514" width="60" height="18" rx="9" fill="#6a3fa0"/>
+    <text x="38" y="527" text-anchor="middle" class="pin">tck/tms/tdi/tdo</text>
   </g>
 
   <!-- ================= por_ro ================= -->
@@ -101,15 +104,15 @@
   <text x="634" y="388" text-anchor="middle" class="btext">is the other transport)</text>
 
   <rect x="116" y="430" width="285" height="130" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
-  <text x="258" y="448" text-anchor="middle" class="btitle mono">zirh_dbg_gate</text>
-  <text x="258" y="463" text-anchor="middle" class="btext">debug isolation: flight lock latched</text>
-  <text x="258" y="476" text-anchor="middle" class="btext">once at POR, AND-masks every debug</text>
-  <text x="258" y="489" text-anchor="middle" class="btext">signal, TMR trap falls to LOCKED -</text>
-  <text x="258" y="502" text-anchor="middle" class="btext">an upset in debug logic cannot seize</text>
-  <text x="258" y="515" text-anchor="middle" class="btext">the core; riscv-dbg attaches behind</text>
-  <text x="258" y="528" text-anchor="middle" class="btext">this gate (F27, later step)</text>
-  <text x="258" y="546" text-anchor="middle" class="btext mono">f_dbg: lock is absorbing</text>
-
+  <text x="258" y="447" text-anchor="middle" class="btitle mono">zirh_jtag_dm + zirh_dbg_gate</text>
+  <text x="258" y="461" text-anchor="middle" class="btext">IEEE 1149.1 TAP + RISC-V DTM/DM:</text>
+  <text x="258" y="474" text-anchor="middle" class="btext">IDCODE, DTMCS, DMI -> halt / ndmreset /</text>
+  <text x="258" y="487" text-anchor="middle" class="btext">system-bus-access. The gate below latches</text>
+  <text x="258" y="500" text-anchor="middle" class="btext">LOCKED at POR: every debug effect reaches</text>
+  <text x="258" y="513" text-anchor="middle" class="btext">the core ONLY if the flight fuse permits -</text>
+  <text x="258" y="526" text-anchor="middle" class="btext">inert in flight, live on the bench. TAP is a</text>
+  <text x="258" y="539" text-anchor="middle" class="btext">transport (not TMR); DM state is TMR.</text>
+  <text x="258" y="554" text-anchor="middle" class="btext mono">Cycle 8 (F27) - f_dbg: lock is absorbing</text>
   <rect x="425" y="430" width="299" height="130" rx="7" fill="#ffffff" stroke="#7b9bd2" stroke-width="1.2"/>
   <text x="574" y="448" text-anchor="middle" class="btitle mono">zirh_clkobs</text>
   <text x="574" y="463" text-anchor="middle" class="btext">clock-loss observer on the POR block's</text>
@@ -127,6 +130,7 @@
   <path d="M68 345 L92 345 L92 330 L116 330" class="wire" marker-end="url(#arr)"/>
   <path d="M68 405 L92 405 L92 370 L116 370" class="wire" marker-end="url(#arr)"/>
   <text x="72" y="384" class="pinlbl">via u_isp_rx</text>
+  <path d="M68 523 L100 523 L100 495 L116 495" class="wire" marker-end="url(#arr)"/>
   <path d="M68 465 L88 465 L88 420 L634 420 L634 410" class="wire" marker-end="url(#arr)"/>
 
   <!-- ================= sram_dut ================= -->
@@ -188,6 +192,6 @@
 
   <!-- footnote -->
   <text x="520" y="646" text-anchor="middle" class="note">Provenance: every block arrives at its proven state from zirh2 with its suites, formal proofs and synthesis-integrity numbers attached;</text>
-  <text x="520" y="662" text-anchor="middle" class="note">10 measured replica/flop checks run in CI on every push. The pad ring, ESD and physical macro hardening remain the named new-design area (docs/SCOPE.md).</text>
+  <text x="520" y="662" text-anchor="middle" class="note">12 measured replica/flop checks run in CI on every push. The pad ring, ESD and physical macro hardening remain the named new-design area (docs/SCOPE.md).</text>
   <text x="520" y="684" text-anchor="middle" class="note">The gate this repository is built around: B10 - integration proceeds, tape-out waits for ZIRH-1/2 beam data. ZIRH-2 measures; ZIRH-3 is what the measurements are for.</text>
 </svg>
