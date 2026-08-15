@@ -7,7 +7,8 @@ TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 SIM_BUILD = sim_build/top
 
-VERILOG_SOURCES += $(wildcard $(SRC_DIR)/serv/serv_*.v)
+VERILOG_SOURCES += $(SRC_DIR)/vex/VexRiscv_Lite.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_vex_wrap.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_ff32.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_rom.v

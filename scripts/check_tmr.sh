@@ -166,14 +166,15 @@ run_check "zirh3_die     (die: por_ro + isp_rx + jtag + memsys)" \
 EXTRA_CMDS=""
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
+# Cycle 14: the VexRiscv_Lite core's instruction-cache ARRAY dominates
+# this count - memory_map renders it as ~17.7k flops here, exactly as
+# it renders every behavioral memory; at hardening the array binds to
+# an SRAM macro like the bank's five slices do. The number is a
+# tripwire, not a floorplan: what it guards is that the 70 replicas
+# and the core's real state survive the optimizer unmerged.
 run_check "zirh3_top     (full compute die + DFT)" \
-    zirh3_top 70 4219 zirh_tmr_ff \
-    zirh_tmr_lib.v serv/serv_aligner.v serv/serv_alu.v serv/serv_bufreg.v \
-    serv/serv_bufreg2.v serv/serv_compdec.v serv/serv_csr.v \
-    serv/serv_ctrl.v serv/serv_decode.v serv/serv_immdec.v \
-    serv/serv_mem_if.v serv/serv_rf_if.v serv/serv_rf_ram.v \
-    serv/serv_rf_ram_if.v serv/serv_rf_top.v serv/serv_state.v \
-    serv/serv_synth_wrapper.v serv/serv_top.v \
+    zirh3_top 70 22983 zirh_tmr_ff \
+    zirh_tmr_lib.v vex/VexRiscv_Lite.v zirh_vex_wrap.v \
     zirh_rom.v zirh_bus.v zirh_ecc_ram.v zirh_rs422.v zirh_uart_regs.v \
     zirh_soc.v zirh_boot_ctrl.v zirh_isp_rx.v zirh_jtag_dm.v \
     zirh_dbg_gate.v zirh_clkobs.v zirh_por_ro.v zirh_sram_bist.v \

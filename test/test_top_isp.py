@@ -117,6 +117,41 @@ async def uart_capture(dut, timeout_cycles):
     return sum(b << i for i, b in enumerate(bits[:8]))
 
 
+async def hunt_echo(dut, cmd, target, attempts=8):
+    """The ground station's echo discipline, in miniature. The shared
+    UART interleaves telemetry frames with console bytes, and the
+    arbiter keeps frames ATOMIC on the wire - but a listener that tunes
+    in mid-frame locks onto a payload bit as a start bit and never
+    recovers alignment. So: wait for a clean idle gap (frames are ~4k
+    cycles apart), SEND the command from alignment, consume any frame
+    that starts (sync pair, then its 18 bytes), and if the answer does
+    not appear, send again - exactly what a ground loop does when a
+    reply is lost."""
+    for _ in range(attempts):
+        high = 0
+        for _ in range(100_000):
+            await RisingEdge(dut.clk)
+            await ReadOnly()
+            high = high + 1 if int(dut.uart_tx_o.value) == 1 else 0
+            if high >= 300:
+                break
+        await uart_send(dut, cmd)
+        for _ in range(30):
+            b = await uart_capture(dut, 30_000)
+            if b == target:
+                return True
+            if b is None:
+                break                     # lost alignment or silence: resend
+            if b == 0x5A:
+                b2 = await uart_capture(dut, 4000)
+                if b2 == target:
+                    return True
+                if b2 == 0x33:
+                    for _ in range(18):
+                        await uart_capture(dut, 4000)
+    return False
+
+
 @cocotb.test()
 async def test_isp_loads_and_the_program_speaks(dut):
     """Stream a valid image over the UART pin: the loader commits it,
@@ -156,13 +191,8 @@ async def test_corrupt_image_falls_back_to_rom(dut):
 
     # ROM fallback: give the bit-serial CPU its boot time, then echo
     await ClockCycles(dut.clk, 240_000)
-    await uart_send(dut, 0x41)
-    for _ in range(40):
-        b = await uart_capture(dut, 80_000)
-        if b == 0x42:
-            break
-    else:
-        raise AssertionError("ROM fallback never echoed after reject")
+    ok = await hunt_echo(dut, 0x41, 0x42)
+    assert ok, "ROM fallback never echoed after reject"
 
 
 @cocotb.test()
@@ -172,13 +202,8 @@ async def test_golden_strap_is_yesterdays_chip(dut):
     await start(dut, strap=0)
 
     await ClockCycles(dut.clk, 240_000)
-    await uart_send(dut, 0x41)
-    for _ in range(40):
-        b = await uart_capture(dut, 80_000)
-        if b == 0x42:
-            break
-    else:
-        raise AssertionError("golden-strap ROM echo never appeared")
+    ok = await hunt_echo(dut, 0x41, 0x42)
+    assert ok, "golden-strap ROM echo never appeared"
 
 
 # the bank prober: write a pattern to the sliced bank at 0x4000, read it
@@ -351,10 +376,5 @@ async def test_watchdog_reverts_a_silent_bank(dut):
 
     # golden ROM is back: its echo answers
     await ClockCycles(dut.clk, 200_000)
-    await uart_send(dut, 0x41)
-    for _ in range(40):
-        b = await uart_capture(dut, 80_000)
-        if b == 0x42:
-            break
-    else:
-        raise AssertionError("ROM echo never answered after revert")
+    ok = await hunt_echo(dut, 0x41, 0x42)
+    assert ok, "ROM echo never answered after revert"

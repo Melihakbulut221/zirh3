@@ -101,7 +101,13 @@ module zirh_soc #(
     output wire       err_o              // TMR mismatches (bus wd, uart, baud)
 );
 
-    // --- SERV ---------------------------------------------------------------
+    // --- the core (Cycle 14: VexRiscv_Lite, RV32IM, pipelined) --------------
+    // The wrapper's interface mirrors the SERV wrapper's exactly, so
+    // this section changed one instantiation and one assumption: a
+    // PIPELINED core issues instruction and data traffic in the same
+    // cycle, which the bit-serial core never did - the fetch-side ack
+    // below now yields to a data-bus collision instead of assuming one
+    // cannot happen.
     wire [31:0] ibus_adr, ibus_rdt, dbus_adr, dbus_dat, dbus_rdt;
     wire [3:0]  dbus_sel;
     wire        ibus_cyc, dbus_cyc, dbus_we;
@@ -109,30 +115,22 @@ module zirh_soc #(
     reg         ibus_ack, dbus_ack;
     reg  [31:0] dbus_rdt_q;
 
-    serv_rf_top #(
-        .RESET_PC (32'h0000_0000),
-        .WITH_CSR (0)
-    ) u_cpu (
-        .clk         (clk),
-        .i_rst       (~rst_n),
-        .i_timer_irq (1'b0),
-        .o_ibus_adr  (ibus_adr),
-        .o_ibus_cyc  (ibus_cyc),
-        .i_ibus_rdt  (ibus_rdt),
-        .i_ibus_ack  (ibus_ack),
-        .o_dbus_adr  (dbus_adr),
-        .o_dbus_dat  (dbus_dat),
-        .o_dbus_sel  (dbus_sel),
-        .o_dbus_we   (dbus_we),
-        .o_dbus_cyc  (dbus_cyc),
-        .i_dbus_rdt  (dbus_rdt_q),
-        .i_dbus_ack  (dbus_ack),
-        .o_ext_rs1   (),
-        .o_ext_rs2   (),
-        .o_ext_funct3(),
-        .i_ext_rd    (32'b0),
-        .i_ext_ready (1'b0),
-        .o_mdu_valid ()
+    zirh_vex_wrap u_cpu (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .timer_irq_i   (1'b0),
+        .reset_vector_i(32'h0000_0000),
+        .ibus_adr_o    (ibus_adr),
+        .ibus_cyc_o    (ibus_cyc),
+        .ibus_rdt_i    (ibus_rdt),
+        .ibus_ack_i    (ibus_ack),
+        .dbus_adr_o    (dbus_adr),
+        .dbus_dat_o    (dbus_dat),
+        .dbus_sel_o    (dbus_sel),
+        .dbus_we_o     (dbus_we),
+        .dbus_cyc_o    (dbus_cyc),
+        .dbus_rdt_i    (dbus_rdt_q),
+        .dbus_ack_i    (dbus_ack)
     );
 
     // --- ROM: ibus point to point, dbus as slot 0 ---------------------------
@@ -162,13 +160,20 @@ module zirh_soc #(
     wire fetch_ram = boot_sel_i & ibus_cyc & ~s_cyc[1] & ~ibus_ack;
 
     // both fetch sources answer combinationally (ROM decode, RAM
-    // corrected read), so the registered one-wait ibus ack works
-    // unchanged for either
+    // corrected read), so the registered one-wait ibus ack works for
+    // either - but in bank mode the RAM port is SHARED with the data
+    // bus, and a pipelined core can drive both buses in one cycle.
+    // The data side owns the port (s_cyc[1] wins the mux below), so
+    // the fetch ack must yield during the collision or the fetch
+    // would silently ack the DATA access's read word as an
+    // instruction.
+    wire fetch_stall = boot_sel_i & s_cyc[1];
+
     assign ibus_rdt = boot_sel_i ? ram_rdt : rom_i_rdt;
 
     always @(posedge clk) begin
         if (!rst_n) ibus_ack <= 1'b0;
-        else        ibus_ack <= ibus_cyc & ~ibus_ack;
+        else        ibus_ack <= ibus_cyc & ~ibus_ack & ~fetch_stall;
     end
 
     // The CPU cannot issue data traffic before it has executed an

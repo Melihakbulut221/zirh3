@@ -319,3 +319,37 @@ S-type immediate split once, an rs2 field once - both found by
 probing the pipeline, which reported the core doing exactly what the
 bad words asked. The next rung swaps this core into zirh_soc behind
 the same suites that guard SERV today.
+
+## Cycle 14, rung 2 (2026-08-16): the core swap - forty times the computer
+
+zirh_soc runs VexRiscv_Lite. The exchange itself was one
+instantiation - the wrapper was shaped for it - plus the one
+assumption a pipelined core breaks: instruction and data traffic in
+the same cycle, so the bank-mode fetch ack now yields to a data-bus
+collision instead of assuming one cannot happen. The golden ROM
+firmware booted the new core UNCHANGED on the first run: the soc
+suite passed 3/3 untouched, and the bank, MBIST, SBA, boundary-scan
+and telemetry proofs followed. The guard re-measured at 22983 flops
+with a documented caveat: ~17.7k of them are the instruction-cache
+array, which memory_map renders as flops exactly as it renders every
+behavioral memory - at hardening it binds to an SRAM macro like the
+bank's five slices.
+
+Three tests failed, and the hunt through them is the rung's real
+story, because the DUT was never wrong. The echo tests probed clean
+at every layer: the receiver took the command, the firmware answered
+within ~260 cycles, the arbiter held the telemetry frame atomic and
+put the echo on the wire the moment the frame ended. What broke was
+the LISTENER: a capture that tunes in mid-frame locks onto a payload
+bit as a start bit and never recovers alignment - and the bit-serial
+core's slowness had hidden that race for the suite's whole life,
+because its echoes arrived tens of thousands of cycles after any
+frame. The fix is the ground station's own discipline, now in
+hunt_echo: align on an idle gap, send from alignment, consume frames
+atomically, resend when a reply is lost. A faster computer did not
+just speed the chip up - it sharpened the tests that watch it.
+
+Throughput arithmetic for the record: RV32IM at ~1 DMIPS/MHz-class
+IPC against the bit-serial core's ~1/40th - the VA10805-parity
+ladder's compute leg is climbed at equal clock, and the 50 MHz
+closure campaign remains as the clock leg.

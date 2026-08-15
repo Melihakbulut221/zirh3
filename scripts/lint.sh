@@ -61,12 +61,12 @@ $VL --lint-only -Wall --timing \
     -Wno-WIDTHEXPAND -Wno-PINCONNECTEMPTY -Wno-PINMISSING \
     -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE \
     -DFUNCTIONAL -DZIRH_SIM_ENV -Isrc --top-module zirh_soc \
-    src/serv/*.v src/zirh_rom.v src/zirh_bus.v src/zirh_ecc_ram.v \
+    src/vex/*.v src/zirh_vex_wrap.v src/zirh_rom.v src/zirh_bus.v src/zirh_ecc_ram.v \
     src/zirh_rs422.v src/zirh_uart_regs.v src/zirh_tmr_lib.v \
     src/zirh_soc.v 2>&1 | tee /tmp/zirh3_soc_lint.log \
     | grep -E "%Warning" | grep -iE "zirh_(soc|rom|bus|uart|rs422)" \
     | grep -v "src/serv/" && { echo "lint: warnings in soc cluster"; exit 1; }
-echo "lint: soc cluster is warning-clean (SERV vendored, exempt)"
+echo "lint: soc cluster is warning-clean (vendored core exempt)"
 
 # --- the CPU-carrying top (rung 3) --------------------------------------------
 $VL --lint-only -Wall --timing \

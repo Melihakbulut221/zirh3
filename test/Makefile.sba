@@ -11,7 +11,7 @@ $(BUILD)/sba.vvp: tb_sba.v $(SRC_DIR)/zirh3_top.v $(wildcard $(SRC_DIR)/zirh_*.v
 	  -s tb_sba -o $@ tb_sba.v \
 	  $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
 	  $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
-	  $(wildcard $(SRC_DIR)/serv/serv_*.v) \
+	  $(SRC_DIR)/vex/VexRiscv_Lite.v $(SRC_DIR)/zirh_vex_wrap.v \
 	  $(SRC_DIR)/zirh_tmr_lib.v $(SRC_DIR)/zirh_rom.v $(SRC_DIR)/zirh_bus.v \
 	  $(SRC_DIR)/zirh_ecc_ram.v $(SRC_DIR)/zirh_rs422.v \
 	  $(SRC_DIR)/zirh_uart_regs.v $(SRC_DIR)/zirh_soc.v \
