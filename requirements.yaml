@@ -160,3 +160,18 @@ requirements:
       - test/test_soc.py
     evidence: the SoC cocotb suite retargeted, 3/3 (boot, echo through
       the pins, the living-CPU contract); import ladder rung 2
+  - id: Z3-R16
+    text: The CPU-carrying top shall load a CRC32-sealed image over the
+      UART pin through the loader into the ECC-protected bank while the
+      cluster is held in reset, release the CPU only after read-back
+      verification, run the LOADED program observably (its output on
+      the TX pin), refuse corrupt images with a fallback to the golden
+      ROM, and behave identically to the standalone cluster when
+      strapped golden.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: rung-3 suite 3/3 - the loaded program's byte stream
+      audible on the pin, corrupt-CRC fallback proven by the ROM's
+      echo, golden-strap regression; 45 replicas / 2984 flops measured
+      on the full top

@@ -54,6 +54,8 @@ jobs:
         run: make -C test -B -f Makefile.jtag
       - name: imported SoC cluster suite
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.soc
+      - name: rung 3 - the top's ISP contract end to end
+        run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.top
       - name: SV boot scenarios
         run: make sv
 

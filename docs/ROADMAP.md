@@ -163,3 +163,24 @@ condition did not fire); a level synchronized across the whole
 UPDATE_DR tck period, free of the race, fixed it. The SBA-to-bank
 memory path is produced but not yet routed - a follow-on rung; the
 halt/reset path through the gate is the F27 core, and it is proven.
+
+## Cycle 9 (2026-08-16): rung 3 - the loaded program speaks (ISP end to end)
+
+src/zirh3_top.v is the CPU-carrying top: the imported cluster attached
+to the trusted loader through the exact ISP mux ZIRH-2 proved at gate
+level - and on this die the loader runs PROTECT=1, because the area
+exists here (the ZIRH-2 placement campaign is the record of why the TT
+die could not afford it). The reset arrives conditioned from por_ro,
+the JTAG module sits alongside behind its gate, the observer watches
+from its own oscillator. The rung-3 suite passed 3/3 on the first run,
+and its positive proof is the right kind: not a peek at internal
+state, but the LOADED program's 'Z' stream audible on the TX pin -
+arbitrary code, written by the testbench's own assembler, streamed
+over the UART pin, committed by read-back CRC, running where the mask
+ROM used to. The negative half holds too: a corrupt image never
+selects the bank and the golden ROM's echo comes back; a golden strap
+behaves exactly as the standalone cluster suite proved. Full-top
+synthesis integrity measures 45 replicas / 2984 flops with every
+block's count intact. Remaining named rungs: the sram39 sliced bank
+as CPU data memory on a bus slot, the SBA-to-bus route, and the
+hk/telemetry cluster with the watchdog-revert signon.

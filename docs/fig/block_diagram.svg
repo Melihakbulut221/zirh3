@@ -147,19 +147,19 @@
 
   <!-- ================= soc cluster (imported, attachment pending) ========== -->
   <rect x="760" y="430" width="250" height="150" rx="12" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.8"/>
-  <text x="776" y="452" class="gtitle" fill="#5b3391">zirh_soc - imported, RUNS</text>
+  <text x="776" y="452" class="gtitle" fill="#5b3391">zirh_soc - ATTACHED (rung 3)</text>
   <text x="885" y="470" text-anchor="middle" class="btext">SERV RV32I (vendored, pinned) +</text>
   <text x="885" y="483" text-anchor="middle" class="btext">mask ROM with committed firmware +</text>
   <text x="885" y="496" text-anchor="middle" class="btext">single-master bus with watchdog +</text>
   <text x="885" y="509" text-anchor="middle" class="btext">command/telemetry UART - suite 3/3</text>
   <text x="885" y="522" text-anchor="middle" class="btext">(boot, echo, living CPU); carries</text>
-  <text x="885" y="535" text-anchor="middle" class="btext">ZIRH-2's proven ISP fetch mux, the</text>
-  <text x="885" y="548" text-anchor="middle" class="btext">attachment point to the bank</text>
-  <text x="885" y="566" text-anchor="middle" class="btext mono">Cycles 5-6 - import rungs 1-2</text>
+  <text x="885" y="535" text-anchor="middle" class="btext">zirh3_top: loader fills its bank via</text>
+  <text x="885" y="548" text-anchor="middle" class="btext">the proven ISP mux - loaded code RUNS</text>
+  <text x="885" y="566" text-anchor="middle" class="btext mono">Cycles 5-9 - rungs 1-3, ISP 3/3</text>
 
   <!-- rung-3 dashed attachment -->
   <path d="M760 505 L742 505 L742 350 L724 350" class="pwire" marker-end="url(#arrP)"/>
-  <text x="753" y="424" class="pinlbl" fill="#8a6d3b" transform="rotate(90 753 424)">rung 3: ISP mux to the bank (planned)</text>
+  <text x="753" y="424" class="pinlbl" fill="#8a6d3b" transform="rotate(90 753 424)">later rung: sram39 as CPU data memory</text>
 
   <!-- ================= die wrapper outline ================= -->
   <rect x="88" y="64" width="668" height="530" rx="14" fill="none" stroke="#5f6b76" stroke-width="1.6" stroke-dasharray="2 3"/>
