@@ -26,11 +26,13 @@ SMTBMC=${SMTBMC:-yosys-smtbmc}
 # Per-proof wall-clock cap: on a slow runner a single solver call must
 # name itself rather than silently eating the whole CI budget. Prints
 # elapsed seconds per proof so the log shows exactly what is slow.
+# The default 300s is tuned for the CI gate (N=4); the deep N=32 BMC
+# needs more room - SMT_CAP overrides it (formal-deep runs with 3600).
 smt() {
   local label="$1"; shift
   local t0 rc
   t0=$SECONDS
-  timeout 300 "$@"; rc=$?
+  timeout "${SMT_CAP:-300}" "$@"; rc=$?
   echo "    [$label] $((SECONDS - t0))s (rc=$rc)"
   if [ $rc -ne 0 ]; then echo "FORMAL FAIL: $label (rc=$rc)"; exit 1; fi
 }

@@ -66,3 +66,16 @@ verified. This plan makes it assembly: the parts are proven, the
 attachment point (the ISP mux) is tested, and the ladder is written.
 The gate that governs it all still holds - B10, silicon waits for
 beam data; this import grows the design, not the silicon commitment.
+
+## Status: the ladder is complete
+
+Every rung above is climbed and green (Cycles 5-12): the cluster
+elaborates and lints clean, its suite runs retargeted, the loader
+programs the sliced bank through the proven ISP mux and loaded code
+RUNS, the bank serves as CPU data memory, the debugger's SBA reaches
+it through the flight lock, and the housekeeping/telemetry cluster
+with the watchdog-revert signon completes the boot contract. Cycle 13
+added what the ladder deferred: the DFT layer (MBIST doorway,
+boundary scan, the scan-insertion flow). Synthesis integrity is
+re-measured at every step - 70 replicas / 4219 flops on the full die.
+The gate holds: B10, silicon waits for beam data.

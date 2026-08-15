@@ -17,4 +17,7 @@ jobs:
           pip install z3-solver
           z3 --version
       - name: ring containment at N=8 and N=32
-        run: bash scripts/formal.sh 8 32
+        # the 300s default cap is the N=4 CI gate's; the N=32 BMC alone
+        # needs more (measured past 300s locally) - give the deep run
+        # real headroom, the job budget above still bounds it
+        run: SMT_CAP=3600 bash scripts/formal.sh 8 32

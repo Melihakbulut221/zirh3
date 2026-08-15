@@ -62,10 +62,15 @@ with an owner - money, silicon, partners - surfaced and left to them).
 
 - F25/F26 boot + ISP: INHERITED and PROVEN twice - standalone suites
   here, and the UART-host configuration live on the ZIRH-2 die.
-- F27 debug module: HERE - riscv-dbg integration behind
-  zirh_dbg_gate is this chip's work (the gate itself is proven).
-- F28 DFT/scan/BIST: HERE - the BIST engine exists; scan insertion
-  and test modes are dedicated-flow work.
+- F27 debug module: DONE (Cycle 8 + rungs 5-6) - IEEE 1149.1 TAP +
+  RISC-V DTM/DM behind zirh_dbg_gate, with System Bus Access to the
+  sliced bank; inert in flight, live on the bench.
+- F28 DFT/scan/BIST: DONE (Cycle 13) - MBIST doorway at slot 5 (the
+  march engine reachable from ISP-loaded software), boundary scan
+  (SAMPLE/PRELOAD + EXTEST behind the flight lock), and the
+  post-synthesis scan-insertion flow proven on a pilot block
+  (scripts/dft_scan.sh) - full-die insertion remains dedicated-flow
+  work at hardening time, on a proven path.
 - F29 software ecosystem: INHERITED (HAL over the generated register
   map); grows here as the memory map does.
 
@@ -92,7 +97,7 @@ with an owner - money, silicon, partners - surfaced and left to them).
    the flow work (LEF/PDN/macro placement) that the cost study
    scoped.
 4. A6 SRAM DUT block around zirh_sram_bist.
-5. F27 riscv-dbg + F28 scan, behind the gate.
+5. F27 debug + F28 DFT, behind the gate: DONE (Cycles 8-13).
 6. Hardening trials on the OpenMPW template - the placement recipe
    and its campaign discipline carry over from zirh2.
 
