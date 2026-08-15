@@ -31,7 +31,10 @@ jobs:
 
   units:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # the pipelined core simulates ~3-4x slower than the bit-serial one
+    # it replaced; the top suite alone runs 8-19 minutes locally, and the
+    # runner is slower still - 30 minutes was the SERV era's budget
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
       - name: install iverilog
