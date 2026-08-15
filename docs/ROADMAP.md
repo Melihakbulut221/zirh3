@@ -105,3 +105,19 @@ is proven-present; the remaining ladder rungs (retarget the SoC cocotb
 suites, attach to the memsys bank via the proven mux, full-die
 synthesis integrity) are the next focused step, and the plan makes
 each one assembly.
+
+## Cycle 6 (2026-08-16): the imported cluster RUNS (import step 2)
+
+The second ladder rung: the SoC cocotb suite retargets and passes 3/3
+- boot, echo through the pins, and the living-CPU contract - on the
+imported cluster in this tree. Two rots were found and fixed on the
+way, both instances of the night's refrain. First, the suite itself
+had been failing in zirh2 since the ISP ports landed (undriven inputs
+flooding X) and nobody knew, because it was never in CI - fixed in
+zirh2 and added to its CI so it cannot rot silently again. Second,
+the firmware image: the suite loads fw/rom.hex, which had not come
+over, and $readmemh fails SILENTLY, leaving the ROM X and the CPU
+dead at its first fetch - the file is now part of this repository.
+The cluster boots the committed firmware and answers on its pins;
+rung 3 (attach it to the memsys bank through the proven ISP mux) is
+next.

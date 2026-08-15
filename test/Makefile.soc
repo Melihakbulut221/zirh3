@@ -1,0 +1,38 @@
+# =============================================================================
+# ZIRH-2 - SoC integration test: SERV + ROM(firmware) + bus + RAM + UART
+#
+#   make -C test -f Makefile.soc
+#
+# Requires fw/rom.hex (built by the fw workflow in CI and committed).
+# RESET_DIV is overridden to 20 for short UART frames.
+# =============================================================================
+
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+
+SIM_BUILD = sim_build/soc
+
+VERILOG_SOURCES += $(wildcard $(SRC_DIR)/serv/serv_*.v)
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_rom.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_bus.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_ecc_ram.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_rs422.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_uart_regs.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_soc.v
+
+TOPLEVEL = zirh_soc
+COCOTB_TEST_MODULES = test_soc
+
+ROM_HEX ?= $(PWD)/../fw/rom.hex
+COMPILE_ARGS += -Pzirh_soc.ROM_HEX=\"$(ROM_HEX)\"
+COMPILE_ARGS += -Pzirh_soc.RESET_DIV=20
+
+COMPILE_ARGS += -I$(SRC_DIR)
+# rom_init.vh is an include, invisible to VERILOG_SOURCES: without this extra
+# dependency a regenerated ROM silently reuses a stale sim.vvp (measured -
+# the old mask kept answering the old checksum after a firmware rebuild)
+CUSTOM_COMPILE_DEPS += $(SRC_DIR)/rom_init.vh
+
+include $(shell cocotb-config --makefiles)/Makefile.sim
