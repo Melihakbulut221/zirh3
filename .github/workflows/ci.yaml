@@ -6,8 +6,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
-      - name: install verilator + yosys
-        run: sudo apt-get update && sudo apt-get install -y verilator yosys
+      - name: install verilator + yosys + iverilog
+        run: sudo apt-get update && sudo apt-get install -y verilator yosys iverilog
       - uses: actions/setup-python@v6
         with: {python-version: '3.11'}
       - name: cache the IHP PDK
@@ -26,6 +26,8 @@ jobs:
         run: python3 scripts/trace_check.py
       - name: synthesis integrity (replicas survive)
         run: bash scripts/check_tmr.sh
+      - name: F28 - scan-insertion rehearsal (stitched chain shifts)
+        run: PDK_ROOT=$HOME/.ciel bash scripts/dft_scan.sh
 
   units:
     runs-on: ubuntu-24.04
@@ -58,6 +60,8 @@ jobs:
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.top
       - name: rung 5 - debugger SBA reaches the bank through the gate
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.sba
+      - name: F28 - boundary scan behind the flight lock
+        run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.bscan
       - name: SV boot scenarios
         run: make sv
 

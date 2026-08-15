@@ -41,6 +41,8 @@ async def start(dut):
     dut.s3_ack_i.value = 0
     dut.s4_rdt_i.value = 0
     dut.s4_ack_i.value = 0
+    dut.s5_rdt_i.value = 0
+    dut.s5_ack_i.value = 0
     dut.rst_n.value = 0
     # firmware v2 writes its liveness signature to slot 3 (zirh_hk in the
     # full top); the unit test answers with a 1-cycle always-ack stub so the

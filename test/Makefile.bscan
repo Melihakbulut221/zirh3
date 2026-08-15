@@ -1,14 +1,14 @@
 SRC_DIR := $(CURDIR)/../src
 SRAM_V := $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
-BUILD := sim_build/sba
+BUILD := sim_build/bscan
 .PHONY: all clean
-all: $(BUILD)/sba.vvp
-	vvp $(BUILD)/sba.vvp
-$(BUILD)/sba.vvp: tb_sba.v $(SRC_DIR)/zirh3_top.v $(wildcard $(SRC_DIR)/zirh_*.v)
+all: $(BUILD)/bscan.vvp
+	vvp $(BUILD)/bscan.vvp
+$(BUILD)/bscan.vvp: tb_bscan.v $(SRC_DIR)/zirh3_top.v $(wildcard $(SRC_DIR)/zirh_*.v)
 	mkdir -p $(BUILD)
 	iverilog -g2012 -DZIRH_SIM_ENV -DFUNCTIONAL -I$(SRC_DIR) \
 	  -Pzirh3_top.ROM_HEX=\"$(PWD)/../fw/rom.hex\" \
-	  -s tb_sba -o $@ tb_sba.v \
+	  -s tb_bscan -o $@ tb_bscan.v \
 	  $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
 	  $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
 	  $(wildcard $(SRC_DIR)/serv/serv_*.v) \

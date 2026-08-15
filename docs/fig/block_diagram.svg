@@ -23,7 +23,7 @@
   <rect x="0" y="0" width="1100" height="940" fill="#ffffff"/>
 
   <text x="550" y="34" text-anchor="middle" class="title">ZIRH-3 - the compute die, as built (the SoC-import ladder is complete)</text>
-  <text x="550" y="52" text-anchor="middle" class="sub">every block lints clean and holds its replicas through synthesis: 70 measured TMR replicas / 4192 flops, checked in CI on every push (scripts/check_tmr.sh)</text>
+  <text x="550" y="52" text-anchor="middle" class="sub">every block lints clean and holds its replicas through synthesis: 70 measured TMR replicas / 4219 flops, checked in CI on every push (scripts/check_tmr.sh)</text>
 
   <!-- ================= input pin pills ================= -->
   <g class="mono">
@@ -127,7 +127,7 @@
   <text x="720" y="319" text-anchor="middle" class="btext">The ISP mux holds, programs, releases;</text>
   <text x="720" y="332" text-anchor="middle" class="btext">the TX mux interleaves CPU bytes and</text>
   <text x="720" y="345" text-anchor="middle" class="btext">telemetry frames on one pin</text>
-  <text x="720" y="365" text-anchor="middle" class="btext mono">slot 2 UART - slot 3 hk - slot 4 bank</text>
+  <text x="720" y="365" text-anchor="middle" class="btext mono">slots: 2 UART, 3 hk, 4 bank, 5 MBIST</text>
   <text x="720" y="381" text-anchor="middle" class="btext mono">boots ROM or the loaded bank</text>
   <text x="720" y="399" text-anchor="middle" class="btext mono">Cycles 5-12 - rungs 1-6, suite 6/6</text>
 
@@ -179,8 +179,9 @@
   <text x="200" y="553" text-anchor="middle" class="btext">DTM/DM: IDCODE, DTMCS, DMI -</text>
   <text x="200" y="566" text-anchor="middle" class="btext">halt, ndmreset, System Bus</text>
   <text x="200" y="579" text-anchor="middle" class="btext">Access. TAP is a transport</text>
-  <text x="200" y="592" text-anchor="middle" class="btext">(not TMR); DM state is TMR</text>
-  <text x="200" y="610" text-anchor="middle" class="btext mono">Cycle 8 (F27) + rung 5</text>
+  <text x="200" y="592" text-anchor="middle" class="btext">(not TMR); DM state is TMR.</text>
+  <text x="200" y="605" text-anchor="middle" class="btext">+ boundary scan: SAMPLE/EXTEST,</text>
+  <text x="200" y="618" text-anchor="middle" class="btext">12 cells, drive behind the lock</text>
 
   <path d="M68 565 L100 565" class="wire" marker-end="url(#arr)"/>
   <path d="M100 587 L68 587" class="wire" marker-end="url(#arr)"/>
@@ -224,8 +225,9 @@
   <text x="895" y="559" text-anchor="middle" class="btext">background scrubber; address-in-</text>
   <text x="895" y="572" text-anchor="middle" class="btext">ECC (wrong row = uncorrectable).</text>
   <text x="895" y="585" text-anchor="middle" class="btext">CPU data memory AND the</text>
-  <text x="895" y="598" text-anchor="middle" class="btext">debugger's peek/poke target</text>
-  <text x="895" y="616" text-anchor="middle" class="btext mono">f_ecc + f_amask proofs</text>
+  <text x="895" y="598" text-anchor="middle" class="btext">debugger's peek/poke target;</text>
+  <text x="895" y="611" text-anchor="middle" class="btext">march engine behind the slot-5</text>
+  <text x="895" y="624" text-anchor="middle" class="btext">MBIST doorway (F28)</text>
 
   <!-- ================= slot-3 and telemetry return ================= -->
   <path d="M580 400 L558 400 L558 680" class="wire" marker-end="url(#arr)"/>

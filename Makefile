@@ -6,9 +6,10 @@
 #   make tmr        synthesis-integrity (replicas survive)
 #   make lint       verilator, warning-clean policy
 #   make trace      requirements <-> tests, no orphans
+#   make dft        F28: boundary scan bench + scan-insertion rehearsal
 #   make everything
 
-.PHONY: units sv formal tmr lint trace everything
+.PHONY: units sv formal tmr lint trace dft everything
 
 units:
 	$(MAKE) -C test -B -f Makefile.boot
@@ -26,6 +27,10 @@ units:
 sv:
 	$(MAKE) -C test -f Makefile.svs boot
 
+dft:
+	$(MAKE) -C test -B -f Makefile.bscan
+	bash scripts/dft_scan.sh
+
 formal:
 	bash scripts/formal.sh
 
@@ -38,4 +43,4 @@ lint:
 trace:
 	python3 scripts/trace_check.py
 
-everything: lint trace tmr units sv formal
+everything: lint trace tmr units sv dft formal

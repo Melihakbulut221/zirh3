@@ -69,6 +69,14 @@ module zirh_jtag_dm (
     input  wire [31:0] sba_rdt_i,
     input  wire        sba_ack_i,
 
+    // boundary scan (F28): the top presents its functional pin values
+    // for SAMPLE capture; under EXTEST the update latch drives the
+    // output pins - but only through the top's flight-lock mux, so a
+    // locked die never lets the TAP wiggle a pin
+    input  wire [11:0] bs_cap_i,
+    output wire [6:0]  bs_drv_o,     // BSR cells 11:5 (the output pins)
+    output wire        bs_extest_o,  // level: IR holds EXTEST
+
     output wire        err_o        // DM control-state TMR mismatch
 );
 
@@ -108,7 +116,11 @@ module zirh_jtag_dm (
     end
 
     // ------------------------------------------------------------ IR + DR shift
-    localparam [4:0] IR_IDCODE = 5'h01, IR_DTMCS = 5'h10,
+    // EXTEST is all-zeros because IEEE 1149.1 requires it to be; SAMPLE/
+    // PRELOAD at 5'h02 shares the same boundary register without the
+    // pin-drive side effect.
+    localparam [4:0] IR_EXTEST = 5'h00, IR_SAMPLE = 5'h02,
+                     IR_IDCODE = 5'h01, IR_DTMCS = 5'h10,
                      IR_DMI = 5'h11, IR_BYPASS = 5'h1f;
 
     reg [4:0] ir;
@@ -147,10 +159,53 @@ module zirh_jtag_dm (
         end
     end
 
+    // ------------------------------------------------- boundary scan register
+    // One cell per functional pin, shifted LSB first:
+    //   [0] rst_n_pad  [1] pwr_good  [2] boot_strap  [3] dbg_unlock
+    //   [4] uart_rx    (inputs: capture-only)
+    //   [5] uart_tx    [6] sys_rst_n [7] boot_sel    [8] evt_accept
+    //   [9] evt_reject [10] dbg_locked [11] err      (outputs: + drive)
+    // The register is TAP-domain transport like the rest of this file
+    // (not TMR); its only system-side EFFECT - driving pins under
+    // EXTEST - is masked by the flight lock in the top.
+    localparam integer BSW = 12;
+    reg [BSW-1:0] bsr_shift;
+    reg [BSW-1:0] bsr_upd;
+    wire bs_ir = (ir == IR_EXTEST) | (ir == IR_SAMPLE);
+
+`ifdef ZIRH_SIM_ENV
+    // The async reset PIN of a real flop is LEVEL-sensitive: with TRST
+    // wired through the POR (see the top), the TAP powers up held in
+    // reset on silicon. A behavioral always @(negedge trst_n) applies
+    // reset only on an EDGE, so simulation would otherwise start tap/ir
+    // undefined and leak that X through the update-level CDC into the
+    // DM's TMR replicas - permanently, because the voted feedback
+    // recirculates it. Model the held power-up level here; the
+    // synthesized netlist needs nothing.
+    initial begin
+        tap     = TEST_LOGIC_RESET;
+        ir      = IR_IDCODE;
+        bsr_upd = {BSW{1'b0}};
+    end
+`endif
+
+    always @(posedge tck) begin
+        if (tap == CAPTURE_DR && bs_ir)    bsr_shift <= bs_cap_i;
+        else if (tap == SHIFT_DR && bs_ir) bsr_shift <= {tdi, bsr_shift[BSW-1:1]};
+    end
+
+    always @(posedge tck or negedge trst_n) begin
+        if (!trst_n)                        bsr_upd <= {BSW{1'b0}};
+        else if (tap == UPDATE_DR && bs_ir) bsr_upd <= bsr_shift;
+    end
+
+    assign bs_drv_o    = bsr_upd[BSW-1:5];
+    assign bs_extest_o = (ir == IR_EXTEST);
+
     // tdo: LSB of the active shift register, updated on the falling TCK edge
     always @(negedge tck) begin
         if (tap == SHIFT_IR)      tdo <= ir_shift[0];
-        else if (tap == SHIFT_DR) tdo <= dr[0];
+        else if (tap == SHIFT_DR) tdo <= bs_ir ? bsr_shift[0] : dr[0];
         else                      tdo <= 1'b0;
     end
 

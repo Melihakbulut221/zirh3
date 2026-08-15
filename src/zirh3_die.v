@@ -68,12 +68,17 @@ module zirh3_die #(
     // The System Bus Access master is produced but not yet routed to the
     // bank - that memory-peek path is a follow-on rung; the halt/reset
     // path through the gate is the F27 core.
+    // POR resets the TAP too - see zirh3_top for the power-up X-leak
+    // and spurious-DMI rationale
     zirh_jtag_dm u_jtag (
-        .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o), .trst_n(trst_n_i),
+        .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o),
+        .trst_n(trst_n_i & sys_rst_n),
         .clk(clk), .rst_n(sys_rst_n), .core_halted_i(1'b0),
         .dm_debug_req_o(dm_debug_req), .dm_ndmreset_o(dm_ndmreset),
         .dm_sba_cyc_o(), .dm_sba_adr_o(), .dm_sba_dat_o(), .dm_sba_we_o(),
-        .sba_rdt_i(32'd0), .sba_ack_i(1'b0), .err_o(dm_jtag_err)
+        .sba_rdt_i(32'd0), .sba_ack_i(1'b0),
+        .bs_cap_i(12'd0), .bs_drv_o(), .bs_extest_o(),
+        .err_o(dm_jtag_err)
     );
 
     wire [7:0] isp_rx_data;

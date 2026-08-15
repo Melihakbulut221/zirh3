@@ -42,6 +42,10 @@ def lw(rd, rs1, off):
     return ((off & 0xFFF) << 20) | (rs1 << 15) | (0x2 << 12) | (rd << 7) | 0x03
 
 
+def srli(rd, rs1, shamt):
+    return ((shamt & 0x1F) << 20) | (rs1 << 15) | (0x5 << 12) | (rd << 7) | 0x13
+
+
 def jal(rd, off):
     imm = off & 0x1FFFFF
     return (((imm >> 20) & 1) << 31) | (((imm >> 1) & 0x3FF) << 21) | \
@@ -271,6 +275,55 @@ async def test_telemetry_frames_carry_a_living_cpu(dut):
         if f is not None:
             sigs.add(f[15])
     assert len(sigs) > 1, f"CPU signature frozen across frames: {sigs}"
+
+
+# the MBIST runner (F28): start the bank's march test through the slot-5
+# doorway, then shout the verdict forever. CTRL reads {busy, pass} in its
+# top two bits, so (CTRL >> 30) is 1 exactly when the test is done and
+# clean. The verdict base is 0xB0 - a byte family that never appears in
+# early telemetry frames (sync 0x5A/0x33, zero counters, 0x69 checksum),
+# so the shared TX cannot fake a verdict: 0xB1 done-pass, 0xB2/0xB3
+# busy, 0xB0 done-FAIL - no branches, SERV-friendly.
+MBIST_BASE = 0x5000
+MBIST_RUN = [
+    lui(5, MBIST_BASE >> 12),     # t0 = 0x5000
+    addi(6, 0, 1),                # t1 = start, mode 0 (march c-)
+    sw(6, 5, 0),                  # CTRL = start
+    lw(7, 5, 0),                  # t2 = {busy, pass, ...}
+    srli(7, 7, 30),               # t2 = {busy, pass}
+    addi(7, 7, 0xB0),             # 0xB1 iff done-and-pass
+    lui(8, UART_BASE >> 12),      # t3 = 0x2000
+    sw(7, 8, 4),                  # UART_TXDATA = verdict
+    jal(0, -20),                  # poll and shout forever
+]
+
+
+@cocotb.test()
+async def test_mbist_runs_from_loaded_software(dut):
+    """F28: the manufacturing-test program is data too. An ISP-loaded
+    runner starts the bank's march c- through the slot-5 doorway, polls
+    the busy bit, and reports the verdict on the TX pin: 0xB1 means the
+    march finished and the five-macro array is clean. 0xB0 would mean a
+    finished, FAILING test and must never appear."""
+    await start(dut, strap=1)
+
+    for b in image(MBIST_RUN):
+        await uart_send(dut, b)
+    await ClockCycles(dut.clk, 500)
+
+    assert int(dut.boot_sel_o.value) == 1, "MBIST runner must commit"
+
+    # the march owns the array for ~21.5k cycles and the runner shouts
+    # busy verdicts (0xB2/0xB3) the whole time, interleaved with
+    # telemetry - be patient enough to outlast the stream, not just the
+    # silence
+    for _ in range(400):
+        b = await uart_capture(dut, 80_000)
+        assert b != 0xB0, "MBIST finished FAILING on a clean array"
+        if b == 0xB1:
+            break
+    else:
+        raise AssertionError("MBIST pass verdict never reached the pin")
 
 
 @cocotb.test()

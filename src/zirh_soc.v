@@ -30,6 +30,9 @@
 //   slot 0  0x0000  ROM (also on dbus, for boot-time image checksums)
 //   slot 1  0x1000  ECC RAM, 64 B
 //   slot 2  0x2000  UART registers
+//   slot 3  0x3000  housekeeping (exported)
+//   slot 4  0x4000  sliced SECDED bank (exported)
+//   slot 5  0x5000  MBIST doorway (exported)
 // =============================================================================
 
 `default_nettype none
@@ -83,6 +86,12 @@ module zirh_soc #(
     output wire [3:0]  s4_sel_o,
     input  wire [31:0] s4_rdt_i,
     input  wire        s4_ack_i,
+
+    // slot 5 slave interface, exported for the MBIST doorway (adr/dat/we
+    // ride the shared s3 export lines, like slot 4) - ZIRH-3 F28
+    output wire        s5_cyc_o,
+    input  wire [31:0] s5_rdt_i,
+    input  wire        s5_ack_i,
 
     // observability
     output wire       evt_bus_timeout_o,
@@ -296,9 +305,15 @@ module zirh_soc #(
     assign s_rdt[159:128] = s4_rdt_i;
     assign s_ack[4]       = s4_ack_i;
 
-    // slots 5..7: unpopulated - the bus watchdog owns them
-    assign s_rdt[255:160] = 96'h0;
-    assign s_ack[7:5]     = 3'b0;
+    // slot 5: exported to the top for the MBIST doorway (0x5000); same
+    // shared-lines pattern as slot 4
+    assign s5_cyc_o       = s_cyc[5];
+    assign s_rdt[191:160] = s5_rdt_i;
+    assign s_ack[5]       = s5_ack_i;
+
+    // slots 6..7: unpopulated - the bus watchdog owns them
+    assign s_rdt[255:192] = 64'h0;
+    assign s_ack[7:6]     = 2'b0;
 
     assign err_o = err_bus | err_uart;
 

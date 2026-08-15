@@ -24,7 +24,9 @@ module tb_jtag;
     .dm_debug_req_o(dm_req), .dm_ndmreset_o(dm_ndm),
     .dm_sba_cyc_o(dm_sba_cyc), .dm_sba_adr_o(dm_sba_adr),
     .dm_sba_dat_o(dm_sba_dat), .dm_sba_we_o(dm_sba_we),
-    .sba_rdt_i(32'h0), .sba_ack_i(1'b0), .err_o(dm_err));
+    .sba_rdt_i(32'h0), .sba_ack_i(1'b0),
+    .bs_cap_i(12'd0), .bs_drv_o(), .bs_extest_o(),
+    .err_o(dm_err));
 
   // the proven isolation gate, exactly as it sits on the die
   wire gated_req, gated_ndm, gated_cyc, locked, gate_err;

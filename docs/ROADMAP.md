@@ -256,3 +256,43 @@ bank, reports on telemetry, reverts a bad bank, and offers ISP and
 JTAG - each behind its own protection boundary. Z3-R19 in
 traceability. What remains is not integration but the GATE the
 repository was built around: B10, silicon waits for beam data.
+
+## Cycle 13 (2026-08-16): F28 - the die learns to be tested (DFT)
+
+Design-for-test, in the three forms that fit a rad-tolerant open-PDK
+die rather than the one form the textbook lists first. MBIST: the
+march-test engine the bank has carried since bring-up gets its
+doorway - one small bus slave at slot 5 - and the manufacturing-test
+program becomes what every program on this die is: data, loaded over
+the ISP, its 0xB1 verdict audible on the UART pin, an in-flight
+self-test one firmware loop away. Boundary scan: the TAP we already
+own gains SAMPLE/PRELOAD and EXTEST over a 12-cell register spanning
+every functional pin, and the pin-drive effect obeys the same
+absorbing flight lock that guards halt and SBA - interconnect test on
+the bench, an untouchable pin ring in flight. And the scan-insertion
+rehearsal: the dedicated-die path to full scan proven end to end on a
+pilot block without touching one line of verified RTL - yosys to real
+SG13G2 cells, every flop swapped for its scan sibling, one chain
+stitched in deterministic order, and the stitched netlist PROVEN by
+simulation on the foundry's own cell structure: all 48 of the
+observer's flops in the chain, shift identity intact, and the capture
+cycle reading back the true reset state (the three reset-to-one flops
+answer as the only ones).
+
+The cycle's real find was none of these: the boundary-scan bench, the
+moment it started CHECKING the err pin, exposed that a die which
+never sees a debugger powers up with its TAP state undefined - and
+that undefinedness leaks through the DMI update level into the DM's
+TMR replicas and recirculates there forever. On silicon the same
+mechanism is a random power-up TAP state that could fire a spurious
+DMI write before any tool attaches. The fix is the standard one this
+program keeps rediscovering from first principles: the POR resets
+everything, the TAP included. Two prior benches had run over that X
+for three cycles without seeing it; the lesson stands - a signal no
+check reads is a signal no test protects.
+
+Guard counts moved with the RTL and were re-measured: the DM at 331
+flops (the boundary register), the die at 1333, the top at 70
+replicas / 4219 flops, the MBIST doorway's mode register at 3/8. All
+suites green: top 7/7, SBA, boundary scan, JTAG, soc 3/3, die; three
+lint layers clean; 22 requirements, 0 orphans.

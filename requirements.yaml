@@ -213,3 +213,41 @@ requirements:
       CPU signature, and a silent loaded bank is reverted to ROM by the
       watchdog whose echo then answers; full die at 70 replicas / 4192
       flops
+  - id: Z3-R20
+    text: The sliced SECDED bank's march-test engine shall be reachable
+      from software through a bus doorway - a manufacturing-test program
+      loaded over the ISP shall start a march, poll the busy bit, and
+      report the verdict on the UART, and an in-flight self-test shall
+      require nothing more than the same firmware loop.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: slot-5 MBIST doorway - an ISP-loaded branchless runner
+      starts march c-, outlasts the busy stream, and the 0xB1 pass
+      verdict reaches the pin; the doorway's mode register holds its
+      replicas (3/8 measured)
+  - id: Z3-R21
+    text: The TAP shall implement SAMPLE/PRELOAD and EXTEST over a
+      boundary register spanning every functional pin, and EXTEST's
+      pin-drive effect shall be masked by the same absorbing flight
+      lock that guards halt and system bus access - board-level
+      interconnect test on the bench, an untouchable pin ring in
+      flight.
+    tests:
+      - test/tb_bscan.v
+    evidence: SAMPLE reads the real pins through the TAP, EXTEST drags
+      uart_tx low and boot_sel high from the chain when unlocked, and
+      the same preload lands on deaf pins when locked
+  - id: Z3-R22
+    text: The dedicated die shall have a proven post-synthesis path to
+      full scan that leaves the verified RTL untouched - synthesis to
+      foundry cells, flop-for-scan-flop substitution, deterministic
+      chain stitching, and a simulated proof of shift and capture on
+      the stitched netlist.
+    tests:
+      - scripts/dft_scan.sh
+    evidence: pilot block zirh_clkobs - all 48 flops land in one chain
+      on real SG13G2 scan cells, the pattern shifts through intact,
+      and a capture cycle overwrites the loaded ones with the true
+      reset state (the three reset-to-one flops read back as the only
+      ones)

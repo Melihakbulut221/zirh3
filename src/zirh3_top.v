@@ -68,7 +68,8 @@ module zirh3_top #(
     zirh_por_ro #(.POR_CYCLES(POR_CYCLES)) u_porro (
         .clk(clk), .rst_n_pad(rst_n_pad), .pwr_good_i(pwr_good_i),
         .sys_rst_n_o(sys_rst_n), .ro_clk_o(ro_clk), .ro_rst_n_o(ro_rst_n));
-    assign sys_rst_n_o = sys_rst_n;
+    // sys_rst_n_o is driven at the bottom of the file, through the
+    // boundary-scan pin mux (F28)
 
     // --- the loader's own receiver (transport, not TMR) ---------------------
     wire [7:0] rx_data;
@@ -130,12 +131,14 @@ module zirh3_top #(
         .boot_sel_o(bl_sel), .bank_o(),
         .evt_accept_o(bl_acc), .evt_reject_o(bl_rej), .err_o(bl_err));
 
-    assign boot_sel_o        = bl_sel;
-    assign evt_boot_accept_o = bl_acc;
-    assign evt_boot_reject_o = bl_rej;
+    // boot_sel_o / evt_boot_*_o are driven at the bottom of the file,
+    // through the boundary-scan pin mux (F28)
 
     // --- JTAG debug module, gated by the flight lock ------------------------
     wire dm_req_raw, dm_ndm_raw, jtag_err, gate_err;
+    wire dbg_locked, uart_tx_int, bs_extest;
+    wire [11:0] bs_cap;
+    wire [6:0]  bs_drv;
     wire        dm_sba_cyc, dm_sba_we;
     wire [31:0] dm_sba_adr, dm_sba_dat;
     wire        sba_cyc, sba_we;           // gated, into the arbiter
@@ -143,13 +146,23 @@ module zirh3_top #(
     wire [31:0] sba_rdt;                   // read return from the bank
     wire        sba_ack;
 
+    // The POR resets the TAP too (TRST wired to trst_n AND the
+    // conditioned reset): a die that never sees a debugger would
+    // otherwise power up with tap/ir undefined, and that undefinedness
+    // leaks through dmi_update_lvl into the DM's TMR replicas - worse,
+    // on real silicon a random power-up TAP state could fire a spurious
+    // DMI write before any tool attaches. Found by the boundary-scan
+    // bench the moment it started CHECKING the err pin.
     zirh_jtag_dm u_jtag (
-        .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o), .trst_n(trst_n_i),
+        .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o),
+        .trst_n(trst_n_i & sys_rst_n),
         .clk(clk), .rst_n(sys_rst_n), .core_halted_i(1'b0),
         .dm_debug_req_o(dm_req_raw), .dm_ndmreset_o(dm_ndm_raw),
         .dm_sba_cyc_o(dm_sba_cyc), .dm_sba_adr_o(dm_sba_adr),
         .dm_sba_dat_o(dm_sba_dat), .dm_sba_we_o(dm_sba_we),
-        .sba_rdt_i(sba_rdt), .sba_ack_i(sba_ack), .err_o(jtag_err));
+        .sba_rdt_i(sba_rdt), .sba_ack_i(sba_ack),
+        .bs_cap_i(bs_cap), .bs_drv_o(bs_drv), .bs_extest_o(bs_extest),
+        .err_o(jtag_err));
 
     // the gate masks the DM's every request; the SBA path now reaches
     // real memory (the sliced bank), so a debugger can peek/poke without
@@ -164,7 +177,7 @@ module zirh3_top #(
         .debug_req_o(), .ndmreset_o(),
         .sba_cyc_o(sba_cyc), .sba_adr_o(sba_adr),
         .sba_dat_o(sba_dat), .sba_we_o(sba_we),
-        .locked_o(dbg_locked_o), .err_o(gate_err));
+        .locked_o(dbg_locked), .err_o(gate_err));
 
     // --- clock-loss observer on the die's own oscillator --------------------
     wire clkobs_err;
@@ -174,7 +187,13 @@ module zirh3_top #(
         .err_o(clkobs_err));
 
     // --- the imported cluster, attached through the proven mux --------------
-    wire soc_err, s3_cyc, s4_cyc, s4_ack;
+    wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc;
+    wire        mb_start, mb_busy, mb_pass, mb_ack, mb_err;
+    wire [1:0]  mb_mode;
+    wire [15:0] mb_fcnt;
+    wire [9:0]  mb_fadr;
+    wire [4:0]  mb_fmap;
+    wire [31:0] mb_rdt;
     wire [31:0] s_adr, s_dat, s4_rdt;
     wire [3:0]  s4_sel;
     wire        s_we;
@@ -192,7 +211,7 @@ module zirh3_top #(
         .isp_we_i(bl_we),
         .isp_rdt_o(bl_rdt),
         .isp_ack_o(bl_ack),
-        .uart_tx_o(uart_tx_o),
+        .uart_tx_o(uart_tx_int),
         .uart_rx_i(uart_rx_i),
         .tlm_data_i(tlm_data),
         .tlm_valid_i(tlm_valid),
@@ -204,6 +223,9 @@ module zirh3_top #(
         // slot 4: the sliced SECDED bank as CPU data memory (0x4000)
         .s4_cyc_o(s4_cyc), .s4_sel_o(s4_sel),
         .s4_rdt_i(s4_rdt), .s4_ack_i(s4_ack),
+        // slot 5: the MBIST doorway (0x5000)
+        .s5_cyc_o(s5_cyc),
+        .s5_rdt_i(mb_rdt), .s5_ack_i(mb_ack),
         .evt_bus_timeout_o(), .evt_ecc_corr_o(), .evt_ecc_uncorr_o(),
         .rx_ferr_o(),
         .err_o(soc_err));
@@ -231,9 +253,25 @@ module zirh3_top #(
         .sel_i(bank_sel), .we_i(bank_we), .rdt_o(bank_rdt), .ack_o(bank_ack),
         .evt_corr_o(), .evt_uncorr_o(), .evt_scrub_corr_o(),
         .err_o(bank_err),
-        .bist_start_i(1'b0), .bist_mode_i(2'd0), .bist_busy_o(),
-        .bist_pass_o(), .bist_fail_cnt_o(), .bist_fail_adr_o(),
-        .bist_fail_map_o());
+        .bist_start_i(mb_start), .bist_mode_i(mb_mode),
+        .bist_busy_o(mb_busy), .bist_pass_o(mb_pass),
+        .bist_fail_cnt_o(mb_fcnt), .bist_fail_adr_o(mb_fadr),
+        .bist_fail_map_o(mb_fmap));
+
+    // --- the MBIST doorway: software runs the bank's march test -------------
+    // The engine has lived inside sram39 since its bring-up; this doorway
+    // at slot 5 is what F28 adds - a manufacturing-test program arrives
+    // over the ISP like any other image, and an in-flight self-test is
+    // one firmware loop away.
+    zirh_mbist u_mbist (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s5_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(mb_rdt), .ack_o(mb_ack),
+        .bist_start_o(mb_start), .bist_mode_o(mb_mode),
+        .bist_busy_i(mb_busy), .bist_pass_i(mb_pass),
+        .bist_fail_cnt_i(mb_fcnt), .bist_fail_adr_i(mb_fadr),
+        .bist_fail_map_i(mb_fmap),
+        .err_o(mb_err));
 
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
@@ -280,8 +318,29 @@ module zirh3_top #(
         .tx_data_o(tlm_data), .tx_valid_o(tlm_valid), .tx_ready_i(tlm_ready),
         .err_o(tlm_err));
 
-    assign err_o = bl_err | jtag_err | gate_err | clkobs_err | soc_err
-                 | bank_err | hk_infra | tlm_err;
+    wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
+                 | bank_err | hk_infra | tlm_err | mb_err;
+
+    // --- boundary scan at the pins (F28) ------------------------------------
+    // SAMPLE captures the functional pin values through bs_cap; EXTEST
+    // drives the output pins from the TAP's update latch - but only when
+    // the flight fuse says bench. A locked die's pins are untouchable
+    // from the TAP: the same absorbing lock that guards halt and SBA
+    // guards the boundary cells.
+    wire extest_drive = bs_extest & ~dbg_locked;
+
+    assign bs_cap = {err_int, dbg_locked, bl_rej, bl_acc, bl_sel,
+                     sys_rst_n, uart_tx_int,
+                     uart_rx_i, dbg_unlock_strap_i, boot_strap_i,
+                     pwr_good_i, rst_n_pad};
+
+    assign uart_tx_o         = extest_drive ? bs_drv[0] : uart_tx_int;
+    assign sys_rst_n_o       = extest_drive ? bs_drv[1] : sys_rst_n;
+    assign boot_sel_o        = extest_drive ? bs_drv[2] : bl_sel;
+    assign evt_boot_accept_o = extest_drive ? bs_drv[3] : bl_acc;
+    assign evt_boot_reject_o = extest_drive ? bs_drv[4] : bl_rej;
+    assign dbg_locked_o      = extest_drive ? bs_drv[5] : dbg_locked;
+    assign err_o             = extest_drive ? bs_drv[6] : err_int;
 
 endmodule
 

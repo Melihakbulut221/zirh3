@@ -33,6 +33,9 @@ checked, formal proofs run on every push):
 | zirh_dbg_gate | debug isolation: flight lock latched at POR, TMR trap to LOCKED | test_dbg_gate, f_dbg |
 | zirh_clkobs | clock-loss observer on an independent RO clock | test_clkobs |
 | zirh_tmr_lib | voted-feedback TMR primitives, the escape-window theorem carrier | f_ring (BMC + k-induction) |
+| zirh_mbist | MBIST doorway at slot 5: software starts the bank's march test, polls busy, reads the raw fail record | test_top_isp (ISP-loaded runner) |
+| boundary scan | SAMPLE/PRELOAD + EXTEST on the TAP, 12 cells over the functional pins, drive masked by the flight lock | tb_bscan |
+| scan flow | post-synthesis scan insertion proven on a pilot block: real SG13G2 scan cells, stitched chain, shift + capture | scripts/dft_scan.sh |
 
 The integration map, the honest new-design list (pad ring, ESD, POR,
 the RO clock source, physical macro hardening) and the scope

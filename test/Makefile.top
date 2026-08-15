@@ -24,6 +24,7 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_clkobs.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_por_ro.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_hk.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tlm2.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_mbist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
 SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
