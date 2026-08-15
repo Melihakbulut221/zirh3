@@ -9,6 +9,7 @@ SIM_BUILD = sim_build/top
 
 VERILOG_SOURCES += $(wildcard $(SRC_DIR)/serv/serv_*.v)
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_ff32.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_rom.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_bus.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_ecc_ram.v
@@ -21,6 +22,8 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_jtag_dm.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_dbg_gate.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_clkobs.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_por_ro.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_hk.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tlm2.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
 SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
@@ -35,6 +38,8 @@ ROM_HEX ?= $(PWD)/../fw/rom.hex
 COMPILE_ARGS += -Pzirh3_top.ROM_HEX=\"$(ROM_HEX)\"
 COMPILE_ARGS += -Pzirh3_top.RESET_DIV=20
 COMPILE_ARGS += -Pzirh3_top.POR_CYCLES=16
+COMPILE_ARGS += -Pzirh3_top.INTERVAL_LOG2=13
+COMPILE_ARGS += -Pzirh3_top.WD_LIMIT_LOG2=17
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
 # the PDK macro's behavioral write path lives behind FUNCTIONAL - without

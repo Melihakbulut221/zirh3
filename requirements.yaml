@@ -198,3 +198,18 @@ requirements:
     evidence: the SBA smoke - unlocked, a JTAG debugger pokes 0xBEEF
       into the bank and reads it back; locked, the gate holds the SBA
       inert and a seeded word survives an attempted overwrite
+  - id: Z3-R19
+    text: The compute die shall carry the housekeeping/telemetry cluster
+      - the SEU counters, the CPU signature, and the watchdog - and the
+      watchdog-revert signon shall complete the boot contract: a loaded
+      bank that signs on runs, a loaded bank that never signs on is
+      failed by the watchdog after a grace period and reverted to the
+      golden ROM, and unprompted telemetry frames carry a valid
+      checksum and a living, changing CPU signature.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: rungs 3-6 suite 6/6 - telemetry frames carry a changing
+      CPU signature, and a silent loaded bank is reverted to ROM by the
+      watchdog whose echo then answers; full die at 70 replicas / 4192
+      flops

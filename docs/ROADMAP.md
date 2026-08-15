@@ -227,3 +227,32 @@ paths are now not just present but exercised end to end through their
 boundaries: ISP load, JTAG halt, and JTAG memory access. Z3-R18 in
 traceability. The remaining rung is the hk/telemetry cluster with the
 watchdog-revert signon.
+
+## Cycle 12 (2026-08-16): the last rung - the die is whole (hk + telemetry + revert)
+
+The final import rung: the housekeeping/telemetry cluster arrives (hk
+on slot 3, the tlm2 framer on the shared UART) and the watchdog-revert
+signon completes the boot contract this program has named since the
+start. A loaded bank that writes its signature signs on and runs; a
+loaded bank that never signs on is failed by the CPU watchdog after a
+grace period and reverted to the immutable ROM. Unprompted v2
+telemetry frames now flow on the UART with a valid XOR checksum and a
+living, changing CPU signature - the instrument reports and the
+computer lives, on this die's own composition. Four blind hunts fell
+to measurement, each the night's refrain: the CPU watchdog at
+WD_LIMIT_LOG2=15 starved the bit-serial CPU during boot (it could not
+reach its first signature write before the watchdog reset it - a
+reset loop, cured by matching the window to the boot time); jtag_err
+read X because TCK never ran in this test (observability only, but
+named); the frame capture mistook a busy-stream desync for a silent
+line and gave up on the first garbage byte; and isp_hold reasserted
+after a watchdog revert - boot_strap high and bl_sel back to zero
+would have pinned the golden CPU in reset forever, so a
+watchdog-failed bank now counts as a reject it will not re-hold for.
+Suite 6/6, the full die at 70 replicas / 4192 flops with every block
+intact, three lint layers clean. The SoC-import ladder is complete:
+the die boots ROM or a loaded image, runs code in its ECC-protected
+bank, reports on telemetry, reverts a bad bank, and offers ISP and
+JTAG - each behind its own protection boundary. Z3-R19 in
+traceability. What remains is not integration but the GATE the
+repository was built around: B10, silicon waits for beam data.

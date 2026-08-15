@@ -31,7 +31,9 @@
 module zirh3_top #(
     parameter ROM_HEX = "",
     parameter integer POR_CYCLES = 64,
-    parameter integer RESET_DIV  = 174
+    parameter integer RESET_DIV  = 174,
+    parameter integer INTERVAL_LOG2 = 16,
+    parameter integer WD_LIMIT_LOG2 = 20
 ) (
     input  wire        clk,
     input  wire        rst_n_pad,
@@ -81,19 +83,48 @@ module zirh3_top #(
     wire        bl_ack, bl_acc, bl_rej;
     reg         isp_rejected_q;
 
+    wire wd_rst;    // from hk's CPU watchdog (resets the SoC only)
     wire isp_hold  = boot_strap_i & ~bl_sel & ~isp_rejected_q;
-    wire soc_rst_n = sys_rst_n & ~isp_hold;
+    wire soc_rst_n = sys_rst_n & ~isp_hold & ~wd_rst;
 
+    // --- the watchdog-revert signon (the last rung's load-bearing piece) ----
+    // A loaded bank signs on the moment its firmware writes the telemetry
+    // signature - hk pulses cpu_alive per CPU_SIG write, so sign-on costs
+    // zero new detection. The watchdog verdict toward the loader is
+    // grace-gated by one full watchdog period, so a starvation pulse left
+    // over from the ISP hold cannot fail a bank that never had a chance to
+    // run. This is the ZIRH-2 revert logic, unchanged.
+    wire cpu_alive;
+    reg  signon_seen_q;
+    reg  [WD_LIMIT_LOG2:0] run_age_q;
+    wire signon     = bl_sel & cpu_alive;
+    wire wd_verdict = wd_rst & bl_sel & (signon_seen_q | run_age_q[WD_LIMIT_LOG2]);
     always @(posedge clk) begin
-        if (!sys_rst_n)  isp_rejected_q <= 1'b0;
-        else if (bl_rej) isp_rejected_q <= 1'b1;
+        if (!sys_rst_n) begin
+            signon_seen_q <= 1'b0;
+            run_age_q     <= {(WD_LIMIT_LOG2+1){1'b0}};
+        end else begin
+            if (signon) signon_seen_q <= 1'b1;
+            if (bl_sel & ~run_age_q[WD_LIMIT_LOG2]) run_age_q <= run_age_q + 1'b1;
+        end
+    end
+
+    // isp_hold owns the SoC only while the loader is still deciding. Once
+    // it commits (bl_sel) the CPU runs; if a committed bank is later
+    // FAILED by the watchdog and reverted, that bank counts as rejected
+    // for hold purposes too - otherwise isp_hold would reassert
+    // (boot_strap high, bl_sel back to 0) and pin the golden CPU in reset
+    // forever. A watchdog revert is a reject we will not re-hold for.
+    always @(posedge clk) begin
+        if (!sys_rst_n)             isp_rejected_q <= 1'b0;
+        else if (bl_rej | wd_verdict) isp_rejected_q <= 1'b1;
     end
 
     zirh_boot_ctrl #(.BANK_WORDS(16), .PROTECT(1)) u_boot (
         .clk(clk), .rst_n(sys_rst_n),
         .strap_i({1'b0, boot_strap_i}),
         .st_valid_i(rx_valid), .st_data_i(rx_data), .st_ready_o(),
-        .sig_ok_i(1'b1), .signon_i(1'b0), .wd_fail_i(1'b0),
+        .sig_ok_i(1'b1), .signon_i(signon), .wd_fail_i(wd_verdict),
         .m_cyc_o(bl_cyc), .m_adr_o(bl_adr), .m_dat_o(bl_dat), .m_we_o(bl_we),
         .m_rdt_i(bl_rdt), .m_ack_i(bl_ack),
         .boot_sel_o(bl_sel), .bank_o(),
@@ -163,15 +194,13 @@ module zirh3_top #(
         .isp_ack_o(bl_ack),
         .uart_tx_o(uart_tx_o),
         .uart_rx_i(uart_rx_i),
-        .tlm_data_i(8'h00),
-        .tlm_valid_i(1'b0),
-        .tlm_ready_o(),
-        // slot 3 (housekeeping) acked immediately until hk arrives -
-        // the torture harness's proven tie-off; a dead-slot zero-ack
-        // would put every firmware hk write through the bus watchdog
+        .tlm_data_i(tlm_data),
+        .tlm_valid_i(tlm_valid),
+        .tlm_ready_o(tlm_ready),
+        // slot 3: the housekeeping block (counters, watchdog, signature)
         .s3_cyc_o(s3_cyc), .s3_adr_o(s_adr), .s3_dat_o(s_dat),
         .s3_we_o(s_we),
-        .s3_rdt_i(32'h0), .s3_ack_i(s3_cyc),
+        .s3_rdt_i(hk_rdt), .s3_ack_i(hk_ack),
         // slot 4: the sliced SECDED bank as CPU data memory (0x4000)
         .s4_cyc_o(s4_cyc), .s4_sel_o(s4_sel),
         .s4_rdt_i(s4_rdt), .s4_ack_i(s4_ack),
@@ -212,8 +241,47 @@ module zirh3_top #(
     assign s4_rdt  = bank_rdt;
     assign s4_ack  = bank_ack & s4_cyc & ~sba_cyc;
 
+    // --- housekeeping: counters, the CPU watchdog, the signature ------------
+    wire [31:0] hk_rdt;
+    wire        hk_ack, hk_infra;
+    wire [15:0] c_plain, c_raw_a, c_esc_a, c_raw_b, c_esc_b;
+    wire [7:0]  c_ecc_c, c_ecc_u, c_busto, c_ferr, boot_cnt, cpu_sig;
+    wire [1:0]  hk_mode;
+    wire        hk_armed;
+
+    zirh_hk #(.WD_LIMIT_LOG2(WD_LIMIT_LOG2)) u_hk (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s3_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(hk_rdt), .ack_o(hk_ack),
+        .ecc_corr_i(1'b0), .ecc_uncorr_i(1'b0),
+        .bus_to_i(1'b0), .rx_ferr_i(1'b0),
+        .cnt_plain_o(c_plain), .cnt_raw_a_o(c_raw_a), .cnt_esc_a_o(c_esc_a),
+        .cnt_raw_b_o(c_raw_b), .cnt_esc_b_o(c_esc_b),
+        .cnt_ecc_c_o(c_ecc_c), .cnt_ecc_u_o(c_ecc_u),
+        .cnt_bus_to_o(c_busto), .cnt_ferr_o(c_ferr),
+        .boot_cnt_o(boot_cnt), .cpu_sig_o(cpu_sig),
+        .mode_o(hk_mode), .armed_o(hk_armed),
+        .err_infra_o(hk_infra), .evt_o(),
+        .cpu_alive_o(cpu_alive), .wd_rst_o(wd_rst),
+        .env_ro_i(32'd0), .env_sb_i(32'd0),
+        .env_start_o(), .env_test_o(), .clear_o());
+
+    // --- telemetry framer: unprompted frames on the shared UART -------------
+    wire [7:0] tlm_data;
+    wire       tlm_valid, tlm_ready, tlm_err;
+    zirh_tlm2 #(.INTERVAL_LOG2(INTERVAL_LOG2)) u_tlm (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cnt_plain_i(c_plain), .cnt_raw_a_i(c_raw_a), .cnt_esc_a_i(c_esc_a),
+        .cnt_raw_b_i(c_raw_b), .cnt_esc_b_i(c_esc_b),
+        .cnt_ecc_c_i(c_ecc_c), .cnt_ecc_u_i(c_ecc_u),
+        .cpu_sig_i(cpu_sig), .boot_cnt_i(boot_cnt),
+        .cnt_bus_to_i(c_busto), .cnt_ferr_i(c_ferr),
+        .armed_i(hk_armed), .mode_i(hk_mode), .err_infra_i(hk_infra),
+        .tx_data_o(tlm_data), .tx_valid_o(tlm_valid), .tx_ready_i(tlm_ready),
+        .err_o(tlm_err));
+
     assign err_o = bl_err | jtag_err | gate_err | clkobs_err | soc_err
-                 | bank_err;
+                 | bank_err | hk_infra | tlm_err;
 
 endmodule
 

@@ -216,3 +216,92 @@ async def test_loaded_code_uses_the_sliced_bank(dut):
         assert b not in (0xFF,), "bank readback mismatched"
     else:
         raise AssertionError("bank-probe verdict never reached the pin")
+
+
+async def capture_frame(dut, timeout, tries=8):
+    """Return a clean, checksum-valid 20-byte v2 frame from the shared
+    UART. Each try SCANS the stream for a 0x5A 0x33 sync pair (the
+    firmware's occasional bytes interleave, so the sync is ~one frame
+    apart), collects 18 more bytes, and accepts only if the XOR checksum
+    holds; a desync discards the try and scans again."""
+    for _ in range(tries):
+        # scan for the sync pair (up to ~3 frames' worth of bytes)
+        got_sync = False
+        for _ in range(64):
+            b0 = await uart_capture(dut, timeout)
+            if b0 != 0x5A:      # None (desync in a busy stream) or non-sync:
+                continue        # keep scanning, do not mistake it for silence
+            b1 = await uart_capture(dut, 4000)
+            if b1 == 0x33:
+                got_sync = True
+                break
+        if not got_sync:
+            continue
+        f = [0x5A, 0x33]
+        for _ in range(18):
+            f.append(await uart_capture(dut, 4000))
+        if None in f:
+            continue
+        chk = 0
+        for b in f[:19]:
+            chk ^= b
+        if f[19] == chk:
+            return f
+    return None
+
+
+@cocotb.test()
+async def test_telemetry_frames_carry_a_living_cpu(dut):
+    """The last rung's telemetry half: with the golden ROM running, an
+    unprompted v2 frame arrives on the shared UART with a valid XOR
+    checksum and a NONZERO, CHANGING CPU signature - the housekeeping
+    counters and the framer, on this die's own composition."""
+    await start(dut, strap=0)
+    await ClockCycles(dut.clk, 240_000)   # let the CPU reach its loop
+
+    f1 = await capture_frame(dut, 200_000)
+    assert f1 is not None, "no valid telemetry frame arrived"
+    assert f1[15] != 0, "CPU signature zero - firmware never reached hk"
+
+    # the signature must MOVE across frames - capture a few and check any
+    # differs (the frames are ~8k cycles apart, the sig changes per loop)
+    sigs = {f1[15]}
+    for _ in range(4):
+        f = await capture_frame(dut, 200_000)
+        if f is not None:
+            sigs.add(f[15])
+    assert len(sigs) > 1, f"CPU signature frozen across frames: {sigs}"
+
+
+@cocotb.test()
+async def test_watchdog_reverts_a_silent_bank(dut):
+    """The watchdog-revert signon: load a program that NEVER writes the
+    signature (never signs on). After a full watchdog period the loader
+    must fail the bank and fall back to the golden ROM, whose echo then
+    answers - the revert ladder, proven on this die."""
+    # a program that just spins, never touching hk (no sign-on)
+    SILENT = [addi(0, 0, 0), jal(0, -4)]
+    await start(dut, strap=1)
+    for b in image(SILENT):
+        await uart_send(dut, b)
+    await ClockCycles(dut.clk, 500)
+    assert int(dut.boot_sel_o.value) == 1, "silent image must first commit"
+
+    # give it more than one watchdog period (WD_LIMIT_LOG2=15 in the
+    # makefile -> 2^15 cycles) for the verdict to land and revert
+    for _ in range(80):
+        await ClockCycles(dut.clk, 40_000)
+        if int(dut.boot_sel_o.value) == 0:
+            break
+    else:
+        raise AssertionError("watchdog never reverted the silent bank")
+
+    # golden ROM is back: its echo answers
+    await ClockCycles(dut.clk, 200_000)
+    await uart_send(dut, 0x41)
+    for _ in range(40):
+        b = await uart_capture(dut, 80_000)
+        if b == 0x42:
+            break
+    else:
+        raise AssertionError("ROM echo never answered after revert")
