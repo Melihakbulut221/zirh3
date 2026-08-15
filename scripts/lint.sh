@@ -34,6 +34,7 @@ fail=0
 for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
            zirh_dbg_gate zirh_sram_bist zirh_por_ro \
            zirh_sram_dut zirh_isp_rx zirh_jtag_dm zirh_mbist \
+           zirh_vex_wrap \
            zirh3_memsys zirh3_die; do
   $VL --lint-only -Wall --timing \
       -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \
@@ -44,7 +45,7 @@ for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
       --top-module $TOP \
       "$SRAM_V"/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
       "$SRAM_V"/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
-      src/zirh_*.v \
+      src/zirh_*.v src/vex/*.v \
       2>&1 | tee /tmp/zirh3_lint_$TOP.log | grep -E "%Warning" \
       | grep -E "zirh_" && { echo "lint: warnings in $TOP"; fail=1; }
 done

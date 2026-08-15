@@ -296,3 +296,26 @@ flops (the boundary register), the die at 1333, the top at 70
 replicas / 4219 flops, the MBIST doorway's mode register at 3/8. All
 suites green: top 7/7, SBA, boundary scan, JTAG, soc 3/3, die; three
 lint layers clean; 22 requirements, 0 orphans.
+
+## Cycle 14, rung 1 (2026-08-16): the compute upgrade - the new core breathes
+
+The program's next horizon is VA10805-class throughput (the ~45 DMIPS
+a Cortex-M0 at 50 MHz delivers), and the ladder to it starts here.
+VexRiscv_Lite - RV32IM, cacheless, pre-generated plain Verilog from
+litex-hub/pythondata-cpu-vexriscv (provenance pinned in the vendored
+header) - measures 2254 flops at synthesis: forty times SERV's
+throughput class for a protection budget that still fits this
+program's methods, whether as netlist-level flop triplication (the
+DFT stitcher's machinery, one voter deeper) or as core-level TMR.
+The core arrives already speaking Wishbone classic on both buses -
+the soc's native contract - so zirh_vex_wrap is thin by design: byte
+addresses, CYC qualified by STB, one reset-polarity inversion at the
+boundary, the runtime reset vector passed through (the ROM/bank boot
+mux, in hardware, for free). The smoke bench hand-assembles a
+program and proves the four things the soc swap will lean on: fetch
+runs, stores land, a MUL returns 42, a load round-trips. Two of the
+bench's own hand-encodings were wrong before the DUT ever was - the
+S-type immediate split once, an rs2 field once - both found by
+probing the pipeline, which reported the core doing exactly what the
+bad words asked. The next rung swaps this core into zirh_soc behind
+the same suites that guard SERV today.

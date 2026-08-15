@@ -54,6 +54,8 @@ jobs:
         run: PDK_ROOT=$HOME/.ciel make units
       - name: JTAG debug port suite
         run: make -C test -B -f Makefile.jtag
+      - name: Cycle 14 - the new core's first breath (VexRiscv smoke)
+        run: make -C test -B -f Makefile.vex
       - name: imported SoC cluster suite
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.soc
       - name: rungs 3-4 - the top's ISP contract + bank as CPU memory
