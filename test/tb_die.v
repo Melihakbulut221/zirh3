@@ -13,7 +13,8 @@ module tb_die;
     .boot_strap_i(2'b00), .dbg_unlock_strap_i(1'b0),
     .uart_rx_i(1'b1),
     .qspi_io_i(4'h0), .qspi_io_o(), .qspi_io_oe(), .qspi_sck_o(), .qspi_csn_o(),
-    .dm_debug_req_i(1'b0), .dm_ndmreset_i(1'b0), .dbg_locked_o(dbg_locked),
+    .tck_i(1'b0), .tms_i(1'b0), .tdi_i(1'b0), .tdo_o(), .trst_n_i(1'b1),
+    .dbg_locked_o(dbg_locked),
     .sys_rst_n_o(sys_rst_n), .clk_ok_o(clk_ok), .evt_clk_loss_o(),
     .boot_sel_o(boot_sel), .evt_boot_accept_o(), .evt_boot_reject_o(),
     .evt_ecc_corr_o(), .evt_ecc_uncorr_o(), .err_o(err));

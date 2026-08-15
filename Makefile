@@ -21,6 +21,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.porro
 	$(MAKE) -C test -B -f Makefile.die
 	$(MAKE) -C test -B -f Makefile.sramdut
+	$(MAKE) -C test -B -f Makefile.jtag
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

@@ -40,8 +40,13 @@ module zirh3_die #(
     output wire        qspi_sck_o,
     output wire        qspi_csn_o,
 
-    input  wire        dm_debug_req_i,
-    input  wire        dm_ndmreset_i,
+    // JTAG debug port (F27): pins into the on-die debug module, whose
+    // requests reach the core only through the flight-locked gate
+    input  wire        tck_i,
+    input  wire        tms_i,
+    input  wire        tdi_i,
+    output wire        tdo_o,
+    input  wire        trst_n_i,
     output wire        dbg_locked_o,
 
     output wire        sys_rst_n_o,     // observable: the conditioned reset
@@ -56,6 +61,21 @@ module zirh3_die #(
 );
 
     wire sys_rst_n, ro_clk, ro_rst_n;
+    wire dm_debug_req, dm_ndmreset, dm_jtag_err, memsys_err;
+
+    // the JTAG debug module: its requests go to the gate inside memsys,
+    // which is latched locked at POR (dbg_unlock_strap_i is the fuse).
+    // The System Bus Access master is produced but not yet routed to the
+    // bank - that memory-peek path is a follow-on rung; the halt/reset
+    // path through the gate is the F27 core.
+    zirh_jtag_dm u_jtag (
+        .tck(tck_i), .tms(tms_i), .tdi(tdi_i), .tdo(tdo_o), .trst_n(trst_n_i),
+        .clk(clk), .rst_n(sys_rst_n), .core_halted_i(1'b0),
+        .dm_debug_req_o(dm_debug_req), .dm_ndmreset_o(dm_ndmreset),
+        .dm_sba_cyc_o(), .dm_sba_adr_o(), .dm_sba_dat_o(), .dm_sba_we_o(),
+        .sba_rdt_i(32'd0), .sba_ack_i(1'b0), .err_o(dm_jtag_err)
+    );
+
     wire [7:0] isp_rx_data;
     wire       isp_rx_valid;
 
@@ -95,8 +115,8 @@ module zirh3_die #(
         .qspi_sck_o        (qspi_sck_o),
         .qspi_csn_o        (qspi_csn_o),
         .scrub_en_i        (1'b1),
-        .dm_debug_req_i    (dm_debug_req_i),
-        .dm_ndmreset_i     (dm_ndmreset_i),
+        .dm_debug_req_i    (dm_debug_req),
+        .dm_ndmreset_i     (dm_ndmreset),
         .dbg_locked_o      (dbg_locked_o),
         .boot_sel_o        (boot_sel_o),
         .boot_bank_o       (),
@@ -107,8 +127,10 @@ module zirh3_die #(
         .evt_scrub_corr_o  (),
         .clk_ok_o          (clk_ok_o),
         .evt_clk_loss_o    (evt_clk_loss_o),
-        .err_o             (err_o)
+        .err_o             (memsys_err)
     );
+
+    assign err_o = memsys_err | dm_jtag_err;
 
 endmodule
 

@@ -137,3 +137,16 @@ requirements:
     evidence: clean-array baseline smoke (zero failures with no
       radiation - the floor a campaign subtracts); the pattern engine
       is TMR while the macros under test are deliberately not
+  - id: Z3-R14
+    text: The die shall carry a JTAG debug port - an IEEE 1149.1 TAP
+      speaking the RISC-V external-debug transport (IDCODE, DTMCS, DMI)
+      and a Debug Module producing halt/reset/system-bus-access
+      requests - whose every effect reaches the core ONLY through the
+      flight-locked isolation gate: inert in flight, live on the bench.
+    tests:
+      - test/tb_jtag.v
+      - scripts/check_tmr.sh
+    evidence: JTAG smoke - IDCODE shifts out correct, a dmcontrol
+      haltreq is held inert by the locked gate (the DM asks, the gate
+      refuses) and reaches the core only when the fuse permits; the DM
+      control state is TMR, the TAP transport deliberately is not

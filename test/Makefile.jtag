@@ -1,0 +1,12 @@
+SRC_DIR := $(CURDIR)/../src
+BUILD := sim_build/jtag
+.PHONY: all clean
+all: $(BUILD)/jtag.vvp
+	vvp $(BUILD)/jtag.vvp
+$(BUILD)/jtag.vvp: tb_jtag.v $(SRC_DIR)/zirh_jtag_dm.v $(SRC_DIR)/zirh_dbg_gate.v $(SRC_DIR)/zirh_tmr_lib.v
+	mkdir -p $(BUILD)
+	iverilog -g2012 -I$(SRC_DIR) -s tb_jtag -o $@ \
+	  tb_jtag.v $(SRC_DIR)/zirh_jtag_dm.v $(SRC_DIR)/zirh_dbg_gate.v \
+	  $(SRC_DIR)/zirh_tmr_lib.v
+clean:
+	rm -rf $(BUILD)

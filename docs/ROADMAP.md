@@ -137,3 +137,29 @@ passes unchanged, the die measures 1009 flops with replicas still at
 48, and the diagram now shows the interface the silicon would
 actually have. A diagram review that finds a missing block is a
 design review - which is what the figure is for.
+
+## Cycle 8 (2026-08-16): the JTAG debug port, behind the gate (F27)
+
+The debug interface the owner asked for, built to the program's own
+rule: it exists on a flight die only because the isolation gate makes
+it safe. src/zirh_jtag_dm.v is an IEEE 1149.1 TAP speaking the RISC-V
+external-debug transport - IDCODE, DTMCS, and DMI carrying
+{address, data, op} - and a compact Debug Module that turns dmcontrol
+writes into halt, ndmreset and a System Bus Access master. The TAP
+and shift registers are a TRANSPORT, deliberately not triplicated
+(like the ISP receiver); the DM's persistent control state IS TMR,
+because it is what reaches the system - and everything it produces
+passes through zirh_dbg_gate, latched locked at POR unless the flight
+fuse permits debug. The smoke proves exactly that boundary: IDCODE
+shifts out correct, a haltreq written over JTAG is held inert by the
+locked gate (the DM asks, the gate refuses), and the same request
+reaches the core only once the fuse is set. On the die: uart_rx for
+host ISP, QSPI for MRAM, and now TCK/TMS/TDI/TDO for JTAG - all three
+programming and debug paths the brief named, each protected at its
+boundary. The clock-domain crossing from TCK to the system clock was
+the one real snag - a tck-domain toggle hit the classic non-blocking
+read race (the TB saw the condition true while the module's identical
+condition did not fire); a level synchronized across the whole
+UPDATE_DR tck period, free of the race, fixed it. The SBA-to-bank
+memory path is produced but not yet routed - a follow-on rung; the
+halt/reset path through the gate is the F27 core, and it is proven.

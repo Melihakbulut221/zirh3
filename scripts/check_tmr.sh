@@ -128,6 +128,10 @@ run_check "zirh_por_ro   (POR + RO clock, no TMR by design)" \
     zirh_por_ro 0 17 zirh_tmr_ff \
     zirh_por_ro.v
 
+run_check "zirh_jtag_dm  (JTAG DTM + Debug Module, F27)" \
+    zirh_jtag_dm 9 312 zirh_tmr_ff \
+    zirh_tmr_lib.v zirh_jtag_dm.v
+
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 run_check "zirh_sram_dut  (A6: 5 bare macros + BIST engine)" \
     zirh_sram_dut 18 158 zirh_tmr_ff \
@@ -150,11 +154,11 @@ run_check "zirh3_memsys  (integration: loader+bank+qspi+clkobs+dbg)" \
 EXTRA_CMDS=""
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
-run_check "zirh3_die     (die: por_ro + isp_rx + memsys)" \
-    zirh3_die 48 1009 zirh_tmr_ff \
+run_check "zirh3_die     (die: por_ro + isp_rx + jtag + memsys)" \
+    zirh3_die 51 1321 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_boot_ctrl.v \
     zirh_qspi.v zirh_clkobs.v zirh_dbg_gate.v zirh_por_ro.v \
-    zirh_isp_rx.v zirh3_memsys.v zirh3_die.v
+    zirh_isp_rx.v zirh_jtag_dm.v zirh3_memsys.v zirh3_die.v
 EXTRA_CMDS=""
 
 echo "--------------------------------"
