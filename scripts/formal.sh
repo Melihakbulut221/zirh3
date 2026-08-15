@@ -44,8 +44,13 @@ for N in $NS; do
     chparam -set N $N f_ring
     prep -top f_ring
     write_smt2 formal/out/ring_n$N.smt2"
-  smt "ring N=$N BMC" $SMTBMC -s z3 --presat -t 24 formal/out/ring_n$N.smt2
-  smt "ring N=$N induction" $SMTBMC -s z3 --presat -i -t 24 formal/out/ring_n$N.smt2
+  # RING_T bounds the k-induction depth. The default 24 is the CI
+  # gate's; the induction actually closes at k=22 (measured, and in
+  # ONE second even at N=32), so the deep run uses RING_T=22 - the
+  # N=32 BMC's per-step cost explodes past step 22 (step 22 alone
+  # ~43 min locally) while adding nothing the induction needs.
+  smt "ring N=$N BMC" $SMTBMC -s z3 --presat -t ${RING_T:-24} formal/out/ring_n$N.smt2
+  smt "ring N=$N induction" $SMTBMC -s z3 --presat -i -t ${RING_T:-24} formal/out/ring_n$N.smt2
   echo "    PROVEN at N=$N (BMC clean, induction holds)"
 
   echo "=== N=$N: escape witness (cover) ==="

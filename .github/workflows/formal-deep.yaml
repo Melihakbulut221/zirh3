@@ -16,8 +16,12 @@ jobs:
           sudo apt-get update && sudo apt-get install -y yosys
           pip install z3-solver
           z3 --version
-      - name: ring containment at N=8 and N=32
-        # the 300s default cap is the N=4 CI gate's; the N=32 BMC alone
-        # needs more (measured past 300s locally) - give the deep run
-        # real headroom, the job budget above still bounds it
-        run: SMT_CAP=3600 bash scripts/formal.sh 8 32
+      - name: ring containment at N=8 (full default depth)
+        run: SMT_CAP=1800 bash scripts/formal.sh 8
+      - name: ring containment at N=32 (induction closes at k=22)
+        # Measured recipe: the induction closes at k=22 (in seconds even
+        # at N=32), so RING_T=22 bounds the BMC to exactly the base the
+        # induction needs - 1171s local, headroom for a slower runner in
+        # SMT_CAP. The default depth-24 BMC is dead weight past step 22
+        # (that one step alone ~43 min local, and it grows from there).
+        run: SMT_CAP=5400 RING_T=22 bash scripts/formal.sh 32
