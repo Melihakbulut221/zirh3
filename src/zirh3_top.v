@@ -33,7 +33,8 @@ module zirh3_top #(
     parameter integer POR_CYCLES = 64,
     parameter integer RESET_DIV  = 174,
     parameter integer INTERVAL_LOG2 = 16,
-    parameter integer WD_LIMIT_LOG2 = 20
+    parameter integer WD_LIMIT_LOG2 = 20,
+    parameter integer BANK_PAGES    = 16
 ) (
     input  wire        clk,
     input  wire        rst_n_pad,
@@ -121,7 +122,7 @@ module zirh3_top #(
         else if (bl_rej | wd_verdict) isp_rejected_q <= 1'b1;
     end
 
-    zirh_boot_ctrl #(.BANK_WORDS(16), .PROTECT(1)) u_boot (
+    zirh_boot_ctrl #(.BANK_WORDS(64), .PROTECT(1)) u_boot (
         .clk(clk), .rst_n(sys_rst_n),
         .strap_i({1'b0, boot_strap_i}),
         .st_valid_i(rx_valid), .st_data_i(rx_data), .st_ready_o(),
@@ -194,6 +195,7 @@ module zirh3_top #(
     wire [9:0]  mb_fadr;
     wire [4:0]  mb_fmap;
     wire [31:0] mb_rdt;
+    wire [3:0]  mb_page;
     wire [31:0] s_adr, s_dat, s4_rdt;
     wire [3:0]  s4_sel;
     wire        s_we;
@@ -246,9 +248,14 @@ module zirh3_top #(
     wire [31:0] bank_rdt;
     wire        bank_ack;
 
-    zirh_sram39 #(.SCRUB_DIV_LOG2(10)) u_bank (
+    // Cycle 14 rung 5: 64 KB of the proven sliced-SECDED bank. The
+    // CPU pages its 4 KB window through the doorway's PAGE register;
+    // the debugger's SBA carries a full address and reads the flat
+    // 64 KB (sba_cyc marks whose access this is).
+    zirh_bank64 #(.SCRUB_DIV_LOG2(10), .PAGES(BANK_PAGES)) u_bank (
         .clk(clk), .rst_n(sys_rst_n),
         .scrub_en_i(1'b1),
+        .page_i(mb_page), .sba_flat_i(sba_cyc),
         .cyc_i(bank_cyc), .adr_i(bank_adr), .dat_i(bank_dat),
         .sel_i(bank_sel), .we_i(bank_we), .rdt_o(bank_rdt), .ack_o(bank_ack),
         .evt_corr_o(), .evt_uncorr_o(), .evt_scrub_corr_o(),
@@ -271,6 +278,7 @@ module zirh3_top #(
         .bist_busy_i(mb_busy), .bist_pass_i(mb_pass),
         .bist_fail_cnt_i(mb_fcnt), .bist_fail_adr_i(mb_fadr),
         .bist_fail_map_i(mb_fmap),
+        .page_o(mb_page),
         .err_o(mb_err));
 
     // route the shared ack/data back to whichever master owns the cycle

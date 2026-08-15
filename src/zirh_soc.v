@@ -253,7 +253,9 @@ module zirh_soc #(
     wire [3:0]  ram_sel = (isp_hold_i | ~s_cyc[1]) ? 4'hF : s_sel;
     wire        ram_we  = isp_hold_i ? isp_we_i : (s_cyc[1] & s_we);
 
-    zirh_ecc_ram u_ram (
+    // ZIRH-3 storage rung: 128 words - bank A and bank B at 64 words
+    // each, four times the ZIRH-2 loaded-program space
+    zirh_ecc_ram #(.WORDS(128)) u_ram (
         .clk          (clk),
         .rst_n        (por_rst_n_i),
         .cyc_i        (ram_cyc),

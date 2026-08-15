@@ -266,3 +266,17 @@ requirements:
       golden model, masks a pinned replica for 100 cycles, and heals
       it on release; core transform measured at 3.5x cells with the
       cache-array caveat recorded
+  - id: Z3-R24
+    text: The die shall carry at least 64 KB of protected data storage
+      built from the proven sliced-SECDED bank - the CPU reaching it
+      through a paged window that leaves the bus map and the golden ROM
+      untouched, the debugger reaching it flat, and every page carrying
+      its own scrubber and march engine behind the doorway.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: sixteen pages of zirh_sram39 (80 macros) behind the
+      TMR'd page register; an ISP-loaded program proves two pages hold
+      different words at the same window address and reads both back;
+      the full-size array measures 73 replicas / 31406 flops in the
+      guard

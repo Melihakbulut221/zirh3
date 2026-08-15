@@ -32,11 +32,16 @@
 
 `default_nettype none
 
-module zirh_ecc_ram (
+module zirh_ecc_ram #(
+    // 16 words is the ZIRH-2 shape every proof was written against;
+    // ZIRH-3's storage rung grows the loaded-program space through
+    // this parameter without moving one proven line
+    parameter integer WORDS = 16
+) (
     input  wire        clk,
     input  wire        rst_n,
 
-    // bus slave: words 0..15 at adr[5:2]
+    // bus slave: words 0..WORDS-1 at adr[IDXW+1:2]
     input  wire        cyc_i,
     input  wire [31:0] adr_i,
     input  wire [31:0] dat_i,
@@ -68,9 +73,10 @@ module zirh_ecc_ram (
     // ------------------------------------------------------------------------
     // Storage
     // ------------------------------------------------------------------------
-    reg [38:0] mem [0:15];
+    localparam integer IDXW = $clog2(WORDS);
+    reg [38:0] mem [0:WORDS-1];
 
-    wire [3:0] idx = adr_i[5:2];
+    wire [IDXW-1:0] idx = adr_i[IDXW+1:2];
 
     // ------------------------------------------------------------------------
     // Decode + correct the addressed word (combinational)

@@ -42,6 +42,25 @@ def lw(rd, rs1, off):
     return ((off & 0xFFF) << 20) | (rs1 << 15) | (0x2 << 12) | (rd << 7) | 0x03
 
 
+def andi(rd, rs1, imm):
+    return ((imm & 0xFFF) << 20) | (rs1 << 15) | (0x7 << 12) | (rd << 7) | 0x13
+
+
+def _branch(rs1, rs2, off, f3):
+    imm = off & 0x1FFF
+    return (((imm >> 12) & 1) << 31) | (((imm >> 5) & 0x3F) << 25) | \
+           (rs2 << 20) | (rs1 << 15) | (f3 << 12) | \
+           (((imm >> 1) & 0xF) << 8) | (((imm >> 11) & 1) << 7) | 0x63
+
+
+def beq(rs1, rs2, off):
+    return _branch(rs1, rs2, off, 0x0)
+
+
+def bne(rs1, rs2, off):
+    return _branch(rs1, rs2, off, 0x1)
+
+
 def srli(rd, rs1, shamt):
     return ((shamt & 0x1F) << 20) | (rs1 << 15) | (0x5 << 12) | (rd << 7) | 0x13
 
@@ -135,7 +154,8 @@ async def hunt_echo(dut, cmd, target, attempts=8):
             high = high + 1 if int(dut.uart_tx_o.value) == 1 else 0
             if high >= 300:
                 break
-        await uart_send(dut, cmd)
+        if cmd is not None:
+            await uart_send(dut, cmd)
         for _ in range(30):
             b = await uart_capture(dut, 30_000)
             if b == target:
@@ -245,6 +265,56 @@ async def test_loaded_code_uses_the_sliced_bank(dut):
         assert b not in (0xFF,), "bank readback mismatched"
     else:
         raise AssertionError("bank-probe verdict never reached the pin")
+
+
+# rung 5: 64 KB behind the 4 KB window. The program pages via the
+# doorway's PAGE register (0x500C), proves pages hold DIFFERENT data
+# (write 0xAA to page 2, 0xBB to page 3, read both back), and shouts
+# the two verdicts forever: 0xB5 iff page 2 kept its word, 0xB6 iff
+# page 3 kept its - a cross-page clobber would shout 0xC6 instead.
+PAGED = [
+    lui(5, 0x5),                  # t0 = 0x5000 (doorway)
+    lui(8, 0x4),                  # t3 = 0x4000 (bank window)
+    lui(9, 0x2),                  # s1 = 0x2000 (uart)
+    addi(6, 0, 2), sw(6, 5, 0x0C),
+    addi(7, 0, 0xAA), sw(7, 8, 0),
+    addi(6, 0, 3), sw(6, 5, 0x0C),
+    addi(7, 0, 0xBB), sw(7, 8, 0),
+    # loop head (index 11): page 2 verdict
+    addi(6, 0, 2), sw(6, 5, 0x0C),
+    lw(7, 8, 0), addi(7, 7, 0xB5 - 0xAA),
+    lw(14, 9, 0), andi(14, 14, 1), beq(14, 0, -8),   # poll TX_FREE
+    sw(7, 9, 4),
+    addi(15, 0, 300), addi(15, 15, -1), bne(15, 0, -4),  # idle gap
+    # page 3 verdict
+    addi(6, 0, 3), sw(6, 5, 0x0C),
+    lw(7, 8, 0), addi(7, 7, 0xB6 - 0xBB),
+    lw(14, 9, 0), andi(14, 14, 1), beq(14, 0, -8),
+    sw(7, 9, 4),
+    addi(15, 0, 300), addi(15, 15, -1), bne(15, 0, -4),
+    jal(0, (11 - 31) * 4),
+]
+
+
+@cocotb.test()
+async def test_pages_are_real_memory(dut):
+    """Rung 5: the storage leg. Two pages of the 64 KB bank hold two
+    different words at the same window address; the loaded program
+    pages between them and reports both readbacks on the pin. 0xB5
+    then 0xB6 means 64 KB is real, isolated memory - not one page
+    aliased sixteen times."""
+    await start(dut, strap=1)
+
+    for b in image(PAGED):
+        await uart_send(dut, b)
+    await ClockCycles(dut.clk, 500)
+
+    assert int(dut.boot_sel_o.value) == 1, "paging program must commit"
+
+    ok = await hunt_echo(dut, None, 0xB5)
+    assert ok, "page 2 verdict never arrived (or cross-page clobber)"
+    ok = await hunt_echo(dut, None, 0xB6)
+    assert ok, "page 3 verdict never arrived (or cross-page clobber)"
 
 
 async def capture_frame(dut, timeout, tries=8):

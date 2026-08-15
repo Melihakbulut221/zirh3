@@ -378,3 +378,41 @@ The decision is deliberately deferred to measurement: pilot B is the
 program's philosophy and the default; pilot A is the fallback if the
 per-flop voter's timing cost breaks the 50 MHz closure. The clock
 campaign - the parity ladder's remaining leg - picks the winner.
+
+## Cycle 14, rung 5 (2026-08-16): the storage leg - 64 KB, and the bench grows branches
+
+The data bank grows sixteenfold without one proven line changing:
+zirh_bank64 composes sixteen copies of the sliced-SECDED bank - 80
+macros, every word 32+6+1 across five slices, every page scrubbed -
+behind a TMR'd page register in the slot-5 doorway. The CPU pages
+its 4 KB window (one store to switch context; the bus map and the
+golden ROM stand untouched); the debugger's SBA reads the flat
+64 KB; the march engine follows the page select. The loaded-program
+space grew alongside: the ECC RAM parameterizes to 128 words and
+the loader's banks to 64 each, four times the ZIRH-2 image budget.
+Synthesis and the guard always build the full sixteen pages (73
+replicas / 31406 flops, measured); simulation suites build four -
+the paging mechanism is page-count agnostic and the wall-clock is
+not.
+
+The proof fought back, and every round sharpened something. The
+image was rejected: the loader's capacity check said 61 words and
+the hand-count said the program was 62 - the bench's third encoding
+lesson of the cycle. Then the verdict bytes read wrong on the pin
+while every probe inside the die read RIGHT: page 2 returned 0xAA,
+page 3 returned 0xBB, the CPU computed and wrote 0xB5/0xB6, the
+shifter accepted exactly those bytes onto the wire - and the
+listener still read 0xB3/0xAB, because a program that floods the TX
+slot saturates the line and a saturated line gives a naive sampler
+no gap to align in. The fix is the product's own discipline, now in
+the bench's assembler: branches. The runner polls TX_FREE like the
+firmware does and paces itself with a real delay loop, the line
+idles between bytes, and the listener reads what the wire carries.
+The bench that started this cycle with four opcodes ends it with
+nine and a calling convention.
+
+The storage gap to the VA10805 closes to its last item: 64 KB of
+SECDED data bank against its 32 KB of bare data SRAM - ours is now
+LARGER and protected; program-store scale (256 KB class) remains
+the one open storage line, and it is the same pattern at more
+macros.
