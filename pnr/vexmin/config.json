@@ -9,5 +9,6 @@
   "CLOCK_PERIOD": 20,
   "RUN_KLAYOUT_XOR": 0,
   "RUN_KLAYOUT_DRC": 0,
-  "RUN_LINTER": 1
+  "RUN_LINTER": 1,
+  "//r2": "ROUND 2 VERDICT (2026-08-16, run 31929305863): CLOSED at 50 MHz on the FIRST placed round, default knobs. setup ws +4.53 ns at the slow corner (+8.86 typ, +11.34 fast), hold positive at every corner (+0.09 fast worst), zero violations, antenna clean. The abc-level 21.7 ns estimate was mapper pessimism, not silicon truth - the real flow's path is ~11 ns typ. Knob archaeology never had to begin."
 }

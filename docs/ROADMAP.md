@@ -431,3 +431,20 @@ before. The corner slacks print in the workflow log; the campaign
 iterates one knob per round with verdicts recorded where the knobs
 live, and the shipping Lite core follows once the cache arrays get
 their RM-macro binding.
+
+## Cycle 15, round 2 (2026-08-16): 50 MHz closes on the first placed round
+
+Round 1 died in the yosys-check gate - three generated-but-undriven
+stub nets, tied off as a marked patch in the pilot file. Round 2
+went to the tools clean and returned the campaign's verdict in one
+pass: setup worst-slack +4.53 ns AT THE SLOW CORNER (+8.86 typ),
+hold positive everywhere, zero violations - 50 MHz closed with
+default knobs, no archaeology required. The synthesis leg's 21.7 ns
+scare was abc mapper pessimism, not silicon truth: the flow's real
+post-route path is ~11 ns typ, and the pipeline could chase the
+60-75 MHz class if a future rung wants it. Standing consequences:
+the protection choice is timing-free beyond doubt (pilot B's 81 ps
+voter rides on 4.5 ns of worst-corner slack), and the VA10805
+parity ladder's clock leg is CLOSED at the pilot level. The
+campaign's remaining named work is the shipping Lite core with its
+cache arrays bound to RM_IHPSG13 macros - integration, not risk.
