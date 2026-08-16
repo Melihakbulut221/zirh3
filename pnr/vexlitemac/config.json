@@ -11,8 +11,8 @@
   "DIE_AREA": [
     0,
     0,
-    760,
-    560
+    840,
+    620
   ],
   "PL_TARGET_DENSITY_PCT": 55,
   "RUN_KLAYOUT_XOR": 0,
@@ -63,11 +63,12 @@
         "u_core.IBusCachedPlugin_cache.ways_0_tags.0.0.u_m": {
           "location": [
             40,
-            260
+            280
           ],
           "orientation": "N"
         }
       }
     }
-  }
+  },
+  "//r5c": "ROUND 5c: synthesis+binding clean; PDN-0179 - the tag macro's 17 um right channel could not carry the grid. Die grown to 840x620, both macros flush left at x=40: right channels 85+/97 um, 40 um between the macro bands."
 }
