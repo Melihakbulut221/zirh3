@@ -8,32 +8,63 @@
   "CLOCK_PORT": "clk",
   "CLOCK_PERIOD": 20,
   "FP_SIZING": "absolute",
-  "DIE_AREA": [0, 0, 760, 560],
+  "DIE_AREA": [
+    0,
+    0,
+    760,
+    560
+  ],
   "PL_TARGET_DENSITY_PCT": 55,
   "RUN_KLAYOUT_XOR": 0,
   "RUN_KLAYOUT_DRC": 0,
   "RUN_LINTER": 0,
   "MACROS": {
     "RM_IHPSG13_2P_512x32_c2_bm_bist": {
-      "gds": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.gds"],
-      "lef": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.lef"],
-      "nl":  ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.v"],
-      "lib": {"*": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist_typ_1p20V_25C.lib"]},
+      "gds": [
+        "dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.gds"
+      ],
+      "lef": [
+        "dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.lef"
+      ],
+      "nl": [
+        "dir::stubs/rm2p_stubs.v"
+      ],
+      "lib": {
+        "*": [
+          "dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist_typ_1p20V_25C.lib"
+        ]
+      },
       "instances": {
         "u_core.IBusCachedPlugin_cache.banks_0.0.0.u_m": {
-          "location": [40, 20],
+          "location": [
+            40,
+            20
+          ],
           "orientation": "N"
         }
       }
     },
     "RM_IHPSG13_2P_64x32_c2": {
-      "gds": ["dir::pdk/RM_IHPSG13_2P_64x32_c2.gds"],
-      "lef": ["dir::pdk/RM_IHPSG13_2P_64x32_c2.lef"],
-      "nl":  ["dir::pdk/RM_IHPSG13_2P_64x32_c2.v"],
-      "lib": {"*": ["dir::pdk/RM_IHPSG13_2P_64x32_c2_typ_1p20V_25C.lib"]},
+      "gds": [
+        "dir::pdk/RM_IHPSG13_2P_64x32_c2.gds"
+      ],
+      "lef": [
+        "dir::pdk/RM_IHPSG13_2P_64x32_c2.lef"
+      ],
+      "nl": [
+        "dir::stubs/rm2p_stubs.v"
+      ],
+      "lib": {
+        "*": [
+          "dir::pdk/RM_IHPSG13_2P_64x32_c2_typ_1p20V_25C.lib"
+        ]
+      },
       "instances": {
         "u_core.IBusCachedPlugin_cache.ways_0_tags.0.0.u_m": {
-          "location": [40, 260],
+          "location": [
+            40,
+            260
+          ],
           "orientation": "N"
         }
       }
