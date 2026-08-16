@@ -40,7 +40,7 @@
             40,
             20
           ],
-          "orientation": "N"
+          "orientation": "FS"
         }
       }
     },
@@ -63,9 +63,9 @@
         "u_core.IBusCachedPlugin_cache.ways_0_tags.0.0.u_m": {
           "location": [
             40,
-            240
+            270
           ],
-          "orientation": "N"
+          "orientation": "FS"
         }
       }
     }
@@ -83,5 +83,6 @@
   "//r5g": "ROUND 5g: still GRT-0116 but the report tells a different story - 34.8% total usage, only 162 overflow gcells: not a capacity problem, a LOCAL hotspot at the macro pin rows where packed std cells choke pin access. The cure is the halo: 15 um of keepout around each macro so the router owns the pin escape.",
   "//r5h": "ROUND 5h: halos moved overflow 162->157 - the hotspot is not cell crowding. At this scale (157 gcells in 384k, layers all under 60%) the global router's verdict is pessimism; GRT_ALLOW_CONGESTION lets detailed routing be the judge, and the DRC step remains the real gate.",
   "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
-  "//r5i": "ROUND 5i: GRT_ALLOW_CONGESTION let detailed routing thrash on the REAL hotspot for the job's full 180 minutes - the congestion was never pessimism. The tell was in 5f's warning: clk among the named nets. Default pin placement scatters IO on all four edges; a south-edge pin's net must cross the 700 um macro band on sparse TopMetal to reach the north logic. Every pin now lands on the NORTH edge - no net crosses the band - and the global router's honest verdict returns."
+  "//r5i": "ROUND 5i: GRT_ALLOW_CONGESTION let detailed routing thrash on the REAL hotspot for the job's full 180 minutes - the congestion was never pessimism. The tell was in 5f's warning: clk among the named nets. Default pin placement scatters IO on all four edges; a south-edge pin's net must cross the 700 um macro band on sparse TopMetal to reach the north logic. Every pin now lands on the NORTH edge - no net crosses the band - and the global router's honest verdict returns.",
+  "//r5j": "ROUND 5j: pins-north cut overflow 157->110 but the immovable rest was the MACROS' OWN pin edge - the LEF puts every signal pin at y=0, facing the die's bottom strip, so a hundred-plus escapes wrapped the band's corners. Both macros flip FS (pin face north, toward the logic); the 30 um gap between the bands is exactly two halos wide - a routing channel with no room for a cell island (the 5d lesson, preserved by construction)."
 }
