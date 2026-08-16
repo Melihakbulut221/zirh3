@@ -18,10 +18,8 @@ set_output_delay 4 -clock clk [all_outputs]
 
 set_max_fanout 16 [current_design]
 
-# the surgical hold pad: every data/control input of both macros
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_data_m/A_*]
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_data_m/B_ADDR*]
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_data_m/B_REN]
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_tags_m/A_*]
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_tags_m/B_ADDR*]
-set_min_delay 2.0 -to [get_pins -hierarchical *icache_tags_m/B_REN]
+# ROUND 5v POST-MORTEM: set_min_delay is not a repair driver - it
+# REDEFINES the hold check itself, so the reported violations became
+# the constraint's own unmet demand and the pads ate a real setup
+# path. Removed; the resizer's own hold repair (with its buffer
+# budget raised in the config) is the correct instrument.
