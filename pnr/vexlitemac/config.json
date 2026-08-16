@@ -11,10 +11,10 @@
   "DIE_AREA": [
     0,
     0,
-    840,
+    1000,
     620
   ],
-  "PL_TARGET_DENSITY_PCT": 55,
+  "PL_TARGET_DENSITY_PCT": 45,
   "RUN_KLAYOUT_XOR": 0,
   "RUN_KLAYOUT_DRC": 0,
   "RUN_LINTER": 0,
@@ -76,5 +76,6 @@
   "RUN_POST_CTS_RESIZER_TIMING": false,
   "RUN_POST_GRT_RESIZER_TIMING": true,
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.06,
-  "//r5e": "ROUND 5e: repair_design cleared (the abutted band worked); DPL-0036 moved to rsz_timing_postcts - zirh2's four-times-documented failure at the exact same step, same cause (pre-route-parasitic hold repair inflating buffers). Same proven cure: skip the post-CTS resizer, let the post-GRT resizer repair against real routed parasitics at the 0.06 margin."
+  "//r5e": "ROUND 5e: repair_design cleared (the abutted band worked); DPL-0036 moved to rsz_timing_postcts - zirh2's four-times-documented failure at the exact same step, same cause (pre-route-parasitic hold repair inflating buffers). Same proven cure: skip the post-CTS resizer, let the post-GRT resizer repair against real routed parasitics at the 0.06 margin.",
+  "//r5f": "ROUND 5f: placement+CTS clean; GRT-0116 congestion - the macro band spans ~84% of die width, squeezing every north-south net (clk included) into the ~100 um east channel. Die widened to 1000 (east channel ~257 um), density eased to 45: congestion is a real-estate problem before it is a router problem."
 }
