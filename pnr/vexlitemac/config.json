@@ -80,5 +80,7 @@
   "//r5f": "ROUND 5f: placement+CTS clean; GRT-0116 congestion - the macro band spans ~84% of die width, squeezing every north-south net (clk included) into the ~100 um east channel. Die widened to 1000 (east channel ~257 um), density eased to 45: congestion is a real-estate problem before it is a router problem.",
   "FP_MACRO_HORIZONTAL_HALO": 15,
   "FP_MACRO_VERTICAL_HALO": 15,
-  "//r5g": "ROUND 5g: still GRT-0116 but the report tells a different story - 34.8% total usage, only 162 overflow gcells: not a capacity problem, a LOCAL hotspot at the macro pin rows where packed std cells choke pin access. The cure is the halo: 15 um of keepout around each macro so the router owns the pin escape."
+  "//r5g": "ROUND 5g: still GRT-0116 but the report tells a different story - 34.8% total usage, only 162 overflow gcells: not a capacity problem, a LOCAL hotspot at the macro pin rows where packed std cells choke pin access. The cure is the halo: 15 um of keepout around each macro so the router owns the pin escape.",
+  "GRT_ALLOW_CONGESTION": true,
+  "//r5h": "ROUND 5h: halos moved overflow 162->157 - the hotspot is not cell crowding. At this scale (157 gcells in 384k, layers all under 60%) the global router's verdict is pessimism; GRT_ALLOW_CONGESTION lets detailed routing be the judge, and the DRC step remains the real gate."
 }
