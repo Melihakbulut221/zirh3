@@ -1,0 +1,32 @@
+# ZIRH-3 - yosys memory library for the IHP RM 2P macros the Lite
+# core's caches bind to (Cycle 15 round 4). One synchronous write
+# port, one synchronous read port - the exact shape SpinalHDL infers
+# for the I-cache data and tag arrays.
+ram block \ram_rm2p_512x32 {
+    abits 9;
+    width 32;
+    byte 1;
+    cost 100;
+    init none;
+    port sw "W" {
+        clock posedge;
+    }
+    port sr "R" {
+        clock posedge;
+        rden;
+    }
+}
+ram block \ram_rm2p_64x32 {
+    abits 6;
+    width 32;
+    byte 1;
+    cost 40;
+    init none;
+    port sw "W" {
+        clock posedge;
+    }
+    port sr "R" {
+        clock posedge;
+        rden;
+    }
+}
