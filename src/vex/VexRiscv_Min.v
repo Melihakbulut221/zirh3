@@ -10,6 +10,10 @@
 //         flop count. NOT the shipping core. Same module name as the
 //         Lite file on purpose: a filelist picks exactly one.
 // License: MIT (VexRiscv). Lint-exempt like the other vendored cores.
+// ZIRH-PATCH (marked below): three generated-but-undriven stub nets
+//   (fetchRsp_isRvc and the unwritten mtvec_mode reg) tied to constant
+//   zero so the P&R flow's yosys-check gate passes. Semantics
+//   unchanged: nothing in this configuration ever writes them.
 // =============================================================================
 // Generator : SpinalHDL v1.9.4    git head : 270018552577f3bb8e5339ee2583c9c22d324215
 // Component : VexRiscv
@@ -551,7 +555,7 @@ module VexRiscv (
   wire       [31:0]   IBusSimplePlugin_rspJoin_fetchRsp_pc;
   reg                 IBusSimplePlugin_rspJoin_fetchRsp_rsp_error;
   wire       [31:0]   IBusSimplePlugin_rspJoin_fetchRsp_rsp_inst;
-  wire                IBusSimplePlugin_rspJoin_fetchRsp_isRvc;
+  wire                IBusSimplePlugin_rspJoin_fetchRsp_isRvc = 1'b0; // ZIRH-PATCH
   wire                when_IBusSimplePlugin_l376;
   wire                IBusSimplePlugin_rspJoin_join_valid;
   wire                IBusSimplePlugin_rspJoin_join_ready;
@@ -671,7 +675,7 @@ module VexRiscv (
   wire       [31:0]   execute_BranchPlugin_branchAdder;
   wire       [1:0]    CsrPlugin_misa_base;
   wire       [25:0]   CsrPlugin_misa_extensions;
-  reg        [1:0]    CsrPlugin_mtvec_mode;
+  wire       [1:0]    CsrPlugin_mtvec_mode = 2'b00; // ZIRH-PATCH (reg never written)
   reg        [29:0]   CsrPlugin_mtvec_base;
   reg        [31:0]   CsrPlugin_mepc;
   reg                 CsrPlugin_mstatus_MIE;
