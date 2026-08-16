@@ -102,6 +102,7 @@ jobs:
           path: |
             pnr/vexlitemac/runs/vexlitemac/final/*
             pnr/vexlitemac/runs/vexlitemac/*.log
+            pnr/vexlitemac/runs/vexlitemac/*sta*/**
 
   vexlite-50mhz:
     if: ${{ inputs.target == 'lite' || inputs.target == 'all' }}

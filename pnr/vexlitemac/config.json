@@ -75,7 +75,7 @@
   "//r5d": "ROUND 5d: PDN clean; DPL-0036 at repair_design - the 40 um slot between the two macro bands split rows into an island strip, the exact zirh2 failure mode. Bands now ABUT (data y20-240, tags y240-315: one contiguous south block, unbroken rows above) and the legalizer gets the campaign's proven vertical reach.",
   "RUN_POST_CTS_RESIZER_TIMING": false,
   "RUN_POST_GRT_RESIZER_TIMING": true,
-  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.22,
+  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.15,
   "//r5e": "ROUND 5e: repair_design cleared (the abutted band worked); DPL-0036 moved to rsz_timing_postcts - zirh2's four-times-documented failure at the exact same step, same cause (pre-route-parasitic hold repair inflating buffers). Same proven cure: skip the post-CTS resizer, let the post-GRT resizer repair against real routed parasitics at the 0.06 margin.",
   "//r5f": "ROUND 5f: placement+CTS clean; GRT-0116 congestion - the macro band spans ~84% of die width, squeezing every north-south net (clk included) into the ~100 um east channel. Die widened to 1000 (east channel ~257 um), density eased to 45: congestion is a real-estate problem before it is a router problem.",
   "FP_MACRO_HORIZONTAL_HALO": 15,
@@ -100,5 +100,6 @@
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
   "//r5o": "ROUND 5o: THE CHAIN COMPLETED. Setup ws +5.26 ns at the SLOW corner (+9.25 typ, +11.59 fast): 50 MHz setup CLOSES on the macro-bound shipping core. Hold reads -1.05/-0.91/-0.68 - the zirh2 case verbatim: the 0.06 margin asked the post-GRT resizer for too little. Escalated to 0.30 per that campaign's own measured lesson. The job's red was only the quality gate demanding reports from the disabled non-judges; the workflow now carries the honest gate itself: green iff every corner's setup AND hold close.",
   "//r5p": "ROUND 5p: 0.30 was the seesaw's other end - the post-GRT resizer inserted until placement burst (DPL-0036 at rsz_timing_postgrt), the mirror of zirh2's 0.02->2431 story. 0.15 asks for real repair without the flood; density 45 and reach 400 stand.",
-  "//r5q": "ROUND 5q: 0.15 repaired half a nanosecond (-1.05/-0.91/-0.68 -> -0.55/-0.41/-0.16) with placement intact and setup untouched (+5.33 slow). The seesaw is measured at both ends (0.15 works, 0.30 bursts); 0.22 rides the middle."
+  "//r5q": "ROUND 5q: 0.15 repaired half a nanosecond (-1.05/-0.91/-0.68 -> -0.55/-0.41/-0.16) with placement intact and setup untouched (+5.33 slow). The seesaw is measured at both ends (0.15 works, 0.30 bursts); 0.22 rides the middle.",
+  "//r5r": "ROUND 5r: 0.22 made hold WORSE (-0.86/-0.72/-0.50) - the margin curve is non-monotonic; this is zirh2's repair lottery zone. Blind sweeping ends here: only 26 endpoints violate (19 fast / 5 typ / 2 slow), a surgical set. Margin returns to the measured best (0.15) and the artifact now carries the STA reports so the next round knows the paths by name."
 }
