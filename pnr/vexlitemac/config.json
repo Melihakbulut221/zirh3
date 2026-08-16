@@ -63,12 +63,14 @@
         "u_core.IBusCachedPlugin_cache.ways_0_tags.0.0.u_m": {
           "location": [
             40,
-            280
+            240
           ],
           "orientation": "N"
         }
       }
     }
   },
-  "//r5c": "ROUND 5c: synthesis+binding clean; PDN-0179 - the tag macro's 17 um right channel could not carry the grid. Die grown to 840x620, both macros flush left at x=40: right channels 85+/97 um, 40 um between the macro bands."
+  "//r5c": "ROUND 5c: synthesis+binding clean; PDN-0179 - the tag macro's 17 um right channel could not carry the grid. Die grown to 840x620, both macros flush left at x=40: right channels 85+/97 um, 40 um between the macro bands.",
+  "PL_MAX_DISPLACEMENT_Y": 400,
+  "//r5d": "ROUND 5d: PDN clean; DPL-0036 at repair_design - the 40 um slot between the two macro bands split rows into an island strip, the exact zirh2 failure mode. Bands now ABUT (data y20-240, tags y240-315: one contiguous south block, unbroken rows above) and the legalizer gets the campaign's proven vertical reach."
 }
