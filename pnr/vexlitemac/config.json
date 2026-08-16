@@ -77,5 +77,8 @@
   "RUN_POST_GRT_RESIZER_TIMING": true,
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.06,
   "//r5e": "ROUND 5e: repair_design cleared (the abutted band worked); DPL-0036 moved to rsz_timing_postcts - zirh2's four-times-documented failure at the exact same step, same cause (pre-route-parasitic hold repair inflating buffers). Same proven cure: skip the post-CTS resizer, let the post-GRT resizer repair against real routed parasitics at the 0.06 margin.",
-  "//r5f": "ROUND 5f: placement+CTS clean; GRT-0116 congestion - the macro band spans ~84% of die width, squeezing every north-south net (clk included) into the ~100 um east channel. Die widened to 1000 (east channel ~257 um), density eased to 45: congestion is a real-estate problem before it is a router problem."
+  "//r5f": "ROUND 5f: placement+CTS clean; GRT-0116 congestion - the macro band spans ~84% of die width, squeezing every north-south net (clk included) into the ~100 um east channel. Die widened to 1000 (east channel ~257 um), density eased to 45: congestion is a real-estate problem before it is a router problem.",
+  "FP_MACRO_HORIZONTAL_HALO": 15,
+  "FP_MACRO_VERTICAL_HALO": 15,
+  "//r5g": "ROUND 5g: still GRT-0116 but the report tells a different story - 34.8% total usage, only 162 overflow gcells: not a capacity problem, a LOCAL hotspot at the macro pin rows where packed std cells choke pin access. The cure is the halo: 15 um of keepout around each macro so the router owns the pin escape."
 }
