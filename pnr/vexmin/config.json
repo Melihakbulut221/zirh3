@@ -1,0 +1,13 @@
+{
+  "//": "Cycle 15: the 50 MHz P&R closure campaign, round 1. The pilot is the cacheless Min core under the shipping wrapper - the pipeline's real post-route path without the cache arrays that harden as macros. Knobs start at flow defaults on purpose: the zirh2 campaign taught that knob archaeology begins AFTER the first measured failure, not before.",
+  "DESIGN_NAME": "zirh_vex_wrap",
+  "VERILOG_FILES": [
+    "dir::../../src/vex/VexRiscv_Min.v",
+    "dir::../../src/zirh_vex_wrap.v"
+  ],
+  "CLOCK_PORT": "clk",
+  "CLOCK_PERIOD": 20,
+  "RUN_KLAYOUT_XOR": 0,
+  "RUN_KLAYOUT_DRC": 0,
+  "RUN_LINTER": 1
+}

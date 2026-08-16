@@ -416,3 +416,18 @@ SECDED data bank against its 32 KB of bare data SRAM - ours is now
 LARGER and protected; program-store scale (256 KB class) remains
 the one open storage line, and it is the same pattern at more
 macros.
+
+## Cycle 15 (2026-08-16): the 50 MHz P&R campaign opens
+
+The synthesis leg measured 21.7 ns typ on gate delays alone; wires
+get their vote through the dispatchable pnr workflow - LibreLane on
+SG13G2, the exact toolchain-and-discipline the zirh2 nine-round
+placement campaign proved, now pointed at the compute upgrade. Round
+one hardens the timing pilot (the cacheless Min core under the
+shipping wrapper: the pipeline's real path, the cache arrays kept
+for macro-bounding) at CLOCK_PERIOD=20 with flow-default knobs -
+knob archaeology begins after the first measured failure, not
+before. The corner slacks print in the workflow log; the campaign
+iterates one knob per round with verdicts recorded where the knobs
+live, and the shipping Lite core follows once the cache arrays get
+their RM-macro binding.

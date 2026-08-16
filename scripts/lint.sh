@@ -45,7 +45,7 @@ for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
       --top-module $TOP \
       "$SRAM_V"/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
       "$SRAM_V"/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
-      src/zirh_*.v src/vex/*.v \
+      src/zirh_*.v src/vex/VexRiscv_Lite.v \
       2>&1 | tee /tmp/zirh3_lint_$TOP.log | grep -E "%Warning" \
       | grep -E "zirh_" && { echo "lint: warnings in $TOP"; fail=1; }
 done
@@ -61,7 +61,7 @@ $VL --lint-only -Wall --timing \
     -Wno-WIDTHEXPAND -Wno-PINCONNECTEMPTY -Wno-PINMISSING \
     -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE \
     -DFUNCTIONAL -DZIRH_SIM_ENV -Isrc --top-module zirh_soc \
-    src/vex/*.v src/zirh_vex_wrap.v src/zirh_rom.v src/zirh_bus.v src/zirh_ecc_ram.v \
+    src/vex/VexRiscv_Lite.v src/zirh_vex_wrap.v src/zirh_rom.v src/zirh_bus.v src/zirh_ecc_ram.v \
     src/zirh_rs422.v src/zirh_uart_regs.v src/zirh_tmr_lib.v \
     src/zirh_soc.v 2>&1 | tee /tmp/zirh3_soc_lint.log \
     | grep -E "%Warning" | grep -iE "zirh_(soc|rom|bus|uart|rs422)" \

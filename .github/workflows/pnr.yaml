@@ -1,0 +1,67 @@
+# =============================================================================
+# ZIRH-3 - the 50 MHz P&R closure campaign (Cycle 15)
+#
+# Dispatchable: hardens the timing pilot (cacheless Min core under the
+# shipping wrapper) through LibreLane on SG13G2 and prints the
+# post-route corner slacks - the number the synthesis-level campaign
+# (scripts/clk_campaign.sh, 21.7 ns typ) cannot see wires for.
+# Iterate by editing pnr/vexmin/config.json and re-dispatching; the
+# zirh2 placement campaign's discipline applies: one knob per round,
+# measured verdicts in the config comments.
+# =============================================================================
+
+name: pnr
+
+on:
+  workflow_dispatch:
+
+jobs:
+  vexmin-50mhz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PDK_ROOT: /home/runner/pdk
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install LibreLane
+        run: pip install librelane==3.0.5
+
+      - name: Place and route at 50 MHz
+        run: |
+          python -m librelane \
+            --docker-no-tty --dockerized \
+            --pdk-root "$PDK_ROOT" \
+            --pdk ihp-sg13g2 \
+            --run-tag vexmin \
+            pnr/vexmin/config.json
+
+      - name: Corner slacks (the campaign's verdict)
+        if: success() || failure()
+        run: |
+          M=$(find pnr/vexmin/runs/vexmin -name metrics.json | sort | tail -1)
+          echo "metrics: $M"
+          python3 - "$M" <<'PY'
+          import json, sys
+          m = json.load(open(sys.argv[1]))
+          for k in sorted(m):
+              if "timing__setup__ws" in k or "timing__hold__ws" in k \
+                 or "clock__skew" in k or "violating" in k:
+                  print(f"{k} = {m[k]}")
+          PY
+
+      - name: Upload artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pnr_vexmin
+          path: |
+            pnr/vexmin/runs/vexmin/final/*
+            pnr/vexmin/runs/vexmin/*.log
