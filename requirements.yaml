@@ -280,3 +280,15 @@ requirements:
       different words at the same window address and reads both back;
       the full-size array measures 73 replicas / 31406 flops in the
       guard
+  - id: Z3-R25
+    text: The macro-bound shipping core shall close 50 MHz setup timing
+      through full place-and-route on SG13G2 with the cache arrays on
+      real RM 2P macros, and any residual hold deficit shall be named,
+      bounded, and assigned to signoff.
+    tests:
+      - pnr/vexlitemac/config.json
+    evidence: campaign record in the config and ROADMAP - setup ws
+      +5.44 ns at the slow corner post-route, zero routing overflow,
+      routing DRC clean; hold residual -0.38 ns fast on 26 named
+      macro-data-input endpoints, period-independent, assigned to the
+      signoff ECO with two named mechanisms

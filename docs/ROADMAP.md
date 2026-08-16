@@ -448,3 +448,32 @@ voter rides on 4.5 ns of worst-corner slack), and the VA10805
 parity ladder's clock leg is CLOSED at the pilot level. The
 campaign's remaining named work is the shipping Lite core with its
 cache arrays bound to RM_IHPSG13 macros - integration, not risk.
+
+## Cycle 15, the campaign record (2026-08-17): 50 MHz closes on the shipping core
+
+Twenty-two rounds, every verdict written where its knob lives. The
+macro-bound shipping core - VexRiscv_Lite with its cache arrays on
+real RM 2P macros - places, routes with zero overflow, passes
+routing DRC, and closes 50 MHz SETUP with +5.44 ns at the slow
+corner (+9.3 typ, +11.6 fast). The road there: a checker's stub
+nets, a PDN that needed channels, the zirh2 campaign's placement
+island and post-CTS resizer failures reproduced and cured by its
+own book, congestion peeled in three layers (real estate, halo,
+and finally the truth - the macros' pin face looking at the die
+edge; one FS flip took the overflow to zero), floating macro power
+rails, and three signoff-tool frictions parked where zirh2 parked
+its own.
+
+What remains is named and bounded: a hold residual of -0.38 ns at
+the fast corner (typ -0.22, slow +0.02) on exactly 26 endpoints,
+all at the macros' data inputs where RM internal clock latency
+shifts the capture edge. It survived every legitimate knob the flow
+offers - the margin seesaw measured at four points, the repair
+budget, and an SDC scalpel that taught us set_min_delay redefines
+the check instead of driving the repair. Hold does not scale with
+the clock, so this residual gates TAPEOUT, not the 50 MHz claim:
+the closure work belongs to signoff - an ECO pass with explicit
+buffers on the named nets, or clock-tree balancing into the macro
+clock pins - and it is the compute upgrade's one open physical
+item. The parity ladder's clock leg stands closed at the level
+that owns it.
