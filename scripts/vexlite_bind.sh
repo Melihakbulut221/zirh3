@@ -15,6 +15,7 @@
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-/tmp/vexlite_bound.v}"
+mkdir -p "$(dirname "${OUT}")"
 SV="${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_sram/verilog"
 yosys -q -p "
     read_verilog -lib -DFUNCTIONAL ${SV}/RM_IHPSG13_2P_512x32_c2_bm_bist.v ${SV}/RM_IHPSG13_2P_64x32_c2.v;
