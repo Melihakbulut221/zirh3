@@ -16,6 +16,52 @@ on:
   workflow_dispatch:
 
 jobs:
+  vexlite-50mhz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      PDK_ROOT: /home/runner/pdk
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install LibreLane
+        run: pip install librelane==3.0.5
+      - name: Place and route the shipping core at 50 MHz
+        run: |
+          python -m librelane \
+            --docker-no-tty --dockerized \
+            --pdk-root "$PDK_ROOT" \
+            --pdk ihp-sg13g2 \
+            --run-tag vexlite \
+            pnr/vexlite/config.json
+      - name: Corner slacks (the campaign's verdict)
+        if: success() || failure()
+        run: |
+          M=$(find pnr/vexlite/runs/vexlite -name metrics.json | sort | tail -1)
+          echo "metrics: $M"
+          python3 - "$M" <<'PY'
+          import json, sys
+          m = json.load(open(sys.argv[1]))
+          for k in sorted(m):
+              if "timing__setup__ws" in k or "timing__hold__ws" in k \
+                 or "violating" in k or "design__instance__count" in k \
+                 or "design__die__area" in k:
+                  print(f"{k} = {m[k]}")
+          PY
+      - name: Upload artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pnr_vexlite
+          path: |
+            pnr/vexlite/runs/vexlite/final/*
+            pnr/vexlite/runs/vexlite/*.log
+
   vexmin-50mhz:
     runs-on: ubuntu-24.04
     timeout-minutes: 120

@@ -1,0 +1,13 @@
+{
+  "//": "Cycle 15 round 3: the SHIPPING Lite core through P&R at 50 MHz. First pass binds NO macros on purpose - the cache arrays and regfile render as flops, which costs area but makes the timing verdict unconditional (a macro-bound round follows as an area optimization once the memlib binding is proven locally). The pilot's lesson carries: default knobs until a measured failure says otherwise.",
+  "DESIGN_NAME": "zirh_vex_wrap",
+  "VERILOG_FILES": [
+    "dir::../../src/vex/VexRiscv_Lite.v",
+    "dir::../../src/zirh_vex_wrap.v"
+  ],
+  "CLOCK_PORT": "clk",
+  "CLOCK_PERIOD": 20,
+  "RUN_KLAYOUT_XOR": 0,
+  "RUN_KLAYOUT_DRC": 0,
+  "RUN_LINTER": 1
+}
