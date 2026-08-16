@@ -17,14 +17,24 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-/tmp/vexlite_bound.v}"
 mkdir -p "$(dirname "${OUT}")"
 SV="${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_sram/verilog"
-yosys -q -p "
-    read_verilog -lib -DFUNCTIONAL ${SV}/RM_IHPSG13_2P_512x32_c2_bm_bist.v ${SV}/RM_IHPSG13_2P_64x32_c2.v;
-    read_verilog ${ROOT}/src/vex/VexRiscv_Lite.v;
-    hierarchy -top VexRiscv; proc; opt -fast;
-    memory -nomap;
-    memory_libmap -lib ${ROOT}/pnr/vexlite/rm_macros.memlib InstructionCache;
-    techmap -map ${ROOT}/pnr/vexlite/rm_macro_map.v;
-    write_verilog -noattr ${OUT}"
+YS="$(mktemp --suffix=.ys)"
+cat > "${YS}" <<YSEOF
+read_verilog -lib -DFUNCTIONAL ${SV}/RM_IHPSG13_2P_512x32_c2_bm_bist.v ${SV}/RM_IHPSG13_2P_64x32_c2.v
+read_verilog ${ROOT}/src/vex/VexRiscv_Lite.v
+hierarchy -top VexRiscv
+proc
+opt -fast
+memory -nomap
+memory_libmap -lib ${ROOT}/pnr/vexlite/rm_macros.memlib InstructionCache
+techmap -map ${ROOT}/pnr/vexlite/rm_macro_map.v
+select -module InstructionCache
+rename \\banks_0.0.0.u_m icache_data_m
+rename \\ways_0_tags.0.0.u_m icache_tags_m
+select -clear
+write_verilog -noattr ${OUT}
+YSEOF
+yosys -q "${YS}"
+rm -f "${YS}"
 N=$(grep -c "RM_IHPSG13_2P" "${OUT}")
 echo "bound: ${N} RM 2P instances in ${OUT}"
 test "${N}" -eq 2
