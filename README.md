@@ -33,7 +33,9 @@ checked, formal proofs run on every push):
 | zirh_dbg_gate | debug isolation: flight lock latched at POR, TMR trap to LOCKED | test_dbg_gate, f_dbg |
 | zirh_clkobs | clock-loss observer on an independent RO clock | test_clkobs |
 | zirh_tmr_lib | voted-feedback TMR primitives, the escape-window theorem carrier | f_ring (BMC + k-induction) |
-| zirh_mbist | MBIST doorway at slot 5: software starts the bank's march test, polls busy, reads the raw fail record | test_top_isp (ISP-loaded runner) |
+| zirh_mbist | MBIST doorway at slot 5: march control, raw fail record, and the TMR page register that maps 64 KB through the 4 KB window | test_top_isp (ISP-loaded runner) |
+| zirh_vex_wrap | the compute upgrade: VexRiscv_Lite (RV32IM, vendored) on the soc's native Wishbone; 50 MHz closed through full P&R with cache arrays on RM 2P macros, hold ECO'd to every corner | pnr campaign record, tb_vex |
+| zirh_bank64 | 64 KB paged data bank: 16 proven sliced-SECDED pages, CPU windowed, SBA flat | test_top_isp paging proof |
 | boundary scan | SAMPLE/PRELOAD + EXTEST on the TAP, 12 cells over the functional pins, drive masked by the flight lock | tb_bscan |
 | scan flow | post-synthesis scan insertion proven on a pilot block: real SG13G2 scan cells, stitched chain, shift + capture | scripts/dft_scan.sh |
 

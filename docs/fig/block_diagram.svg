@@ -23,7 +23,7 @@
   <rect x="0" y="0" width="1100" height="940" fill="#ffffff"/>
 
   <text x="550" y="34" text-anchor="middle" class="title">ZIRH-3 - the compute die, as built (the SoC-import ladder is complete)</text>
-  <text x="550" y="52" text-anchor="middle" class="sub">every block lints clean and holds its replicas through synthesis: 70 measured TMR replicas / 4219 flops, checked in CI on every push (scripts/check_tmr.sh)</text>
+  <text x="550" y="52" text-anchor="middle" class="sub">every block lints clean and holds its replicas through synthesis: 73 measured TMR replicas / 31406 flops (16-page bank), checked in CI on every push (scripts/check_tmr.sh)</text>
 
   <!-- ================= input pin pills ================= -->
   <g class="mono">
@@ -121,7 +121,7 @@
   <!-- ================= soc ================= -->
   <rect x="580" y="240" width="280" height="190" rx="12" fill="#f2ecfa" stroke="#7a4bbf" stroke-width="1.8"/>
   <text x="596" y="261" class="gtitle" fill="#5b3391">zirh_soc - the compute cluster</text>
-  <text x="720" y="280" text-anchor="middle" class="btext">SERV RV32I (vendored, pinned) + mask ROM</text>
+  <text x="720" y="280" text-anchor="middle" class="btext">VexRiscv_Lite RV32IM (vendored) + mask ROM</text>
   <text x="720" y="293" text-anchor="middle" class="btext">with the golden firmware + single-master</text>
   <text x="720" y="306" text-anchor="middle" class="btext">bus with timeout + the shared UART.</text>
   <text x="720" y="319" text-anchor="middle" class="btext">The ISP mux holds, programs, releases;</text>
@@ -129,7 +129,7 @@
   <text x="720" y="345" text-anchor="middle" class="btext">telemetry frames on one pin</text>
   <text x="720" y="365" text-anchor="middle" class="btext mono">slots: 2 UART, 3 hk, 4 bank, 5 MBIST</text>
   <text x="720" y="381" text-anchor="middle" class="btext mono">boots ROM or the loaded bank</text>
-  <text x="720" y="399" text-anchor="middle" class="btext mono">Cycles 5-12 - rungs 1-6, suite 6/6</text>
+  <text x="720" y="399" text-anchor="middle" class="btext mono">Cycles 5-16 - suite 8/8, 50 MHz closed</text>
 
   <!-- pins out: anchored bracket from the soc edge -->
   <path d="M860 330 L930 330" class="wire"/>
@@ -218,16 +218,16 @@
 
   <!-- ================= sram39 ================= -->
   <rect x="780" y="480" width="230" height="160" rx="12" fill="#e9f0fb" stroke="#3b6fc9" stroke-width="1.8"/>
-  <text x="796" y="501" class="gtitle" fill="#2a4d8f">zirh_sram39 - the bank</text>
-  <text x="895" y="520" text-anchor="middle" class="btext">32+6+1 SECDED word across FIVE</text>
-  <text x="895" y="533" text-anchor="middle" class="btext">1024x8 macros - an MBU in one</text>
+  <text x="796" y="501" class="gtitle" fill="#2a4d8f">zirh_bank64 - 16 pages</text>
+  <text x="895" y="520" text-anchor="middle" class="btext">64 KB: 16x sliced-SECDED pages</text>
+  <text x="895" y="533" text-anchor="middle" class="btext">(80 macros) - an MBU in one</text>
   <text x="895" y="546" text-anchor="middle" class="btext">macro is one logical bit;</text>
   <text x="895" y="559" text-anchor="middle" class="btext">background scrubber; address-in-</text>
   <text x="895" y="572" text-anchor="middle" class="btext">ECC (wrong row = uncorrectable).</text>
   <text x="895" y="585" text-anchor="middle" class="btext">CPU data memory AND the</text>
   <text x="895" y="598" text-anchor="middle" class="btext">debugger's peek/poke target;</text>
-  <text x="895" y="611" text-anchor="middle" class="btext">march engine behind the slot-5</text>
-  <text x="895" y="624" text-anchor="middle" class="btext">MBIST doorway (F28)</text>
+  <text x="895" y="611" text-anchor="middle" class="btext">march + TMR page reg behind the</text>
+  <text x="895" y="624" text-anchor="middle" class="btext">slot-5 doorway (F28 + rung 5)</text>
 
   <!-- ================= slot-3 and telemetry return ================= -->
   <path d="M580 400 L558 400 L558 680" class="wire" marker-end="url(#arr)"/>
