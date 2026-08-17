@@ -29,7 +29,7 @@ report_worst_slack -max
 # move is to reclaim their sites for the hold buffers
 remove_fillers
 
-repair_timing -hold -hold_margin 0.08
+repair_timing -hold -hold_margin 0.15
 
 detailed_placement
 
@@ -39,7 +39,19 @@ estimate_parasitics -global_routing
 filler_placement sg13g2_fill*
 check_placement
 
-puts "=== ECO AFTER (GRT parasitics, fast corner) ==="
+puts "=== ECO MID (GRT estimate - advisory only) ==="
+report_worst_slack -min
+report_worst_slack -max
+
+# the confirm loop, signoff grade: route the repair for real, extract
+# real parasitics, and let SPEF-accurate STA speak the final word
+detailed_route
+define_process_corner -ext_model_index 0 X
+extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/ihp-sg13g2.nom.magic.rules
+write_spef /work/eco_out/zirh_vex_wrap_eco.spef
+read_spef /work/eco_out/zirh_vex_wrap_eco.spef
+
+puts "=== ECO AFTER (routed + extracted SPEF, fast corner) ==="
 report_worst_slack -min
 report_worst_slack -max
 
