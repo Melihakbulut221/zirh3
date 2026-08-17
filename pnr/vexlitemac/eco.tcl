@@ -25,12 +25,19 @@ puts "=== ECO BEFORE (SPEF, fast corner) ==="
 report_worst_slack -min
 report_worst_slack -max
 
+# the final ODB arrives packed with filler cells - an ECO's first
+# move is to reclaim their sites for the hold buffers
+remove_fillers
+
 repair_timing -hold -hold_margin 0.08
 
 detailed_placement
 
 global_route -congestion_iterations 30
 estimate_parasitics -global_routing
+
+filler_placement sg13g2_fill*
+check_placement
 
 puts "=== ECO AFTER (GRT parasitics, fast corner) ==="
 report_worst_slack -min
