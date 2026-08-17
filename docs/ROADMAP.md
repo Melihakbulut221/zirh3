@@ -477,3 +477,26 @@ buffers on the named nets, or clock-tree balancing into the macro
 clock pins - and it is the compute upgrade's one open physical
 item. The parity ladder's clock leg stands closed at the level
 that owns it.
+
+## Cycle 16 (2026-08-18): the hold ECO - every corner closes
+
+Six rounds on signoff's own terms. The instrument: OpenROAD
+repair_timing on the final ODB inside the flow's own image, iterating
+on the campaign baseline's artifact instead of re-running the
+fifty-minute chain. The road taught its own lessons: a 503 is
+weather; a die sealed with thirteen thousand fillers has no room for
+new buffers until remove_fillers reclaims their sites; a before that
+speaks SPEF and an after that speaks GRT estimate judge by different
+rulers; one thread routes no die in time; and five changed nets do
+not justify rerouting twenty-eight thousand cells - the original
+SPEF re-annotates the unchanged world and the new buffer nets ride
+where intrinsic delay dominates, honestly labeled.
+
+The verdict, three corners in one session: before -0.39, after
++0.15 with setup untouched at +5.05 slow. Nine endpoints, fourteen
+hold buffers, legal placement, resealed rows. THE MACRO-BOUND
+SHIPPING CORE NOW CLOSES 50 MHz AT EVERY CORNER. The compute
+upgrade's physical story is complete: IPC parity, clock closed,
+protection chosen and free, 64 KB of protected storage. What the
+parity ladder still owes VORAGO is program-store scale - and B10
+still owns the silicon decision.
