@@ -35,8 +35,12 @@ jobs:
       - name: Download the 0.15-baseline final artifact
         run: |
           mkdir -p eco_in eco_out
-          gh run download 31976805625 -R ${{ github.repository }} \
-            -n pnr_vexlitemac -D eco_dl
+          for i in 1 2 3 4; do
+            gh run download 31976805625 -R ${{ github.repository }} \
+              -n pnr_vexlitemac -D eco_dl && break
+            echo "download attempt $i failed; retrying in 30s"
+            rm -rf eco_dl; sleep 30
+          done
           cp -r eco_dl/final eco_in/final
       - name: Setup python + PDK (liberty views for STA)
         uses: actions/setup-python@v6
