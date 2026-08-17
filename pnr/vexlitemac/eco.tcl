@@ -10,6 +10,8 @@
 # once the numbers land.
 # =============================================================================
 
+set_thread_count 4
+
 read_db /work/eco_in/final/odb/zirh_vex_wrap.odb
 
 read_liberty /pdk/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_fast_1p32V_m40C.lib
@@ -43,9 +45,12 @@ puts "=== ECO MID (GRT estimate - advisory only) ==="
 report_worst_slack -min
 report_worst_slack -max
 
+# the repair artifact survives even a routing timeout
+write_db /work/eco_out/zirh_vex_wrap_eco_prerouted.odb
+
 # the confirm loop, signoff grade: route the repair for real, extract
 # real parasitics, and let SPEF-accurate STA speak the final word
-detailed_route
+detailed_route -droute_end_iter 20
 define_process_corner -ext_model_index 0 X
 extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/ihp-sg13g2.nom.magic.rules
 write_spef /work/eco_out/zirh_vex_wrap_eco.spef
