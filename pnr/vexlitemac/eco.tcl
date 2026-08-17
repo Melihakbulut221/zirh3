@@ -1,0 +1,41 @@
+# =============================================================================
+# ZIRH-3 - the hold ECO (Cycle 16): repair_timing on the final ODB
+#
+# Runs inside the librelane image on the campaign's 0.15-baseline
+# final artifact. Scenario is the hold-critical fast corner (stdcell
+# fast 1.32V/-40C; the SRAM's fast deck is cut at -55C - the nearest
+# the PDK ships, noted). Sequence: SPEF-accurate before-STA, hold
+# repair with setup guarded, legalize, incremental global route,
+# GRT-parasitic after-STA. The full detailed-route confirm follows
+# once the numbers land.
+# =============================================================================
+
+read_db /work/eco_in/final/odb/zirh_vex_wrap.odb
+
+read_liberty /pdk/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_fast_1p32V_m40C.lib
+read_liberty /pdk/ihp-sg13g2/libs.ref/sg13g2_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_fast_1p32V_m55C.lib
+read_liberty /pdk/ihp-sg13g2/libs.ref/sg13g2_sram/lib/RM_IHPSG13_2P_64x32_c2_fast_1p32V_m55C.lib
+
+read_spef /work/eco_in/final/spef/nom/zirh_vex_wrap.nom.spef
+
+create_clock -name clk -period 20 [get_ports clk]
+set_propagated_clock [all_clocks]
+
+puts "=== ECO BEFORE (SPEF, fast corner) ==="
+report_worst_slack -min
+report_worst_slack -max
+
+repair_timing -hold -hold_margin 0.08
+
+detailed_placement
+
+global_route -congestion_iterations 30
+estimate_parasitics -global_routing
+
+puts "=== ECO AFTER (GRT parasitics, fast corner) ==="
+report_worst_slack -min
+report_worst_slack -max
+
+write_db /work/eco_out/zirh_vex_wrap_eco.odb
+write_def /work/eco_out/zirh_vex_wrap_eco.def
+puts "=== ECO DONE ==="

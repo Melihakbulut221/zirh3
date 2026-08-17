@@ -19,9 +19,57 @@ on:
         description: which campaign job to run
         type: choice
         default: all
-        options: [all, min, lite, litemac]
+        options: [all, min, lite, litemac, eco]
 
 jobs:
+  hold-eco:
+    if: ${{ inputs.target == 'eco' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PDK_ROOT: /home/runner/pdk
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Download the 0.15-baseline final artifact
+        run: |
+          mkdir -p eco_in eco_out
+          gh run download 31976805625 -R ${{ github.repository }} \
+            -n pnr_vexlitemac -D eco_dl
+          cp -r eco_dl/final eco_in/final
+      - name: Setup python + PDK (liberty views for STA)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install the pinned PDK
+        run: |
+          pip install ciel
+          ciel enable --pdk-family ihp-sg13g2 \
+            22f2a25f1734796de3debbbf29cf697cbbc54081 --pdk-root $PDK_ROOT
+      - name: Run the ECO inside the flow's own image
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -v "$PDK_ROOT:/pdk" \
+            ghcr.io/librelane/librelane:3.0.5 \
+            openroad -exit /work/pnr/vexlitemac/eco.tcl \
+            2>&1 | tee eco.log
+          grep -q "ECO DONE" eco.log
+      - name: Verdict
+        run: |
+          echo "== BEFORE/AFTER worst slacks =="
+          grep -aA3 "ECO BEFORE" eco.log
+          grep -aA3 "ECO AFTER" eco.log
+      - name: Upload ECO artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hold_eco
+          path: |
+            eco_out/*
+            eco.log
+
   vexlitemac-50mhz:
     if: ${{ inputs.target == 'litemac' || inputs.target == 'all' }}
     runs-on: ubuntu-24.04
