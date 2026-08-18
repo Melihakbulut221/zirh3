@@ -9,9 +9,11 @@ with an owner - money, silicon, partners - surfaced and left to them).
 ## A. Memory - the P0 of this chip
 
 - A1 SRAM macro integration: INHERITED as src/zirh_sram39.v with the
-  RM_IHPSG13 1024x8 binding; the P0 HERE is carrying it through the
-  dedicated floorplan (LEF/GDS/lib binding, two-TopMetal PDN, the
-  GDS-merge and LVS snags the cost study names).
+  RM_IHPSG13 macro binding (1024x8 and the 4096x8 deep variant); the
+  P&R half of the P0 is PROVEN by the vexlitemac campaign - LEF/lib
+  binding, PDN macro hooks, macro orientation and halo discipline,
+  closed timing on the routed layout. The GDS-merge and LVS snags
+  the cost study names remain hardening-time work.
 - A2 slicing vs MBU: INHERITED (the 5-slice generate-loop word); the
   slicing-price A/B experiment is a floorplan task HERE.
 - A3 background scrubber: INHERITED (TMR + safe-state, scrub_en
@@ -36,9 +38,13 @@ with an owner - money, silicon, partners - surfaced and left to them).
 - C11 standalone essentials: HERE - pad ring, ESD, POR/brown-out and
   the hand-instantiated RO for the observer are this repo's honest
   new-design list (docs/SCOPE.md).
-- C12 full-parallel core: study INHERITED (Hazard3 primary, picorv32
-  fallback); the swap is deliberately NOT in scope here - SERV
-  carries the methodology (docs/SCOPE.md, scope discipline).
+- C12 full-parallel core: DONE (Cycles 14-18) - VexRiscv_Lite
+  (RV32IM, pipelined, cached) swapped in on the soc's native
+  Wishbone, both protection pilots proven (tool-stitched TMR the
+  default), 50 MHz closed through full P&R with the cache arrays on
+  RM macros, and the hold-repaired layout CONFIRMED routed and
+  extracted at every corner. The study's Hazard3/picorv32 ranking is
+  superseded by the measured result.
 - C13 characterization: INHERITED method (bench procedure, shmoo
   plan); execution GATEs on silicon.
 - C14 the vehicle: the free IHP OpenMPW ~2 mm2 slot (zirh2's
