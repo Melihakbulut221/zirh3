@@ -33,7 +33,9 @@ async def bus(dut, adr, we=0, dat=0, sel=0xF, timeout=16):
 
 def slice_mem(dut, k):
     m = dut._id(f"g_slice[{k}]", extended=False).u_m
-    return m.u_macro.i_SRAM_1P_behavioral_bm_bist.memory
+    # Cycle 17: the slice's macro lives under a depth-select generate
+    # now (g_1024 at the default depth this suite builds)
+    return m.g_1024.u_macro.i_SRAM_1P_behavioral_bm_bist.memory
 
 
 async def flip_stored_bit(dut, widx, bitpos):
