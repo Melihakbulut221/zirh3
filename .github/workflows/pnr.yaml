@@ -19,9 +19,64 @@ on:
         description: which campaign job to run
         type: choice
         default: all
-        options: [all, min, lite, litemac, eco]
+        options: [all, min, lite, litemac, eco, ecoconfirm]
 
 jobs:
+  eco-confirm:
+    if: ${{ inputs.target == 'ecoconfirm' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      PDK_ROOT: /home/runner/pdk
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Download the ECO artifact
+        run: |
+          mkdir -p eco_in eco_out
+          for i in 1 2 3 4; do
+            gh run download 32079572325 -R ${{ github.repository }} \
+              -n hold_eco -D eco_dl && break
+            echo "download attempt $i failed; retrying in 30s"
+            rm -rf eco_dl; sleep 30
+          done
+          cp eco_dl/eco_out/zirh_vex_wrap_eco.odb eco_in/
+      - name: Setup python + PDK
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install the pinned PDK
+        run: |
+          pip install ciel
+          ciel enable --pdk-family ihp-sg13g2 \
+            22f2a25f1734796de3debbbf29cf697cbbc54081 --pdk-root $PDK_ROOT
+      - name: Route, extract, judge - the deferred theorem
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -v "$PDK_ROOT:/pdk" \
+            ghcr.io/librelane/librelane:3.0.5 \
+            openroad -exit /work/pnr/vexlitemac/eco_confirm.tcl \
+            2>&1 | tee confirm.log
+          grep -q "CONFIRM DONE" confirm.log
+      - name: Verdict gate
+        run: |
+          grep -aA3 "CONFIRM VERDICT" confirm.log
+          MIN=$(grep -a "worst slack min" confirm.log | tail -1 | awk '{print $NF}')
+          MAX=$(grep -a "worst slack max" confirm.log | tail -1 | awk '{print $NF}')
+          echo "hold ws = $MIN ; setup ws = $MAX"
+          python3 -c "import sys; sys.exit(0 if float('$MIN')>=0 and float('$MAX')>=0 else 1)"
+          echo "VERDICT: the ECO'd layout closes at every corner, routed and extracted"
+      - name: Upload confirm artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eco_confirm
+          path: |
+            eco_out/*
+            confirm.log
+
   hold-eco:
     if: ${{ inputs.target == 'eco' }}
     runs-on: ubuntu-24.04
