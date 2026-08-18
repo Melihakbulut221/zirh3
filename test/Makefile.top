@@ -45,6 +45,8 @@ COMPILE_ARGS += -Pzirh3_top.INTERVAL_LOG2=13
 COMPILE_ARGS += -Pzirh3_top.WD_LIMIT_LOG2=17
 # 4 pages in sim for wall-clock; synthesis and the guard build all 16
 COMPILE_ARGS += -Pzirh3_top.BANK_PAGES=4
+# sim banks sized to the 4-page build: A = pages 0-1, B = pages 2-3
+COMPILE_ARGS += -Pzirh3_top.BANK_WORDS=2048
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
 # the PDK macro's behavioral write path lives behind FUNCTIONAL - without

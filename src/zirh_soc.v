@@ -93,6 +93,15 @@ module zirh_soc #(
     input  wire [31:0] s5_rdt_i,
     input  wire        s5_ack_i,
 
+    // boot fetch export (Cycle 17): with boot_sel the CPU's
+    // instruction fetches leave the die's ROM and go to the TOP's
+    // program store (the paged bank, addressed FLAT) - the loaded
+    // image runs from the same protected array the loader filled
+    output wire        bf_cyc_o,
+    output wire [31:0] bf_adr_o,
+    input  wire [31:0] bf_rdt_i,
+    input  wire        bf_ack_i,
+
     // observability
     output wire       evt_bus_timeout_o,
     output wire       evt_ecc_corr_o,
@@ -112,7 +121,8 @@ module zirh_soc #(
     wire [3:0]  dbus_sel;
     wire        ibus_cyc, dbus_cyc, dbus_we;
 
-    reg         ibus_ack, dbus_ack;
+    wire        ibus_ack;
+    reg         dbus_ack;
     reg  [31:0] dbus_rdt_q;
 
     zirh_vex_wrap u_cpu (
@@ -150,31 +160,25 @@ module zirh_soc #(
         .ack_o   (rom_dbus_ack)
     );
 
-    // Fetch source select: the mask ROM always, or the loaded bank when
-    // the ISP controller has committed an image. Bank fetches go through
-    // the ECC RAM's corrected read port, so a fetched word is scrubbed
-    // and counted exactly like a data read.
+    // Fetch source select (Cycle 17): the mask ROM always, or the
+    // TOP's program store when the loader has committed an image. The
+    // export's ack comes from the bank's own port arbitration - a
+    // fetch simply waits its turn behind data and the loader, which
+    // is the pipelined core's stall by construction.
+    assign bf_cyc_o = boot_sel_i & ibus_cyc;
+    assign bf_adr_o = ibus_adr;
+
     wire [31:0] ram_rdt;
     wire        ram_ack;
 
-    wire fetch_ram = boot_sel_i & ibus_cyc & ~s_cyc[1] & ~ibus_ack;
+    assign ibus_rdt = boot_sel_i ? bf_rdt_i : rom_i_rdt;
 
-    // both fetch sources answer combinationally (ROM decode, RAM
-    // corrected read), so the registered one-wait ibus ack works for
-    // either - but in bank mode the RAM port is SHARED with the data
-    // bus, and a pipelined core can drive both buses in one cycle.
-    // The data side owns the port (s_cyc[1] wins the mux below), so
-    // the fetch ack must yield during the collision or the fetch
-    // would silently ack the DATA access's read word as an
-    // instruction.
-    wire fetch_stall = boot_sel_i & s_cyc[1];
-
-    assign ibus_rdt = boot_sel_i ? ram_rdt : rom_i_rdt;
-
+    reg ibus_ack_q;
     always @(posedge clk) begin
-        if (!rst_n) ibus_ack <= 1'b0;
-        else        ibus_ack <= ibus_cyc & ~ibus_ack & ~fetch_stall;
+        if (!rst_n) ibus_ack_q <= 1'b0;
+        else        ibus_ack_q <= ibus_cyc & ~ibus_ack_q & ~boot_sel_i;
     end
+    assign ibus_ack = boot_sel_i ? bf_ack_i : ibus_ack_q;
 
     // The CPU cannot issue data traffic before it has executed an
     // instruction, so gating the bus until the first fetch completes is a
@@ -238,17 +242,16 @@ module zirh_soc #(
     assign s_ack[0]     = rom_dbus_ack;
 
     // slot 1: ECC RAM - three masters, one port, no overlap by
-    // construction: the ISP loader owns it while the CPU is held;
-    // afterwards the CPU's dbus and (when running from the bank) its
-    // fetch path share it, and SERV never has both in flight at once.
-    // The RAM lives on the POR reset so the loaded image survives both
-    // the ISP hold and watchdog reboots.
+    // construction: the ISP loader owned it in the pre-Cycle-17 era;
+    // the program store now lives at the TOP (the paged bank) and the
+    // loader writes there directly, so this RAM is pure slot-1 data
+    // scratch - the ISP port remains for contract stability, tied off
+    // by the top. The RAM keeps the POR reset (its contents survive
+    // watchdog reboots).
     wire evt_corr, evt_uncorr;
 
-    wire        ram_cyc = isp_hold_i ? isp_cyc_i
-                                     : (s_cyc[1] | fetch_ram);
-    wire [31:0] ram_adr = isp_hold_i ? isp_adr_i
-                                     : (s_cyc[1] ? s_adr : ibus_adr);
+    wire        ram_cyc = isp_hold_i ? isp_cyc_i : s_cyc[1];
+    wire [31:0] ram_adr = isp_hold_i ? isp_adr_i : s_adr;
     wire [31:0] ram_dat = isp_hold_i ? isp_dat_i : s_dat;
     wire [3:0]  ram_sel = (isp_hold_i | ~s_cyc[1]) ? 4'hF : s_sel;
     wire        ram_we  = isp_hold_i ? isp_we_i : (s_cyc[1] & s_we);

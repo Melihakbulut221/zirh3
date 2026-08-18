@@ -34,7 +34,8 @@ module zirh3_top #(
     parameter integer RESET_DIV  = 174,
     parameter integer INTERVAL_LOG2 = 16,
     parameter integer WD_LIMIT_LOG2 = 20,
-    parameter integer BANK_PAGES    = 16
+    parameter integer BANK_PAGES    = 16,
+    parameter integer BANK_WORDS    = 8192
 ) (
     input  wire        clk,
     input  wire        rst_n_pad,
@@ -122,7 +123,7 @@ module zirh3_top #(
         else if (bl_rej | wd_verdict) isp_rejected_q <= 1'b1;
     end
 
-    zirh_boot_ctrl #(.BANK_WORDS(64), .PROTECT(1)) u_boot (
+    zirh_boot_ctrl #(.BANK_WORDS(BANK_WORDS), .PROTECT(1)) u_boot (
         .clk(clk), .rst_n(sys_rst_n),
         .strap_i({1'b0, boot_strap_i}),
         .st_valid_i(rx_valid), .st_data_i(rx_data), .st_ready_o(),
@@ -189,6 +190,8 @@ module zirh3_top #(
 
     // --- the imported cluster, attached through the proven mux --------------
     wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc;
+    wire        bf_cyc, bf_ack;
+    wire [31:0] bf_adr, bf_rdt;
     wire        mb_start, mb_busy, mb_pass, mb_ack, mb_err;
     wire [1:0]  mb_mode;
     wire [15:0] mb_fcnt;
@@ -207,12 +210,15 @@ module zirh3_top #(
         .por_rst_n_i(sys_rst_n),
         .isp_hold_i(isp_hold),
         .boot_sel_i(bl_sel),
-        .isp_cyc_i(bl_cyc),
-        .isp_adr_i(bl_adr),
-        .isp_dat_i(bl_dat),
-        .isp_we_i(bl_we),
-        .isp_rdt_o(bl_rdt),
-        .isp_ack_o(bl_ack),
+        // Cycle 17: the loader writes the TOP's program store now;
+        // the soc's ISP-into-RAM path stays tied for contract
+        // stability (isp_hold still holds the cluster in reset)
+        .isp_cyc_i(1'b0),
+        .isp_adr_i(32'd0),
+        .isp_dat_i(32'd0),
+        .isp_we_i(1'b0),
+        .isp_rdt_o(),
+        .isp_ack_o(),
         .uart_tx_o(uart_tx_int),
         .uart_rx_i(uart_rx_i),
         .tlm_data_i(tlm_data),
@@ -228,6 +234,9 @@ module zirh3_top #(
         // slot 5: the MBIST doorway (0x5000)
         .s5_cyc_o(s5_cyc),
         .s5_rdt_i(mb_rdt), .s5_ack_i(mb_ack),
+        // boot fetch: loaded code runs from the program store
+        .bf_cyc_o(bf_cyc), .bf_adr_o(bf_adr),
+        .bf_rdt_i(bf_rdt), .bf_ack_i(bf_ack),
         .evt_bus_timeout_o(), .evt_ecc_corr_o(), .evt_ecc_uncorr_o(),
         .rx_ferr_o(),
         .err_o(soc_err));
@@ -240,11 +249,29 @@ module zirh3_top #(
     // it inert in flight), so a flight CPU never contends with a debug
     // peek. The bank's own ~ack framing keeps each transaction clean.
     wire bank_err;
-    wire        bank_cyc = sba_cyc | s4_cyc;
-    wire [31:0] bank_adr = sba_cyc ? sba_adr : s_adr;
-    wire [31:0] bank_dat = sba_cyc ? sba_dat : s_dat;
-    wire [3:0]  bank_sel = sba_cyc ? 4'hF   : s4_sel;
-    wire        bank_we  = sba_cyc ? sba_we : s_we;
+
+    // Cycle 17, the program-store arbiter: four masters share the
+    // bank's one port. Priority SBA > loader > CPU data > fetch -
+    // the debugger only exists unlocked, the loader only exists while
+    // the CPU is held, data beats fetch because the I-cache absorbs
+    // fetch stalls for free. Every full-address master reads the bank
+    // FLAT; only the CPU's slot-4 data window rides the page register.
+    wire g_sba = sba_cyc;
+    wire g_bl  = bl_cyc & ~sba_cyc;
+    wire g_s4  = s4_cyc & ~sba_cyc & ~bl_cyc;
+    wire g_bf  = bf_cyc & ~sba_cyc & ~bl_cyc & ~s4_cyc;
+
+    wire        bank_cyc  = sba_cyc | bl_cyc | s4_cyc | bf_cyc;
+    wire [31:0] bank_adr  = g_sba ? sba_adr :
+                            g_bl  ? bl_adr  :
+                            g_s4  ? s_adr   : bf_adr;
+    wire [31:0] bank_dat  = g_sba ? sba_dat :
+                            g_bl  ? bl_dat  : s_dat;
+    wire [3:0]  bank_sel  = g_s4  ? s4_sel  : 4'hF;
+    wire        bank_we   = g_sba ? sba_we  :
+                            g_bl  ? bl_we   :
+                            g_s4  ? s_we    : 1'b0;
+    wire        bank_flat = g_sba | g_bl | g_bf;
     wire [31:0] bank_rdt;
     wire        bank_ack;
 
@@ -255,7 +282,7 @@ module zirh3_top #(
     zirh_bank64 #(.SCRUB_DIV_LOG2(10), .PAGES(BANK_PAGES)) u_bank (
         .clk(clk), .rst_n(sys_rst_n),
         .scrub_en_i(1'b1),
-        .page_i(mb_page), .sba_flat_i(sba_cyc),
+        .page_i(mb_page), .sba_flat_i(bank_flat),
         .cyc_i(bank_cyc), .adr_i(bank_adr), .dat_i(bank_dat),
         .sel_i(bank_sel), .we_i(bank_we), .rdt_o(bank_rdt), .ack_o(bank_ack),
         .evt_corr_o(), .evt_uncorr_o(), .evt_scrub_corr_o(),
@@ -283,9 +310,13 @@ module zirh3_top #(
 
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
-    assign sba_ack = bank_ack & sba_cyc;
+    assign sba_ack = bank_ack & g_sba;
+    assign bl_rdt  = bank_rdt;
+    assign bl_ack  = bank_ack & g_bl;
     assign s4_rdt  = bank_rdt;
-    assign s4_ack  = bank_ack & s4_cyc & ~sba_cyc;
+    assign s4_ack  = bank_ack & g_s4;
+    assign bf_rdt  = bank_rdt;
+    assign bf_ack  = bank_ack & g_bf;
 
     // --- housekeeping: counters, the CPU watchdog, the signature ------------
     wire [31:0] hk_rdt;

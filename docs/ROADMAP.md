@@ -500,3 +500,21 @@ upgrade's physical story is complete: IPC parity, clock closed,
 protection chosen and free, 64 KB of protected storage. What the
 parity ladder still owes VORAGO is program-store scale - and B10
 still owns the silicon decision.
+
+## Cycle 17, rung A (2026-08-18): programs live in the bank now
+
+The parity ladder's last line begins. The loader's address builder -
+sized for the ZIRH-2 die's 512-word banks and silently truncating
+any larger base to zero - generalizes to the width BANK_WORDS asks;
+the soc exports its boot fetches; and the top grows the four-master
+arbiter the architecture wanted all along: debug over loader over
+data over fetch, every full-address master reading the bank FLAT
+while the CPU's data window keeps its page register. Loaded images
+land in the same scrubbed, sliced-SECDED array the beam campaign
+will interrogate, and the CPU runs them from there through its
+cache. The ECC RAM returns to what its name said: slot-1 data
+scratch. Eight of eight on the first run of the new architecture,
+with the two test adaptations the move itself demanded - the march
+now owns a page the fetch path is not standing on, and the bank
+probe pokes word 256 instead of its own first instruction. Rung B
+deepens the slices (4096x8, the same eighty macros) to 256 KB.

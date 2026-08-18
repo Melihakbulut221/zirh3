@@ -234,8 +234,10 @@ BANK_BASE = 0x4000
 PROBE = [
     lui(5, BANK_BASE >> 12),      # t0 = 0x4000
     addi(6, 0, 0xA5),             # t1 = pattern
-    sw(6, 5, 0),                  # bank[0] = 0xA5
-    lw(7, 5, 0),                  # t2 = bank[0] (corrected port)
+    # Cycle 17: code runs FROM this bank now - probe word 256, well
+    # past any test image, never the probe's own instructions
+    sw(6, 5, 0x400),              # bank[word 256] = 0xA5
+    lw(7, 5, 0x400),              # read back (corrected port)
     addi(7, 7, 0x5A - 0xA5),      # t2 += 'Z' - pattern
     lui(8, UART_BASE >> 12),      # t3 = 0x2000
     sw(7, 8, 4),                  # UART_TXDATA = t2
@@ -382,6 +384,9 @@ async def test_telemetry_frames_carry_a_living_cpu(dut):
 MBIST_BASE = 0x5000
 MBIST_RUN = [
     lui(5, MBIST_BASE >> 12),     # t0 = 0x5000
+    # Cycle 17: code now RUNS FROM the bank - march page 1, not the
+    # page the fetch path is executing from (a march owns its array)
+    addi(6, 0, 1), sw(6, 5, 0x0C),
     addi(6, 0, 1),                # t1 = start, mode 0 (march c-)
     sw(6, 5, 0),                  # CTRL = start
     lw(7, 5, 0),                  # t2 = {busy, pass, ...}
@@ -389,7 +394,7 @@ MBIST_RUN = [
     addi(7, 7, 0xB0),             # 0xB1 iff done-and-pass
     lui(8, UART_BASE >> 12),      # t3 = 0x2000
     sw(7, 8, 4),                  # UART_TXDATA = verdict
-    jal(0, -20),                  # poll and shout forever
+    jal(0, -20),                  # poll and shout forever (head unchanged: lw)
 ]
 
 

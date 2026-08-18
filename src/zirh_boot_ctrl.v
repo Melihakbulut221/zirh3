@@ -161,8 +161,13 @@ module zirh_boot_ctrl #(
     assign m_cyc_o = wr_go | rd_go;
     assign m_we_o  = wr_go;
     assign m_dat_o = word_q;
-    wire [9:0] idx_w = {{(10-IDXW){1'b0}}, idx_q};
-    assign m_adr_o = {20'h0, {tgt_q ? BANK_WORDS[9:0] : 10'd0} | idx_w, 2'b00};
+    // word address = bank base + index, at whatever width BANK_WORDS
+    // needs - the 10-bit builder this replaced was sized for the
+    // ZIRH-2 die's 512-word banks and silently truncated any larger
+    // bank's base to zero (Cycle 17: the program store grows)
+    wire [27:0] word_adr = (tgt_q ? BANK_WORDS[27:0] : 28'd0)
+                           + {{(28-IDXW){1'b0}}, idx_q};
+    assign m_adr_o = {2'b00, word_adr, 2'b00};
 
     // stream accepted only while collecting header or payload bytes
     assign st_ready_o = ((state_q == S_HDR) & (bcnt_q < 4'd12))

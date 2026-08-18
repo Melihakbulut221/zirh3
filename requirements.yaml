@@ -293,3 +293,20 @@ requirements:
       hold residual - 14 buffers on 9 endpoints, 3-corner SPEF
       session reading -0.39 before and +0.15 after with setup
       untouched: every corner closes at 50 MHz
+  - id: Z3-R26
+    text: The die shall run loaded programs FROM the protected paged
+      bank - the loader writing the image flat into the same array the
+      scrubbers guard, the CPU fetching flat through its cache behind a
+      four-master arbiter (debug, loader, data, fetch), and the golden
+      ROM fallback, watchdog revert and MBIST contracts surviving the
+      move unchanged.
+    tests:
+      - test/test_top_isp.py
+      - test/tb_sba.v
+      - scripts/check_tmr.sh
+    evidence: top suite 8/8 on the program-store architecture at first
+      run - loaded code executes from the bank via flat fetch, corrupt
+      images still fall to ROM, the watchdog still reverts, MBIST
+      marches a non-code page, paging isolation holds; boot/soc/SBA/
+      boundary-scan/SV suites green; guard at 73/31427 with the
+      loader's widened index replicas measured
