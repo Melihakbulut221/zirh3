@@ -541,3 +541,26 @@ against 288 KB of bare SRAM, programs loaded into and run from the
 protected array. What VORAGO still holds is what silicon holds:
 process-level SEL immunity, qualified corners, a shipping part. That
 is B10's business - and B10 waits for beam data, as it always has.
+
+## Cycle 18 (2026-08-19): the deferred theorem, proven on the routed truth
+
+Four rounds of building the instrument that could speak the verdict.
+The stale wires of the ECO's split nets hung the router for five
+silent hours - stripped, with placement kept exact, because the
+wires were being rebuilt regardless. The extraction model the tcl
+had picked was the PDK's 'if you feel lucky' alternate, and luck
+read fourteen nanoseconds of fiction - the flow's own pattern rules
+restored the campaign's numbers to the digit. And the original
+SPEF's re-annotation turned out to have flattered the repair: +0.15
+estimated became -0.53 routed, because wires rebuilt from scratch
+carry different truth than wires remembered.
+
+So the confirm became what signoff already knew it must be: a loop.
+Route the exact layout, extract the truth, and when the truth says
+the repair undershot, repair against the truth and route again.
+Pass one measured the flattery; the loop inserted two more hold
+buffers - sixteen now stand; pass two read HOLD +0.16 AND SETUP
++4.71 AT EVERY CORNER, routed and extracted. The gate printed the
+sentence this cycle existed for: the ECO'd layout closes at every
+corner. The compute die's physical story has no open items left
+above the silicon itself - and the silicon waits, as ever, on B10.

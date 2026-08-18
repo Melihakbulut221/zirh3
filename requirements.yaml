@@ -324,3 +324,15 @@ requirements:
       8/8 at the 256 KB geometry including the paging isolation and
       the watchdog-petting MBIST runner on instance 1; guard at
       76/31761 with the wider page and scrubber replicas measured
+  - id: Z3-R28
+    text: The ECO'd layout shall be confirmed by a full routing pass
+      with real extracted parasitics at three corners, and the confirm
+      shall be a self-healing signoff loop - when the routed truth
+      exposes an undershot repair, the repair is redone against that
+      truth until every corner closes.
+    tests:
+      - pnr/vexlitemac/eco_confirm.tcl
+    evidence: run 32186904473 - pass 1 measured the estimate's flattery
+      (hold -0.53 routed vs +0.15 estimated), the loop inserted two
+      more hold buffers against the extracted SPEF, and pass 2 closed
+      hold +0.16 / setup +4.71 at every corner on the exact layout
