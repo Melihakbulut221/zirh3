@@ -26,27 +26,45 @@ read_liberty -corner slow /pdk/ihp-sg13g2/libs.ref/sg13g2_sram/lib/RM_IHPSG13_2P
 create_clock -name clk -period 20 [get_ports clk]
 set_propagated_clock [all_clocks]
 
-puts "=== CONFIRM: stripping the stale wires (the ECO split nets) ==="
-# the ECO database carries the ORIGINAL detailed wires, but the 14
-# hold buffers SPLIT their nets - stale geometry against the new
-# topology broke TritonRoute's connectivity check and hung it for
-# five hours (measured, round 1: net2101 at the tag macro's B_DIN).
-# Placement stays EXACT; the wires were being rebuilt regardless.
-set block [ord::get_db_block]
-foreach net [$block getNets] {
-    set w [$net getWire]
-    if {$w != "NULL"} { odb::dbWire_destroy $w }
+proc strip_wires {} {
+    set block [ord::get_db_block]
+    foreach net [$block getNets] {
+        set w [$net getWire]
+        if {$w != "NULL"} { odb::dbWire_destroy $w }
+    }
 }
 
-puts "=== CONFIRM: routing the ECO'd layout for real ==="
-global_route -congestion_iterations 30
-detailed_route -droute_end_iter 40
+proc route_extract {} {
+    strip_wires
+    global_route -congestion_iterations 30
+    detailed_route -droute_end_iter 40
+    define_process_corner -ext_model_index 0 X
+    extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/IHP_rcx_patterns.rules
+    write_spef /work/eco_out/zirh_vex_wrap_confirm.spef
+    read_spef /work/eco_out/zirh_vex_wrap_confirm.spef
+}
 
-puts "=== CONFIRM: extracting real parasitics ==="
-define_process_corner -ext_model_index 0 X
-extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/IHP_rcx_patterns.rules
-write_spef /work/eco_out/zirh_vex_wrap_confirm.spef
-read_spef /work/eco_out/zirh_vex_wrap_confirm.spef
+# the signoff loop: route the exact layout, extract the truth, and if
+# the routed truth says the hold repair undershot, repair AGAINST that
+# truth and route again - at most three passes, each verdict printed
+for {set i 1} {$i <= 3} {incr i} {
+    puts "=== CONFIRM PASS $i: route + extract ==="
+    route_extract
+    puts "=== CONFIRM PASS $i VERDICT ==="
+    report_worst_slack -min
+    report_worst_slack -max
+    set min_ws [sta::worst_slack -min]
+    set max_ws [sta::worst_slack -max]
+    if {$min_ws >= 0 && $max_ws >= 0} { break }
+    if {$i < 3} {
+        puts "=== CONFIRM PASS $i: repairing against the ROUTED truth ==="
+        remove_fillers
+        repair_timing -hold -hold_margin 0.10
+        detailed_placement
+        filler_placement sg13g2_fill*
+        check_placement
+    }
+}
 
 puts "=== CONFIRM VERDICT (routed + extracted, 3 corners) ==="
 report_worst_slack -min
