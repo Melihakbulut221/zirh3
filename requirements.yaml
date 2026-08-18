@@ -310,3 +310,17 @@ requirements:
       marches a non-code page, paging isolation holds; boot/soc/SBA/
       boundary-scan/SV suites green; guard at 73/31427 with the
       loader's widened index replicas measured
+  - id: Z3-R27
+    text: The bank shall scale to 256 KB on the same eighty macros by
+      deepening the slices to 4096 rows - banks A/B at 128 KB each, the
+      CPU window paged in six bits (instance plus sub-page), the
+      address-in-ECC fold bit-identical at the proven default depth,
+      and the march unit becoming the 16 KB instance with the test
+      runner keeping its computer alive while it tests.
+    tests:
+      - test/test_top_isp.py
+      - scripts/check_tmr.sh
+    evidence: DEPTH parameter selects the RM 4096x8 slice; top suite
+      8/8 at the 256 KB geometry including the paging isolation and
+      the watchdog-petting MBIST runner on instance 1; guard at
+      76/31761 with the wider page and scrubber replicas measured

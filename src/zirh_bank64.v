@@ -26,17 +26,22 @@
 
 module zirh_bank64 #(
     parameter integer SCRUB_DIV_LOG2 = 10,
-    // 16 pages = 64 KB is the die. Simulation suites may build fewer
-    // pages for wall-clock (the paging mechanism is page-count
-    // agnostic); synthesis and the guard always measure the full 16.
-    parameter integer PAGES = 16
+    // 16 INSTANCES is the die. Simulation suites may build fewer
+    // (the mechanism is count-agnostic); synthesis and the guard
+    // always measure the full 16.
+    parameter integer PAGES = 16,
+    // Cycle 17 rung B: slice depth. 1024 = 4 KB per instance (the
+    // proven 64 KB array); 4096 = 16 KB per instance = 256 KB on the
+    // SAME eighty macros. The CPU window stays 4 KB: the page
+    // register's low bits select the sub-page within an instance.
+    parameter integer DEPTH = 1024
 ) (
     input  wire        clk,
     input  wire        rst_n,
     input  wire        scrub_en_i,
 
     // CPU/window port: 4 KB window, page_i selects which page
-    input  wire [3:0]  page_i,
+    input  wire [5:0]  page_i,
     input  wire        cyc_i,
     input  wire [31:0] adr_i,        // window-relative (low 12 bits used)
     input  wire [31:0] dat_i,
@@ -55,7 +60,7 @@ module zirh_bank64 #(
     output wire        bist_busy_o,
     output wire        bist_pass_o,
     output wire [15:0] bist_fail_cnt_o,
-    output wire [9:0]  bist_fail_adr_o,
+    output wire [11:0] bist_fail_adr_o,
     output wire [4:0]  bist_fail_map_o,
 
     output wire        evt_corr_o,
@@ -64,16 +69,27 @@ module zirh_bank64 #(
     output wire        err_o
 );
 
-    // the page an access actually lands in: the debugger's flat address
-    // wins for its own access; the CPU rides the page register
-    wire [3:0] sel_page = sba_flat_i ? adr_i[15:12] : page_i;
+    localparam integer AW  = $clog2(DEPTH);
+    localparam integer SUB = (DEPTH == 1024) ? 0 : $clog2(DEPTH/1024);
+
+    // which INSTANCE an access lands in, and which sub-page row bits:
+    // a full-address master carries everything in its address; the
+    // CPU's 4 KB window rides the page register (instance bits high,
+    // sub-page bits low)
+    wire [3:0]      inst_sel = sba_flat_i ? adr_i[AW+5:AW+2]
+                                          : page_i[SUB+3:SUB];
+    wire [AW-1:0]   row_adr  = sba_flat_i
+        ? adr_i[AW+1:2]
+        : ((SUB == 0) ? {{(AW-10){1'b0}}, adr_i[11:2]}
+                      : {page_i[SUB-1:0], adr_i[11:2]});
+    wire [3:0] sel_page = inst_sel;
 
     wire [31:0] rdt_w   [0:PAGES-1];
     wire        ack_w   [0:PAGES-1];
     wire        busy_w  [0:PAGES-1];
     wire        pass_w  [0:PAGES-1];
     wire [15:0] fcnt_w  [0:PAGES-1];
-    wire [9:0]  fadr_w  [0:PAGES-1];
+    wire [11:0] fadr_w  [0:PAGES-1];
     wire [4:0]  fmap_w  [0:PAGES-1];
     wire [PAGES-1:0] corr_v, uncorr_v, scrub_v, err_v;
 
@@ -81,11 +97,11 @@ module zirh_bank64 #(
     generate
         for (g = 0; g < PAGES; g = g + 1) begin : g_page
             wire hit = (sel_page == g[3:0]);
-            zirh_sram39 #(.SCRUB_DIV_LOG2(SCRUB_DIV_LOG2)) u_page (
+            zirh_sram39 #(.SCRUB_DIV_LOG2(SCRUB_DIV_LOG2), .DEPTH(DEPTH)) u_page (
                 .clk(clk), .rst_n(rst_n),
                 .scrub_en_i(scrub_en_i),
                 .cyc_i(cyc_i & hit),
-                .adr_i({20'd0, adr_i[11:0]}),
+                .adr_i({{(30-AW){1'b0}}, row_adr, 2'b00}),
                 .dat_i(dat_i), .sel_i(sel_i), .we_i(we_i),
                 .rdt_o(rdt_w[g]), .ack_o(ack_w[g]),
                 .evt_corr_o(corr_v[g]), .evt_uncorr_o(uncorr_v[g]),

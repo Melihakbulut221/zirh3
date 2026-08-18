@@ -384,17 +384,20 @@ async def test_telemetry_frames_carry_a_living_cpu(dut):
 MBIST_BASE = 0x5000
 MBIST_RUN = [
     lui(5, MBIST_BASE >> 12),     # t0 = 0x5000
-    # Cycle 17: code now RUNS FROM the bank - march page 1, not the
-    # page the fetch path is executing from (a march owns its array)
-    addi(6, 0, 1), sw(6, 5, 0x0C),
-    addi(6, 0, 1),                # t1 = start, mode 0 (march c-)
-    sw(6, 5, 0),                  # CTRL = start
-    lw(7, 5, 0),                  # t2 = {busy, pass, ...}
-    srli(7, 7, 30),               # t2 = {busy, pass}
-    addi(7, 7, 0xB0),             # 0xB1 iff done-and-pass
+    lui(9, 0x3),                  # s1 = 0x3000 (housekeeping)
     lui(8, UART_BASE >> 12),      # t3 = 0x2000
+    # march unit is the 16 KB INSTANCE - select instance 1 (page 4),
+    # far from the instance the fetch path is standing on
+    addi(6, 0, 4), sw(6, 5, 0x0C),
+    addi(6, 0, 1), sw(6, 5, 0),   # CTRL = start, mode 0 (march c-)
+    # loop (index 7): pet the watchdog, poll, shout the verdict - a
+    # manufacturing runner keeps its computer alive while it tests
+    sw(6, 9, 8),                  # CPU_SIG write: signon + wd clear
+    lw(7, 5, 0),                  # {busy, pass, ...}
+    srli(7, 7, 30),
+    addi(7, 7, 0xB0),             # 0xB1 iff done-and-pass
     sw(7, 8, 4),                  # UART_TXDATA = verdict
-    jal(0, -20),                  # poll and shout forever (head unchanged: lw)
+    jal(0, (7 - 12) * 4),         # forever
 ]
 
 
@@ -417,7 +420,7 @@ async def test_mbist_runs_from_loaded_software(dut):
     # busy verdicts (0xB2/0xB3) the whole time, interleaved with
     # telemetry - be patient enough to outlast the stream, not just the
     # silence
-    for _ in range(400):
+    for _ in range(1500):
         b = await uart_capture(dut, 80_000)
         assert b != 0xB0, "MBIST finished FAILING on a clean array"
         if b == 0xB1:

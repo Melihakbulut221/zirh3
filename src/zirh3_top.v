@@ -35,7 +35,8 @@ module zirh3_top #(
     parameter integer INTERVAL_LOG2 = 16,
     parameter integer WD_LIMIT_LOG2 = 20,
     parameter integer BANK_PAGES    = 16,
-    parameter integer BANK_WORDS    = 8192
+    parameter integer BANK_WORDS    = 32768,
+    parameter integer BANK_DEPTH    = 4096
 ) (
     input  wire        clk,
     input  wire        rst_n_pad,
@@ -195,10 +196,10 @@ module zirh3_top #(
     wire        mb_start, mb_busy, mb_pass, mb_ack, mb_err;
     wire [1:0]  mb_mode;
     wire [15:0] mb_fcnt;
-    wire [9:0]  mb_fadr;
+    wire [11:0] mb_fadr;
     wire [4:0]  mb_fmap;
     wire [31:0] mb_rdt;
-    wire [3:0]  mb_page;
+    wire [5:0]  mb_page;
     wire [31:0] s_adr, s_dat, s4_rdt;
     wire [3:0]  s4_sel;
     wire        s_we;
@@ -279,7 +280,7 @@ module zirh3_top #(
     // CPU pages its 4 KB window through the doorway's PAGE register;
     // the debugger's SBA carries a full address and reads the flat
     // 64 KB (sba_cyc marks whose access this is).
-    zirh_bank64 #(.SCRUB_DIV_LOG2(10), .PAGES(BANK_PAGES)) u_bank (
+    zirh_bank64 #(.SCRUB_DIV_LOG2(10), .PAGES(BANK_PAGES), .DEPTH(BANK_DEPTH)) u_bank (
         .clk(clk), .rst_n(sys_rst_n),
         .scrub_en_i(1'b1),
         .page_i(mb_page), .sba_flat_i(bank_flat),

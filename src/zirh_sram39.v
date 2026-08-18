@@ -70,7 +70,12 @@
 `default_nettype none
 
 module zirh_sram39 #(
-    parameter integer SCRUB_DIV_LOG2 = 10   // one scrub beat / 2^N cycles
+    parameter integer SCRUB_DIV_LOG2 = 10,  // one scrub beat / 2^N cycles
+    // Cycle 17 rung B: macro depth. 1024 is the proven ZIRH-2 shape
+    // (RM 1024x8); 4096 selects the RM 4096x8 and quadruples the
+    // word count on the same five slices. The address-in-ECC fold is
+    // BIT-IDENTICAL at the default depth.
+    parameter integer DEPTH = 1024
 ) (
     input  wire        clk,
     input  wire        rst_n,
@@ -105,7 +110,7 @@ module zirh_sram39 #(
     output wire        bist_busy_o,
     output wire        bist_pass_o,
     output wire [15:0] bist_fail_cnt_o,
-    output wire [9:0]  bist_fail_adr_o,
+    output wire [11:0] bist_fail_adr_o,
     output wire [4:0]  bist_fail_map_o
 
 `ifdef FORMAL
@@ -116,6 +121,8 @@ module zirh_sram39 #(
 
     `include "zirh_secded.vh"
 
+    localparam integer AW = $clog2(DEPTH);
+
     // --- transaction FSM ----------------------------------------------------
     localparam [1:0] S_IDLE = 2'd0, S_RD = 2'd1,
                  S_SCRUB_RD = 2'd2, S_SCRUB_FIX = 2'd3;
@@ -123,8 +130,8 @@ module zirh_sram39 #(
     reg [1:0] state;
     // the row a read was ISSUED to - decode and writeback must use the
     // captured row, not a bus address that may have moved on
-    reg  [9:0] row_q;
-    wire [9:0] widx = adr_i[11:2];
+    reg  [AW-1:0] row_q;
+    wire [AW-1:0] widx = adr_i[AW+1:2];
 
     wire full_wr = &sel_i;
 
@@ -159,19 +166,20 @@ module zirh_sram39 #(
         .clk(clk), .rst_n(rst_n), .en_i(scrub_tick | scrub_take),
         .d_i(scrub_tick), .q_o(pend_q), .err_o(pend_err));
 
-    wire [9:0] sadr_q;
+    wire [AW-1:0] sadr_q;
     wire sadr_err;
-    zirh_tmr_reg #(.WIDTH(10)) u_sadr (
+    zirh_tmr_reg #(.WIDTH(AW)) u_sadr (
         .clk(clk), .rst_n(rst_n), .en_i(scrub_take),
-        .d_i(sadr_q + 10'd1), .q_o(sadr_q), .err_o(sadr_err));
+        .d_i(sadr_q + {{(AW-1){1'b0}},1'b1}), .q_o(sadr_q), .err_o(sadr_err));
 
     // --- BIST engine --------------------------------------------------------
     wire bist_en, bist_men, bist_wen, bist_ren;
-    wire [9:0] bist_adr;
+    wire [AW-1:0] bist_adr;
     wire [7:0] bist_din;
     wire bist_err;
 
-    zirh_sram_bist u_bist (
+    wire [AW-1:0] bist_fail_adr_w;
+    zirh_sram_bist #(.ADDR_W(AW)) u_bist (
         .clk(clk), .rst_n(rst_n),
         .start_i(bist_start_i), .mode_i(bist_mode_i),
         .q0_i(q0), .q1_i(q1), .q2_i(q2), .q3_i(q3), .q4_i(qflat[39:32]),
@@ -179,8 +187,9 @@ module zirh_sram39 #(
         .bist_wen_o(bist_wen), .bist_ren_o(bist_ren),
         .bist_adr_o(bist_adr), .bist_din_o(bist_din),
         .busy_o(bist_busy_o), .pass_o(bist_pass_o),
-        .fail_cnt_o(bist_fail_cnt_o), .fail_adr_o(bist_fail_adr_o),
+        .fail_cnt_o(bist_fail_cnt_o), .fail_adr_o(bist_fail_adr_w),
         .fail_map_o(bist_fail_map_o), .err_o(bist_err));
+    assign bist_fail_adr_o = {{(12-AW){1'b0}}, bist_fail_adr_w};
 
     assign err_o = div_err | pend_err | sadr_err | bist_err;
 
@@ -193,7 +202,7 @@ module zirh_sram39 #(
     // one, and gating it bought the first build nothing but hazards
     wire men = 1'b1;
     wire ren = issue_rd | (state == S_SCRUB_RD);
-    wire [9:0] row = (state != S_IDLE) ? row_q : widx;
+    wire [AW-1:0] row = (state != S_IDLE) ? row_q : widx;
 
     // the Cycle-12 lesson made structural: ONE generate loop, identical
     // wiring by construction - a mechanical edit can no longer reach
@@ -204,7 +213,7 @@ module zirh_sram39 #(
     genvar g;
     generate
         for (g = 0; g < 5; g = g + 1) begin : g_slice
-            zirh_sram39_slice u_m (
+            zirh_sram39_slice #(.DEPTH(DEPTH), .AW(AW)) u_m (
                 .clk(clk), .men(men), .wen(wr_now), .ren(ren),
                 .adr(row), .d(dflat[8*g +: 8]), .q(qflat[8*g +: 8]),
                 .bist_en(bist_en), .bist_men(bist_men),
@@ -225,11 +234,12 @@ module zirh_sram39 #(
     // always decodes as UNCORRECTABLE, never as a clean or correctable
     // word (see header)
     function [38:0] amask;
-        input [9:0] a;
+        input [11:0] a;      // callers zero-extend; identical to the
+                             // proven 10-bit fold at the default depth
         reg [5:0] p6;
         integer i;
         begin
-            p6 = a[5:0] ^ {2'b00, a[9:6]};
+            p6 = a[5:0] ^ a[11:6];
             amask = 39'd0;
             for (i = 0; i < 6; i = i + 1)
                 amask[(1 << i) - 1] = p6[i];
@@ -238,10 +248,10 @@ module zirh_sram39 #(
     endfunction
 
 `ifdef FORMAL
-    wire [38:0] raw = ({q4[6:0], q3, q2, q1, q0} ^ amask(row_q))
+    wire [38:0] raw = ({q4[6:0], q3, q2, q1, q0} ^ amask({{(12-AW){1'b0}}, row_q}))
                       ^ f_corrupt_i;
 `else
-    wire [38:0] raw = {q4[6:0], q3, q2, q1, q0} ^ amask(row_q);
+    wire [38:0] raw = {q4[6:0], q3, q2, q1, q0} ^ amask({{(12-AW){1'b0}}, row_q});
 `endif
     wire [38:1] cw_raw  = raw[37:0];
     wire [5:0]  syn     = syndrome_of(cw_raw);
@@ -347,41 +357,46 @@ module zirh_sram39 #(
 endmodule
 
 // --- one slice: the PDK macro, BIST port wired to the march engine -----------
-module zirh_sram39_slice (
-    input  wire       clk,
-    input  wire       men,
-    input  wire       wen,
-    input  wire       ren,
-    input  wire [9:0] adr,
-    input  wire [7:0] d,
-    output wire [7:0] q,
-    input  wire       bist_en,
-    input  wire       bist_men,
-    input  wire       bist_wen,
-    input  wire       bist_ren,
-    input  wire [9:0] bist_adr,
-    input  wire [7:0] bist_din
+module zirh_sram39_slice #(
+    parameter integer DEPTH = 1024,
+    parameter integer AW    = 10
+) (
+    input  wire          clk,
+    input  wire          men,
+    input  wire          wen,
+    input  wire          ren,
+    input  wire [AW-1:0] adr,
+    input  wire [7:0]    d,
+    output wire [7:0]    q,
+    input  wire          bist_en,
+    input  wire          bist_men,
+    input  wire          bist_wen,
+    input  wire          bist_ren,
+    input  wire [AW-1:0] bist_adr,
+    input  wire [7:0]    bist_din
 );
 
-    RM_IHPSG13_1P_1024x8_c2_bm_bist u_macro (
-        .A_CLK       (clk),
-        .A_MEN       (men),
-        .A_WEN       (wen),
-        .A_REN       (ren),
-        .A_ADDR      (adr),
-        .A_DIN       (d),
-        .A_DLY       (1'b0),
-        .A_DOUT      (q),
-        .A_BM        (8'hFF),
-        .A_BIST_CLK  (clk),
-        .A_BIST_EN   (bist_en),
-        .A_BIST_MEN  (bist_men),
-        .A_BIST_WEN  (bist_wen),
-        .A_BIST_REN  (bist_ren),
-        .A_BIST_ADDR (bist_adr),
-        .A_BIST_DIN  (bist_din),
-        .A_BIST_BM   (8'hFF)
-    );
+    generate
+        if (DEPTH == 4096) begin : g_4096
+            RM_IHPSG13_1P_4096x8_c3_bm_bist u_macro (
+                .A_CLK(clk), .A_MEN(men), .A_WEN(wen), .A_REN(ren),
+                .A_ADDR(adr), .A_DIN(d), .A_DLY(1'b0), .A_DOUT(q),
+                .A_BM(8'hFF),
+                .A_BIST_CLK(clk), .A_BIST_EN(bist_en),
+                .A_BIST_MEN(bist_men), .A_BIST_WEN(bist_wen),
+                .A_BIST_REN(bist_ren), .A_BIST_ADDR(bist_adr),
+                .A_BIST_DIN(bist_din), .A_BIST_BM(8'hFF));
+        end else begin : g_1024
+            RM_IHPSG13_1P_1024x8_c2_bm_bist u_macro (
+                .A_CLK(clk), .A_MEN(men), .A_WEN(wen), .A_REN(ren),
+                .A_ADDR(adr), .A_DIN(d), .A_DLY(1'b0), .A_DOUT(q),
+                .A_BM(8'hFF),
+                .A_BIST_CLK(clk), .A_BIST_EN(bist_en),
+                .A_BIST_MEN(bist_men), .A_BIST_WEN(bist_wen),
+                .A_BIST_REN(bist_ren), .A_BIST_ADDR(bist_adr),
+                .A_BIST_DIN(bist_din), .A_BIST_BM(8'hFF));
+        end
+    endgenerate
 
 endmodule
 

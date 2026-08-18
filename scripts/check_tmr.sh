@@ -121,7 +121,7 @@ run_check "zirh_sram39   (sliced SECDED + scrubber)" \
 EXTRA_CMDS=""
 
 run_check "zirh_mbist    (MBIST doorway + page reg)" \
-    zirh_mbist 6 21 zirh_tmr_ff \
+    zirh_mbist 6 27 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_mbist.v
 
 # The POR/RO source carries no TMR by design (like the ECC RAM's SECDED
@@ -173,7 +173,7 @@ EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # tripwire, not a floorplan: what it guards is that the 70 replicas
 # and the core's real state survive the optimizer unmerged.
 run_check "zirh3_top     (full compute die + DFT)" \
-    zirh3_top 73 31427 zirh_tmr_ff \
+    zirh3_top 76 31761 zirh_tmr_ff \
     zirh_tmr_lib.v vex/VexRiscv_Lite.v zirh_vex_wrap.v \
     zirh_rom.v zirh_bus.v zirh_ecc_ram.v zirh_rs422.v zirh_uart_regs.v \
     zirh_soc.v zirh_boot_ctrl.v zirh_isp_rx.v zirh_jtag_dm.v \

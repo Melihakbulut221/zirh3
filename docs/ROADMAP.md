@@ -518,3 +518,26 @@ with the two test adaptations the move itself demanded - the march
 now owns a page the fetch path is not standing on, and the bank
 probe pokes word 256 instead of its own first instruction. Rung B
 deepens the slices (4096x8, the same eighty macros) to 256 KB.
+
+## Cycle 17, rung B (2026-08-18): 256 KB on the same eighty macros
+
+The slices deepen instead of multiplying: DEPTH=4096 swaps the RM
+1024x8 for the 4096x8 in the same five-slice, one-word geometry, and
+the sixteen instances become 256 KB - banks A and B at 128 KB each,
+four times the VA10805's program store, protected where its is bare.
+The address-in-ECC fold widens to twelve bits in a form that is
+BIT-IDENTICAL at the proven default depth, so the standing formal
+proof keeps its subject; the CPU window pages in six bits (instance
+plus sub-page); the march unit becomes the 16 KB instance, and the
+MBIST runner learned the manufacturing tester's manner - it pets the
+watchdog while it works, because a test that kills its own computer
+proves the wrong theorem. Suites 8/8, boot, soc, SBA, boundary scan
+and the SV stories green; guard re-measured at 76/31761.
+
+THE PARITY LADDER IS CLIMBED. Against the VA10805: IPC at parity,
+50 MHz closed at every corner through P&R and ECO, protection chosen
+and measured free, 64 KB then 256 KB of scrubbed SECDED storage
+against 288 KB of bare SRAM, programs loaded into and run from the
+protected array. What VORAGO still holds is what silicon holds:
+process-level SEL immunity, qualified corners, a shipping part. That
+is B10's business - and B10 waits for beam data, as it always has.

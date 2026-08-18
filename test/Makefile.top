@@ -31,7 +31,7 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v
 SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
 VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v
-VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v $(SRAM_V)/RM_IHPSG13_1P_4096x8_c3_bm_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh3_top.v
 
 TOPLEVEL = zirh3_top
@@ -45,8 +45,9 @@ COMPILE_ARGS += -Pzirh3_top.INTERVAL_LOG2=13
 COMPILE_ARGS += -Pzirh3_top.WD_LIMIT_LOG2=17
 # 4 pages in sim for wall-clock; synthesis and the guard build all 16
 COMPILE_ARGS += -Pzirh3_top.BANK_PAGES=4
-# sim banks sized to the 4-page build: A = pages 0-1, B = pages 2-3
-COMPILE_ARGS += -Pzirh3_top.BANK_WORDS=2048
+# sim: 4 instances of 4096-deep slices = 64 KB; banks A/B = 8K words
+# each (A: bytes 0x0000-0x7FFF = instances 0-1, B: 0x8000-0xFFFF = 2-3)
+COMPILE_ARGS += -Pzirh3_top.BANK_WORDS=8192
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
 # the PDK macro's behavioral write path lives behind FUNCTIONAL - without

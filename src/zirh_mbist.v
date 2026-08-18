@@ -19,7 +19,7 @@
 //   0x08 FAIL RO  {12'h0, fail_map[4:0], 5'h0, fail_adr[9:0]} - the raw
 //                 per-macro MBU-style record, same shape the beam
 //                 instrument streams
-//   0x0C PAGE RW  [3:0] the bank page the CPU's slot-4 window (and
+//   0x0C PAGE RW  [5:0] the bank page the CPU's slot-4 window (and
 //                 this doorway's BIST steering) currently shows -
 //                 how 4 KB of bus map reaches 64 KB of bank
 //
@@ -55,10 +55,10 @@ module zirh_mbist (
     input  wire        bist_busy_i,
     input  wire        bist_pass_i,
     input  wire [15:0] bist_fail_cnt_i,
-    input  wire [9:0]  bist_fail_adr_i,
+    input  wire [11:0] bist_fail_adr_i,
     input  wire [4:0]  bist_fail_map_i,
 
-    output wire [3:0]  page_o,        // bank page for the CPU window
+    output wire [5:0]  page_o,        // bank page for the CPU window
 
     output wire        err_o          // own TMR mismatch, pulse
 );
@@ -88,12 +88,12 @@ module zirh_mbist (
 
     // the page register: TMR'd - a flipped page mid-flight would move
     // the software's entire data window
-    wire [3:0] page_q;
+    wire [5:0] page_q;
     wire       page_err;
-    zirh_tmr_reg #(.WIDTH(4)) u_page (
+    zirh_tmr_reg #(.WIDTH(6)) u_page (
         .clk(clk), .rst_n(rst_n),
         .en_i(wr_page & ~wr_seen),
-        .d_i(dat_i[3:0]),
+        .d_i(dat_i[5:0]),
         .q_o(page_q), .err_o(page_err));
 
     assign page_o      = page_q;
@@ -103,8 +103,8 @@ module zirh_mbist (
     assign rdt_o =
         (reg_sel == 2'd0) ? {bist_busy_i, bist_pass_i, 28'h0, mode_q} :
         (reg_sel == 2'd1) ? {16'h0, bist_fail_cnt_i} :
-        (reg_sel == 2'd2) ? {12'h0, bist_fail_map_i, 5'h0, bist_fail_adr_i} :
-        {28'h0, page_q};
+        (reg_sel == 2'd2) ? {12'h0, bist_fail_map_i, 3'h0, bist_fail_adr_i} :
+        {26'h0, page_q};
 
     assign ack_o = cyc_i;
 
