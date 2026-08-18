@@ -44,7 +44,7 @@ detailed_route -droute_end_iter 40
 
 puts "=== CONFIRM: extracting real parasitics ==="
 define_process_corner -ext_model_index 0 X
-extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/ihp-sg13g2.nom.magic.rules
+extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/IHP_rcx_patterns.rules
 write_spef /work/eco_out/zirh_vex_wrap_confirm.spef
 read_spef /work/eco_out/zirh_vex_wrap_confirm.spef
 
