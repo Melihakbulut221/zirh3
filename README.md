@@ -39,6 +39,7 @@ checked, formal proofs run on every push):
 | boundary scan | SAMPLE/PRELOAD + EXTEST on the TAP, 12 cells over the functional pins, drive masked by the flight lock | tb_bscan |
 | scan flow | post-synthesis scan insertion proven on a pilot block: real SG13G2 scan cells, stitched chain, shift + capture | scripts/dft_scan.sh |
 | GL boot proof | the TMR-stitched gate netlist of the compute cluster (2138 flops, every one voted) boots the full ISP story inside the RTL top; a whole replica rail forced wrong is masked and heals on release; the majority-wound control falls silent | scripts/gl_boot.sh, test_top_gl |
+| stitched P&R | the same stitched netlist closes 50 MHz through full place-and-route (synthesis disabled so the optimizer cannot collapse the triples): hold +0.19 / setup +2.58 at every corner, routed and extracted; 2138 rail-net triples counted by name in the routed DEF; protection price 2.49x cell area | pnr/vextmr campaign record |
 
 The integration map, the honest new-design list (pad ring, ESD, POR,
 the RO clock source, physical macro hardening) and the scope

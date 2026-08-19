@@ -353,3 +353,18 @@ requirements:
       from the seed - raw replicas aliased onto stale nets); with both
       fixed, the rail-B wound booted, healed 2138/2138 and kept
       speaking, and the majority-wound control fell silent
+  - id: Z3-R30
+    text: The tool-stitched TMR netlist shall close 50 MHz through
+      full place-and-route on real silicon geometry - synthesis
+      disabled so the optimizer cannot collapse the triples, timing
+      closed at every corner on the routed and extracted layout, and
+      every replica rail counted BY NAME in the routed database.
+    tests:
+      - pnr/vextmr/config.json
+      - pnr/vextmr/confirm.tcl
+    evidence: run 32295970007 - hold +0.19 / setup +2.58 at every
+      corner after the two-arm signoff loop (hold and setup repaired
+      against the routed truth); 2138 tmrA + 2138 tmrB + 2138 tmrC
+      rail nets counted in the routed DEF at both gates; 6414 flops
+      in the DB, the DEF and the flow metrics; protection price
+      measured 2.49x cell area at unchanged density

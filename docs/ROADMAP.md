@@ -594,3 +594,37 @@ discipline too - its old hunt carried the same latent weakness.
 Two proofs of the method in one cycle: the test that cannot fail
 is the one you fix first, and a protection scheme is only as real
 as the netlist transformation that installs it.
+
+## Cycle 20 (2026-08-20): the stitched netlist survives place-and-route
+
+Cycle 19 proved the TMR'd core in simulation; this cycle asked the
+harder half of the question - does the protection survive contact
+with the physical flow, and what does it cost? Six rounds answered.
+The voters became real library cells so synthesis could be disabled
+outright, because a resynthesis pass would prove the three replicas
+identical and collapse the TMR it was asked to place. A sim netlist
+turned out not yet to be a P&R netlist: ten thousand alias assigns
+and four constant port bits had to become names something reads and
+tie cells. The flow then completed and told the price plainly:
+206k square microns of cells become 512.5k - 2.49x - and setup
+still closes everywhere at 50 MHz, with fast-corner hold owing
+0.156.
+
+Cycle 18's signoff instrument collected that debt, and redesigning
+it for this die taught three lessons the record keeps: judge the
+flow's own wires before stripping anything, because a from-scratch
+reroute wobbles 0.3-0.4 ns and round 3 chased that noise; repair
+whatever the truth says is broken, because a hold-only arm built
+under five nanoseconds of setup margin drowns on a die with 1.5;
+and give the setup arm its wire RC, because hold buffering never
+asks and setup rebuffering dies without it. The closing pass reads
+HOLD +0.19 / SETUP +2.58 AT EVERY CORNER, routed and extracted.
+
+The cycle also caught a guard asleep: a replica check that printed
+zero and passed anyway - its instance grep erased by the netlist
+writers, its test chain exempt from bash -e. The honest witnesses
+were the stitcher's rail NETS, alive by name in the routed DEF:
+2138 tmrA, 2138 tmrB, 2138 tmrC, voter topology readable per net,
+now counted at both gates of the seal run. A guard that cannot
+fail guards nothing - the same sentence Cycle 19 wrote about the
+telemetry-contaminated hunt, earned twice in two cycles.
