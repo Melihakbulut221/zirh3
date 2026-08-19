@@ -74,6 +74,33 @@ jobs:
       - name: SV boot scenarios
         run: make sv
 
+  gl:
+    runs-on: ubuntu-24.04
+    # synthesis ~4 min, then three gate-level sims of the full top
+    # (baseline boot, stitched boot, wound trio) - ~5 min locally,
+    # the shared runner is slower still
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: install yosys + iverilog
+        run: sudo apt-get update && sudo apt-get install -y yosys iverilog
+      - uses: actions/setup-python@v6
+        with: {python-version: '3.11'}
+      - name: python deps
+        run: pip install -r test/requirements.txt
+      - name: cache the IHP PDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.ciel
+          key: ciel-ihp-22f2a25f1734796de3debbbf29cf697cbbc54081
+      - name: install the pinned PDK
+        run: |
+          pip install ciel
+          ciel enable --pdk-family ihp-sg13g2 \
+            22f2a25f1734796de3debbbf29cf697cbbc54081
+      - name: Cycle 19 - the TMR'd core boots at gate level, wounded and healed
+        run: PDK_ROOT=$HOME/.ciel make gl
+
   formal:
     runs-on: ubuntu-24.04
     timeout-minutes: 45

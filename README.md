@@ -38,6 +38,7 @@ checked, formal proofs run on every push):
 | zirh_bank64 | 256 KB paged bank on 4096-deep macros: 16 sliced-SECDED pages, program store (the core fetches from it) plus A/B data, CPU windowed, SBA and loader flat | test_top_isp paging + fetch proofs |
 | boundary scan | SAMPLE/PRELOAD + EXTEST on the TAP, 12 cells over the functional pins, drive masked by the flight lock | tb_bscan |
 | scan flow | post-synthesis scan insertion proven on a pilot block: real SG13G2 scan cells, stitched chain, shift + capture | scripts/dft_scan.sh |
+| GL boot proof | the TMR-stitched gate netlist of the compute cluster (2138 flops, every one voted) boots the full ISP story inside the RTL top; a whole replica rail forced wrong is masked and heals on release; the majority-wound control falls silent | scripts/gl_boot.sh, test_top_gl |
 
 The integration map, the honest new-design list (pad ring, ESD, POR,
 the RO clock source, physical macro hardening) and the scope

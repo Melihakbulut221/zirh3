@@ -7,8 +7,10 @@ TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 SIM_BUILD = sim_build/top
 
-VERILOG_SOURCES += $(SRC_DIR)/vex/VexRiscv_Lite.v
-VERILOG_SOURCES += $(SRC_DIR)/zirh_vex_wrap.v
+# the CPU is swappable: the GL boot proof (scripts/gl_boot.sh) substitutes
+# a gate-level zirh_vex_wrap netlist plus the cell models for these two
+CPU_SOURCES ?= $(SRC_DIR)/vex/VexRiscv_Lite.v $(SRC_DIR)/zirh_vex_wrap.v
+VERILOG_SOURCES += $(CPU_SOURCES)
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_ff32.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_rom.v
@@ -35,7 +37,7 @@ VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v $(SRAM_V)/RM_IHPS
 VERILOG_SOURCES += $(SRC_DIR)/zirh3_top.v
 
 TOPLEVEL = zirh3_top
-COCOTB_TEST_MODULES = test_top_isp
+COCOTB_TEST_MODULES ?= test_top_isp
 
 ROM_HEX ?= $(PWD)/../fw/rom.hex
 COMPILE_ARGS += -Pzirh3_top.ROM_HEX=\"$(ROM_HEX)\"

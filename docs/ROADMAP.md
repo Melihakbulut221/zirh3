@@ -564,3 +564,33 @@ buffers - sixteen now stand; pass two read HOLD +0.16 AND SETUP
 sentence this cycle existed for: the ECO'd layout closes at every
 corner. The compute die's physical story has no open items left
 above the silicon itself - and the silicon waits, as ever, on B10.
+
+## Cycle 19 (2026-08-19): the TMR'd core boots at gate level
+
+The stitcher had a 16-flop proof and the boot story had an RTL
+proof; this cycle made them meet on 2138 flops of real SG13G2
+gates - and the meeting was not polite. The first wound test
+PASSED, and that pass was a lie: the telemetry engine free-runs,
+its frame header opens with 0x5A, and a hunt that accepts one byte
+declares a dead CPU alive. The honest discipline - three 0x5A in a
+row, because the loaded program floods and a frame follows its sync
+with 0x33 - plus a majority-wound CONTROL that must fall silent,
+turned the hollow pass into a hard fail and the fail into a find:
+the stitcher allocated fresh bit ids above the highest CONNECTED
+bit, but netnames keep ids the opt passes already dropped, and the
+colliding fresh bits came out of write_verilog as alias assigns -
+raw replicas and voter internals leaking onto stale nets. The
+carrier was simply too small to collide.
+
+One seed line later the whole ladder holds: the unstitched netlist
+floods (the cell-model mix is real), the stitched netlist floods
+(the stitch preserves the machine), the rail-B wound - every B
+replica forced wrong from before POR through the whole boot,
+strictly harsher than any single upset - boots, commits, floods,
+and on release heals 2138 of 2138 replicas and keeps speaking; and
+the majority wound kills the machine, which is what proves the vote
+was load-bearing all along. The RTL boot test inherited the flood
+discipline too - its old hunt carried the same latent weakness.
+Two proofs of the method in one cycle: the test that cannot fail
+is the one you fix first, and a protection scheme is only as real
+as the netlist transformation that installs it.

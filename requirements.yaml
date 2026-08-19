@@ -336,3 +336,20 @@ requirements:
       (hold -0.53 routed vs +0.15 estimated), the loop inserted two
       more hold buffers against the extracted SPEF, and pass 2 closed
       hold +0.16 / setup +4.71 at every corner on the exact layout
+  - id: Z3-R29
+    text: The tool-stitched TMR netlist of the compute cluster shall
+      boot the full ISP story at gate level; a wound that kills one
+      replica rail outright shall be masked by the vote and healed on
+      release; a majority wound shall provably kill the machine (the
+      control that keeps the proof honest); and the proof-of-life
+      discipline shall be immune to the free-running telemetry stream.
+    tests:
+      - scripts/gl_boot.sh
+      - test/test_top_gl.py
+    evidence: 2138 flops stitched and structurally checked, none left
+      behind (coverage guard); the flood discipline exposed the naive
+      single-0x5A hunt as telemetry-contaminated and then exposed a
+      fresh-bit collision in the stitcher itself (netname bits missing
+      from the seed - raw replicas aliased onto stale nets); with both
+      fixed, the rail-B wound booted, healed 2138/2138 and kept
+      speaking, and the majority-wound control fell silent

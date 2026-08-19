@@ -172,6 +172,22 @@ async def hunt_echo(dut, cmd, target, attempts=8):
     return False
 
 
+async def hunt_z_flood(dut, tries=40):
+    """A lone 0x5A proves nothing: the telemetry engine free-runs and
+    its frame header opens with 0x5A too - a hunt that accepts one
+    byte would pass over a dead CPU (found the hard way at gate level,
+    Cycle 19). The loaded program FLOODS the pin with 'Z' back to
+    back; a frame follows its sync with 0x33 and falls silent for
+    2^INTERVAL_LOG2 cycles. Three 0x5A in a row is a living program."""
+    for _ in range(tries):
+        b = await uart_capture(dut, 80_000)
+        if b == 0x5A:
+            if await uart_capture(dut, 2_000) == 0x5A and \
+               await uart_capture(dut, 2_000) == 0x5A:
+                return True
+    return False
+
+
 @cocotb.test()
 async def test_isp_loads_and_the_program_speaks(dut):
     """Stream a valid image over the UART pin: the loader commits it,
@@ -187,13 +203,8 @@ async def test_isp_loads_and_the_program_speaks(dut):
     assert int(dut.boot_sel_o.value) == 1, "valid image must commit"
     assert int(dut.evt_boot_reject_o.value) == 0
 
-    # the loaded loop must speak: hunt for 'Z' on the pin
-    for _ in range(40):
-        b = await uart_capture(dut, 80_000)
-        if b == 0x5A:
-            break
-    else:
-        raise AssertionError("loaded program's 'Z' never reached the pin")
+    # the loaded loop must speak: hunt for the 'Z' FLOOD on the pin
+    assert await hunt_z_flood(dut), "loaded program's 'Z' flood never came"
 
 
 @cocotb.test()
@@ -260,13 +271,9 @@ async def test_loaded_code_uses_the_sliced_bank(dut):
 
     assert int(dut.boot_sel_o.value) == 1, "probe image must commit"
 
-    for _ in range(40):
-        b = await uart_capture(dut, 80_000)
-        if b == 0x5A:
-            break
-        assert b not in (0xFF,), "bank readback mismatched"
-    else:
-        raise AssertionError("bank-probe verdict never reached the pin")
+    # the prober floods its verdict byte; only a 'Z' FLOOD counts (a
+    # lone 0x5A can be a telemetry frame sync - Cycle 19's lesson)
+    assert await hunt_z_flood(dut), "bank-probe 'Z' flood never came"
 
 
 # rung 5: 64 KB behind the 4 KB window. The program pages via the

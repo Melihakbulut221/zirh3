@@ -47,6 +47,14 @@ def main(inp, outp):
     for cell in cells.values():
         for bits in cell.get("connections", {}).values():
             used.update(b for b in bits if isinstance(b, int))
+    # netnames keep bit ids that opt passes already dropped from every
+    # connection; a fresh id colliding with one of those becomes an
+    # alias ASSIGN onto a declared wire at write_verilog time - raw
+    # replica and voter internals leak onto old nets (found the hard
+    # way: the 2138-flop core died under a B-rail wound the voter math
+    # provably masks; the 16-flop carrier was too small to collide)
+    for net in nets.values():
+        used.update(b for b in net["bits"] if isinstance(b, int))
     nxt = [max(used) + 1 if used else 2]
 
     def fresh():
