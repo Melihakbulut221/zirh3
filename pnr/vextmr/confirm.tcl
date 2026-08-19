@@ -28,6 +28,12 @@ read_liberty -corner slow /pdk/ihp-sg13g2/libs.ref/sg13g2_sram/lib/RM_IHPSG13_2P
 create_clock -name clk -period 20 [get_ports clk]
 set_propagated_clock [all_clocks]
 
+# the setup repair arm estimates rebuffering against wire RC and dies
+# without it (RSZ-0089, round 4) - the hold arm never asked; the PDK's
+# own defaults per its librelane config: signal Metal2, clock Metal5
+set_wire_rc -signal -layer Metal2
+set_wire_rc -clock  -layer Metal5
+
 proc strip_wires {} {
     set block [ord::get_db_block]
     foreach net [$block getNets] {
