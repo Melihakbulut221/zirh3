@@ -18,6 +18,7 @@
 # =============================================================================
 
 import json
+import re
 import sys
 
 FLOP_TYPES = {
@@ -119,6 +120,41 @@ def main(inp, outp):
 
     print(f"TMR {len(flops)} flops ({checked} structurally checked: "
           "shared D cone, voter owns the original Q net)")
+
+    # every netname beyond the ports and the tmr rails becomes an alias
+    # ASSIGN at write_verilog time when its bits are already cell-owned,
+    # and a P&R netlist checker rightly rejects assigns - keep only the
+    # names something downstream actually reads
+    ports = mod.get("ports", {})
+    mod["netnames"] = {
+        n: e for n, e in nets.items()
+        if n in ports or re.fullmatch(r"tmr[ABC]_\d+", n)
+    }
+
+    # constant bits sitting directly in OUTPUT port arrays (the
+    # wrapper's byte-address zeros) would also come out as assigns;
+    # give each one a tie cell instead - hilomap cannot reach these,
+    # it only rewrites constants feeding cell inputs
+    ntie = 0
+    for pname, port in ports.items():
+        if port.get("direction") != "output":
+            continue
+        for i, b in enumerate(port["bits"]):
+            if b in ("0", "1"):
+                nb = fresh()
+                kind = ("sg13g2_tiehi", "L_HI") if b == "1" \
+                    else ("sg13g2_tielo", "L_LO")
+                cells[f"{pname}__tie{i}"] = {
+                    "type": kind[0], "parameters": {}, "attributes": {},
+                    "port_directions": {kind[1]: "output"},
+                    "connections": {kind[1]: [nb]},
+                }
+                port["bits"][i] = nb
+                if pname in mod["netnames"]:
+                    mod["netnames"][pname]["bits"][i] = nb
+                ntie += 1
+    if ntie:
+        print(f"TIE {ntie} constant output-port bits onto tie cells")
 
     with open(outp, "w") as f:
         json.dump(design, f)

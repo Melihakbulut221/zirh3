@@ -133,6 +133,11 @@ if run_stage stitch; then
     fi
     echo "STITCH: PASS - all ${N_TMR} flops carry a voter"
     yosys -q -p "read_json ${BUILD}/vexwrap_tmr.json; write_verilog -noattr ${BUILD}/vexwrap_tmr.v"
+    N_ASSIGN=$(grep -c "^  assign" "${BUILD}/vexwrap_tmr.v" || true)
+    if [ "${N_ASSIGN}" -ne 0 ]; then
+        echo "STITCH: FAIL - ${N_ASSIGN} assign statements survive in the netlist"
+        exit 1
+    fi
 fi
 
 if run_stage boot; then
