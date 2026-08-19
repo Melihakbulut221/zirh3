@@ -46,27 +46,49 @@ proc route_extract {} {
     read_spef /work/confirm_out/zirh_vex_wrap_confirm.spef
 }
 
-# the signoff loop: route the exact layout, extract the truth, and if
-# the routed truth says the hold repair undershot, repair AGAINST that
-# truth and route again - at most three passes, each verdict printed
-for {set i 1} {$i <= 3} {incr i} {
-    puts "=== CONFIRM PASS $i: route + extract ==="
-    route_extract
+# the signoff loop, reshaped by round 3's lessons: (1) pass 1 judges
+# the FLOW's own wires - they are valid and consistent, stripping them
+# only traded a good layout for router noise; (2) the repair arm fixes
+# WHATEVER the truth says is broken - round 3's loop repaired hold
+# while setup drowned (-0.57) because Cycle 18's die had +5 ns of
+# setup margin and this one does not; (3) margins sit above the
+# observed from-scratch reroute noise (~0.3-0.4 ns between passes)
+for {set i 1} {$i <= 4} {incr i} {
+    if {$i == 1} {
+        puts "=== CONFIRM PASS $i: judging the flow's own wires ==="
+        define_process_corner -ext_model_index 0 X
+        extract_parasitics -ext_model_file /pdk/ihp-sg13g2/libs.tech/librelane/openrcx/IHP_rcx_patterns.rules
+        write_spef /work/confirm_out/zirh_vex_wrap_confirm.spef
+        read_spef /work/confirm_out/zirh_vex_wrap_confirm.spef
+    } else {
+        puts "=== CONFIRM PASS $i: route + extract ==="
+        route_extract
+    }
     puts "=== CONFIRM PASS $i VERDICT ==="
     report_worst_slack -min
     report_worst_slack -max
     set min_ws [sta::worst_slack -min]
     set max_ws [sta::worst_slack -max]
     if {$min_ws >= 0 && $max_ws >= 0} { break }
-    if {$i < 3} {
+    if {$i < 4} {
         puts "=== CONFIRM PASS $i: repairing against the ROUTED truth ==="
         remove_fillers
-        repair_timing -hold -hold_margin 0.10
+        if {$min_ws < 0} { repair_timing -hold -hold_margin 0.20 }
+        if {$max_ws < 0} { repair_timing -setup -setup_margin 0.30 }
         detailed_placement
         filler_placement sg13g2_fill*
         check_placement
     }
 }
+
+# the repair arms must never touch the triples: count the flops
+set nflops 0
+foreach inst [[ord::get_db_block] getInsts] {
+    if {[string match sg13g2_dfrbpq* [[$inst getMaster] getName]]} {
+        incr nflops
+    }
+}
+puts "FLOPS IN THE CONFIRMED LAYOUT: $nflops"
 
 puts "=== CONFIRM VERDICT (routed + extracted, 3 corners) ==="
 report_worst_slack -min

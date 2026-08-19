@@ -184,7 +184,10 @@ jobs:
           MAX=$(grep -a "worst slack max" confirm.log | tail -1 | awk '{print $NF}')
           echo "hold ws = $MIN ; setup ws = $MAX"
           python3 -c "import sys; sys.exit(0 if float('$MIN')>=0 and float('$MAX')>=0 else 1)"
-          echo "VERDICT: the STITCHED layout closes at every corner, routed and extracted"
+          NFLOPS=$(grep -a "FLOPS IN THE CONFIRMED LAYOUT" confirm.log | awk '{print $NF}')
+          echo "flops in the confirmed layout: $NFLOPS"
+          test "$NFLOPS" -eq 6414
+          echo "VERDICT: the STITCHED layout closes at every corner, routed and extracted, triples intact"
       - name: Upload confirm artifacts
         if: success() || failure()
         uses: actions/upload-artifact@v7
