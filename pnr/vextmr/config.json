@@ -1,0 +1,59 @@
+{
+  "//": "Cycle 20 - the STITCHED netlist through P&R. The netlist is 100 percent structural (cell voters, Cycle 19's stitcher upgraded), so synthesis is ELABORATE ONLY - resynthesis would prove the three replicas identical and collapse the TMR it was asked to place. Recipe inherited from the vexlitemac campaign record; die sized from measurement: 206k um2 unstitched -> 512.5k um2 stitched (2.49x), 6414 flops + 10690 voter gates, at 45 pct density plus the macro band = 1450x900.",
+  "//r1": "round 1: the inherited recipe on the sized-up die, one knob (DIE_AREA) turned from the campaign baseline.",
+  "DESIGN_NAME": "zirh_vex_wrap",
+  "VERILOG_FILES": ["dir::netlist/vexwrap_tmr.v"],
+  "SYNTH_ELABORATE_ONLY": true,
+  "CLOCK_PORT": "clk",
+  "CLOCK_PERIOD": 20,
+  "FP_SIZING": "absolute",
+  "DIE_AREA": [0, 0, 1450, 900],
+  "PL_TARGET_DENSITY_PCT": 45,
+  "RUN_KLAYOUT_XOR": 0,
+  "RUN_KLAYOUT_DRC": 0,
+  "RUN_LINTER": 0,
+  "MACROS": {
+    "RM_IHPSG13_2P_512x32_c2_bm_bist": {
+      "gds": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.gds"],
+      "lef": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist.lef"],
+      "nl": ["dir::stubs/rm2p_stubs.v"],
+      "lib": {"*": ["dir::pdk/RM_IHPSG13_2P_512x32_c2_bm_bist_typ_1p20V_25C.lib"]},
+      "instances": {
+        "u_core.IBusCachedPlugin_cache.icache_data_m": {
+          "location": [40, 20],
+          "orientation": "FS"
+        }
+      }
+    },
+    "RM_IHPSG13_2P_64x32_c2": {
+      "gds": ["dir::pdk/RM_IHPSG13_2P_64x32_c2.gds"],
+      "lef": ["dir::pdk/RM_IHPSG13_2P_64x32_c2.lef"],
+      "nl": ["dir::stubs/rm2p_stubs.v"],
+      "lib": {"*": ["dir::pdk/RM_IHPSG13_2P_64x32_c2_typ_1p20V_25C.lib"]},
+      "instances": {
+        "u_core.IBusCachedPlugin_cache.icache_tags_m": {
+          "location": [40, 270],
+          "orientation": "FS"
+        }
+      }
+    }
+  },
+  "PL_MAX_DISPLACEMENT_Y": 400,
+  "RUN_POST_CTS_RESIZER_TIMING": false,
+  "RUN_POST_GRT_RESIZER_TIMING": true,
+  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.15,
+  "FP_MACRO_HORIZONTAL_HALO": 15,
+  "FP_MACRO_VERTICAL_HALO": 15,
+  "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
+  "PDN_MACRO_CONNECTIONS": [
+    "u_core.IBusCachedPlugin_cache.icache_data_m VDD VSS VDD! VSS!",
+    "u_core.IBusCachedPlugin_cache.icache_data_m VDD VSS VDDARRAY! VSS!",
+    "u_core.IBusCachedPlugin_cache.icache_tags_m VDD VSS VDD! VSS!",
+    "u_core.IBusCachedPlugin_cache.icache_tags_m VDD VSS VDDARRAY! VSS!"
+  ],
+  "RUN_MAGIC_DRC": false,
+  "RUN_LVS": false,
+  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
+  "PNR_SDC_FILE": "dir::pnr.sdc",
+  "GRT_RESIZER_HOLD_MAX_BUFFER_PCT": 100
+}

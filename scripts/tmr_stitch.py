@@ -62,13 +62,16 @@ def main(inp, outp):
         nxt[0] += 1
         return b
 
+    # voters are REAL library cells, not generic $and/$or: the stitched
+    # netlist stays 100 percent structural, so a P&R flow can take it
+    # with synthesis disabled - resynthesis would prove the three
+    # replicas identical and collapse the TMR it was asked to place
     def gate(kind, name, a, b, y):
         cells[name] = {
-            "type": kind, "port_directions":
-                {"A": "input", "B": "input", "Y": "output"},
-            "connections": {"A": [a], "B": [b], "Y": [y]},
-            "parameters": {"A_SIGNED": 0, "B_SIGNED": 0,
-                           "A_WIDTH": 1, "B_WIDTH": 1, "Y_WIDTH": 1},
+            "type": kind, "parameters": {}, "attributes": {},
+            "port_directions":
+                {"A": "input", "B": "input", "X": "output"},
+            "connections": {"A": [a], "B": [b], "X": [y]},
         }
 
     flops = sorted(n for n, c in cells.items() if c["type"] in FLOP_TYPES)
@@ -96,11 +99,11 @@ def main(inp, outp):
             cells[name + suffix] = copy
 
         t0, t1, t2, t3 = fresh(), fresh(), fresh(), fresh()
-        gate("$and", f"{name}__vand0", qa, qb, t0)
-        gate("$and", f"{name}__vand1", qb, qc, t1)
-        gate("$and", f"{name}__vand2", qa, qc, t2)
-        gate("$or",  f"{name}__vor0", t0, t1, t3)
-        gate("$or",  f"{name}__vor1", t3, t2, q_bit)
+        gate("sg13g2_and2_1", f"{name}__vand0", qa, qb, t0)
+        gate("sg13g2_and2_1", f"{name}__vand1", qb, qc, t1)
+        gate("sg13g2_and2_1", f"{name}__vand2", qa, qc, t2)
+        gate("sg13g2_or2_1",  f"{name}__vor0", t0, t1, t3)
+        gate("sg13g2_or2_1",  f"{name}__vor1", t3, t2, q_bit)
 
         nets[f"tmrA_{i}"] = {"bits": [qa], "hide_name": 0}
         nets[f"tmrB_{i}"] = {"bits": [qb], "hide_name": 0}
