@@ -89,5 +89,6 @@
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
   "PNR_SDC_FILE": "dir::pnr.sdc",
   "GRT_RESIZER_HOLD_MAX_BUFFER_PCT": 100,
-  "//r2": "round 2: the assign-free netlist, same die, same knobs."
+  "//r2": "round 2 (32271803469): THE FLOW COMPLETES on the assign-free netlist, ~50 min. SETUP CLOSES EVERYWHERE: +1.56 slow / +7.99 typ / +10.91 fast. All 6414 sequential cells survive the flow (metrics counts them itself); 2120 timing-repair buffers, 29 hold buffers, 2 macros placed. The one open item: fast-corner hold -0.156 (typ +0.066, slow +0.41) - the exact vexlitemac endgame. Not chased with margin knobs (the campaign measured that seesaw 4 times); round 3 is Cycle 18's instrument verbatim: the self-healing signoff loop on the final ODB (confirm.tcl, dispatch tmrconfirm).",
+  "//r3": "round 3: route-extract-judge-heal on the round-2 layout; green iff every corner closes on the routed, extracted truth."
 }
