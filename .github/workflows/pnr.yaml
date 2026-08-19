@@ -149,15 +149,23 @@ jobs:
             rm -rf tmr_dl; sleep 30
           done
           cp tmr_dl/final/odb/*.odb confirm_in/zirh_vex_wrap.odb
-      - name: Replica survival in the ROUTED netlist (round 2 never got here)
+      - name: Replica survival in the ROUTED layout (rail nets, by name)
+        # instance names are erased by the netlist writers (abc privates
+        # become _N_), but the stitcher's rail NETS survive as real
+        # wires all the way into the routed DEF - count those. Each
+        # test stands alone: a && chain is exempt from bash -e and a
+        # guard that cannot fail guards nothing (learned in round 5).
         run: |
-          NL=$(find tmr_dl/final/nl -name "*.v" | head -1)
-          echo "routed netlist: $NL"
-          NB=$(grep -c -- "__B " "$NL" || true)
-          NC=$(grep -c -- "__C " "$NL" || true)
-          NF=$(grep -c "sg13g2_dfrbpq" "$NL" || true)
-          echo "replicas: __B=$NB __C=$NC flops=$NF"
-          test "$NB" -eq 2138 && test "$NC" -eq 2138 && test "$NF" -eq 6414
+          DEF=$(find tmr_dl/final/def -name "*.def" | head -1)
+          echo "routed DEF: $DEF"
+          for R in tmrA tmrB tmrC; do
+            N=$(grep -cE "^ *- ${R}_[0-9]+ " "$DEF" || true)
+            echo "$R rail nets in the routed DEF: $N"
+            test "$N" -eq 2138
+          done
+          NF=$(grep -cE "sg13g2_dfrbpq" "$DEF" || true)
+          echo "flop instances: $NF"
+          test "$NF" -eq 6414
           echo "VERDICT: all 2138 triples survived placement and routing"
       - name: Setup python + PDK
         uses: actions/setup-python@v6
@@ -187,6 +195,11 @@ jobs:
           NFLOPS=$(grep -a "FLOPS IN THE CONFIRMED LAYOUT" confirm.log | awk '{print $NF}')
           echo "flops in the confirmed layout: $NFLOPS"
           test "$NFLOPS" -eq 6414
+          for R in tmrA tmrB tmrC; do
+            N=$(grep -cE "^ *- ${R}_[0-9]+ " confirm_out/zirh_vex_wrap_confirm.def || true)
+            echo "$R rail nets in the CONFIRMED DEF: $N"
+            test "$N" -eq 2138
+          done
           echo "VERDICT: the STITCHED layout closes at every corner, routed and extracted, triples intact"
       - name: Upload confirm artifacts
         if: success() || failure()
