@@ -10,9 +10,10 @@
 #   make gl         Cycle 19: TMR'd core boots at gate level, wounded + healed
 #   make gldie      Cycle 25: the WHOLE die on gates boots, wounded + rained-on
 #   make fuzz       Cycle 26: the traffic storm at the pins (seeded)
+#   make equiv      Cycle 28: RTL-vs-stitched formal equivalence (both legs)
 #   make everything
 
-.PHONY: units sv formal tmr lint trace dft gl gldie fuzz everything
+.PHONY: units sv formal tmr lint trace dft gl gldie fuzz equiv everything
 
 units:
 	$(MAKE) -C test -B -f Makefile.boot
@@ -45,6 +46,9 @@ gldie:
 fuzz:
 	$(MAKE) -C test -B -f Makefile.top COCOTB_TEST_MODULES=test_top_fuzz
 
+equiv:
+	bash scripts/formal_equiv.sh all
+
 formal:
 	bash scripts/formal.sh
 
@@ -57,4 +61,4 @@ lint:
 trace:
 	python3 scripts/trace_check.py
 
-everything: lint trace tmr units sv dft gl gldie fuzz formal
+everything: lint trace tmr units sv dft gl gldie fuzz formal equiv

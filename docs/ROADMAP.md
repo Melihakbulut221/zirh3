@@ -768,3 +768,30 @@ was reading a mid-stream flood with a byte-aligned hunt - Cycle
 signature search. The pad ring will fold each o/oe/i triple into
 one bidirectional pad at hardening; 56 pads joins the pin budget
 the OpenMPW slot must carry.
+
+## Cycle 28 (2026-08-21): the stitcher leaves the trusted base
+
+Every proof so far TESTED the stitched core; this one proves it.
+Two legs, decomposed honestly. At carrier scale the whole chain -
+RTL elaboration, abc mapping, the stitcher - sits inside one
+equivalence, sixteen points, closed in a tenth of a second. At core
+scale the theorem is the TRANSFORMATION: the pre-stitch netlist
+against the stitched one, 2639 equivalence points - every flop
+boundary via the stitcher's own bookkeeping, every port, every pin
+of the macros cut to the boundary - 311 proven combinationally and
+2328 by induction, all of them, in two minutes eleven seconds.
+
+The instruments earned trust the usual way. The cell functions are
+GENERATED from the PDK liberty, because the simulation models hide
+behind UDP tables no formal front end reads and a hand-written
+library is a place for bugs to live. The first pilot run returned
+in a tenth of a second with nothing proven and nothing failed - a
+vacuous pass, refused by its own gate, which now demands the point
+count the design implies. And the voter-pin archaeology (Y in the
+generic era, X since the voters became real cells) reminded the
+cycle that instruments age with the code they measure. The chain of
+custody now reads: RTL proven equivalent to gates at pilot scale,
+gates proven equivalent to stitched gates at full scale, stitched
+gates proven to boot, wound, rain, place, route and close timing.
+The synthesis leg at core scale remains what it is everywhere:
+trusted tooling, cross-checked by the gl ladder booting both sides.

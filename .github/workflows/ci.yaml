@@ -30,6 +30,8 @@ jobs:
         run: PDK_ROOT=$HOME/.ciel bash scripts/dft_scan.sh
       - name: rung 3 pilot B - tool-applied TMR (function, mask, heal)
         run: PDK_ROOT=$HOME/.ciel bash scripts/tmr_pilot.sh
+      - name: Cycle 28 - RTL-vs-stitched equivalence, pilot leg (full chain)
+        run: PDK_ROOT=$HOME/.ciel bash scripts/formal_equiv.sh pilot
 
   units:
     runs-on: ubuntu-24.04
@@ -105,6 +107,8 @@ jobs:
         run: PDK_ROOT=$HOME/.ciel make gl
       - name: Cycle 25 - the WHOLE die on gates boots, wounded and rained-on
         run: PDK_ROOT=$HOME/.ciel make gldie
+      - name: Cycle 28 - the stitch transformation proven at 2138 triples
+        run: PDK_ROOT=$HOME/.ciel bash scripts/formal_equiv.sh core
 
   formal:
     runs-on: ubuntu-24.04

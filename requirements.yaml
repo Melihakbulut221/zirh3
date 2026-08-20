@@ -459,3 +459,20 @@ requirements:
       verdict; guard measured 6 replicas / 453 flops for the block,
       79 / 32214 for the top; the gate die re-synthesizes and boots
       with the block in
+  - id: Z3-R37
+    text: The stitched netlist shall be FORMALLY equivalent to what it
+      was stitched from - the full RTL-to-stitched chain proven in one
+      equivalence at pilot scale, and the stitch transformation proven
+      at full core scale by induction over every flop boundary, with
+      the macros cut to the boundary and an anti-vacuity gate on the
+      proven point count.
+    tests:
+      - scripts/formal_equiv.sh
+      - scripts/formal_eqlib.py
+      - scripts/formal_eqprep.py
+    evidence: pilot leg 16 of 16 points proven (RTL LFSR vs its
+      synthesized-and-stitched netlist, one proof); core leg 2639 of
+      2639 points proven (311 combinational, 2328 by induction) in
+      131 seconds - cell functions generated from the PDK liberty,
+      match points from the stitcher's own bookkeeping, RM macros as
+      boundary ports; both legs gated against vacuous passes
