@@ -700,3 +700,24 @@ keeps earning; an X pick now costs a redraw, not a slot. Three
 storms then ran: 314 shots, A, B and C rails drawn evenly, 314
 healed, zero divergence - image committed, flood alive, every time.
 Stage 7 of the ladder now rains on every push.
+
+## Cycle 25 (2026-08-20): the whole die on gates
+
+Cycle 19 put the CPU on gates inside an RTL die; the die itself
+still enjoyed the benefit of the doubt. No longer: loader, bank
+arbiter, telemetry, watchdog, debug gate, POR - all of it
+synthesized to SG13G2 cells, with the stitched CPU linked into its
+socket as a blackbox boundary and the SRAM macros behavioral as in
+every simulation. Two decisions made the proof cheap. The netlist
+keeps its hierarchy, so u_soc.u_cpu keeps its name and the wound
+trio and the SEU rain ran against the full gate die without
+changing a line. And the parameters and ROM hex are baked in with
+chparam - which taught its own small lesson, because chparam after
+hierarchy asks a later elaboration to derive from base modules that
+hierarchy already deleted, and the error message says none of that.
+
+The full gate die boots the flood in forty-three seconds of wall
+clock, the rail-B wound heals 2138 of 2138 on it, the majority
+wound falls silent on it, and the rain lands 106 shots and heals
+every one. The die stopped being a diagram hosting a proven core
+and became the proven thing itself.

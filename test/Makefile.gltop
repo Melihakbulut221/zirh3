@@ -1,0 +1,33 @@
+# =============================================================================
+# ZIRH-3 - the FULL-DIE gate-level sim (Cycle 25)
+#   built products of scripts/gl_die.sh + scripts/gl_boot.sh; the sim
+#   parameters and the ROM hex are BAKED into the netlist (chparam) -
+#   no -P overrides here, a gate netlist has no parameters left
+# =============================================================================
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SIM_BUILD ?= sim_build/gltop
+
+GLB = $(PWD)/sim_build/gl_die
+CPUB = $(PWD)/sim_build/gl_boot
+SRAM_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_sram/verilog
+CELLS_V = $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_stdcell/verilog
+
+VERILOG_SOURCES += $(GLB)/zirh3_top_gates.v
+VERILOG_SOURCES += $(CPUB)/vexwrap_tmr.v
+VERILOG_SOURCES += $(GLB)/cells_func.v $(CELLS_V)/sg13g2_udp.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_core_behavioral_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_1024x8_c2_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_1P_4096x8_c3_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_2P_512x32_c2_bm_bist.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_2P_64x32_c2.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_2P_core_behavioral_bm_bist_ideal.v
+VERILOG_SOURCES += $(SRAM_V)/RM_IHPSG13_2P_core_behavioral_ideal.v
+
+TOPLEVEL = zirh3_top
+COCOTB_TEST_MODULES ?= test_top_isp
+
+# the RM behavioral write path lives behind FUNCTIONAL (rung 4's lesson)
+COMPILE_ARGS += -DFUNCTIONAL
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

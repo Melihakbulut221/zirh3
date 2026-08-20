@@ -8,9 +8,10 @@
 #   make trace      requirements <-> tests, no orphans
 #   make dft        F28: boundary scan bench + scan-insertion rehearsal
 #   make gl         Cycle 19: TMR'd core boots at gate level, wounded + healed
+#   make gldie      Cycle 25: the WHOLE die on gates boots, wounded + rained-on
 #   make everything
 
-.PHONY: units sv formal tmr lint trace dft gl everything
+.PHONY: units sv formal tmr lint trace dft gl gldie everything
 
 units:
 	$(MAKE) -C test -B -f Makefile.boot
@@ -35,6 +36,9 @@ dft:
 gl:
 	bash scripts/gl_boot.sh all
 
+gldie:
+	bash scripts/gl_die.sh all
+
 formal:
 	bash scripts/formal.sh
 
@@ -47,4 +51,4 @@ lint:
 trace:
 	python3 scripts/trace_check.py
 
-everything: lint trace tmr units sv dft gl formal
+everything: lint trace tmr units sv dft gl gldie formal

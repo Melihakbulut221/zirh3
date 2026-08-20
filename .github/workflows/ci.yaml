@@ -100,6 +100,8 @@ jobs:
             22f2a25f1734796de3debbbf29cf697cbbc54081
       - name: Cycle 19 - the TMR'd core boots at gate level, wounded and healed
         run: PDK_ROOT=$HOME/.ciel make gl
+      - name: Cycle 25 - the WHOLE die on gates boots, wounded and rained-on
+        run: PDK_ROOT=$HOME/.ciel make gldie
 
   formal:
     runs-on: ubuntu-24.04

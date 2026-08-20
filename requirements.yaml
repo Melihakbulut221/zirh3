@@ -411,3 +411,18 @@ requirements:
       storm failed its own thinness gate (53 of 66 slots lost to
       unwritten X flops) and the redraw fix is recorded; seed 1 runs
       in CI as stage 7 of the gl ladder
+  - id: Z3-R34
+    text: The WHOLE die - loader, bank arbiter, telemetry, watchdog,
+      debug gate, POR - shall boot the ISP story as SG13G2 gates with
+      the stitched CPU linked in its socket, and the wound trio and
+      the SEU rain shall hold on that full gate die under the same
+      benches, unchanged.
+    tests:
+      - scripts/gl_die.sh
+      - test/Makefile.gltop
+    evidence: the die synthesizes to 41848 top-level cells with its
+      hierarchy preserved (so u_soc.u_cpu keeps its path and every
+      wound bench runs unmodified); sim parameters and the ROM hex
+      are baked with chparam; the gate die boots the flood in 43 s,
+      the wound trio passes 3/3 and the rain heals 106 of 106 - the
+      gldie ladder runs on every push
