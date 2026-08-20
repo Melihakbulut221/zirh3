@@ -426,3 +426,20 @@ requirements:
       are baked with chparam; the gate die boots the flood in 43 s,
       the wound trio passes 3/3 and the rain heals 106 of 106 - the
       gldie ladder runs on every push
+  - id: Z3-R35
+    text: The design shall survive seeded uncurated storms at two
+      boundaries - the loader fuzzed at its own ports and the whole
+      die fuzzed at the pins - under continuous invariants, a liveness
+      cadence no random history may break, and coverage closure gates
+      that fail a storm too thin to prove anything.
+    tests:
+      - test/sv/zirh_boot_fuzz_tb.sv
+      - test/test_top_fuzz.py
+    evidence: SV storm 3 seeds x 120 episodes, 693 checks, invariants
+      silent, deterministic per seed; top storm 3 seeds x 10 blocks
+      with every armed and closed bin filled. The storms earned their
+      keep before passing - the first drafts exposed the loader's
+      unstated one-ruling-per-reset contract (S_RUN listens only at
+      strap 11; S_GOLDEN is deaf) and the bench-side mid-stream
+      alignment trap hunt_echo's docstring had predicted, both now
+      locked in oracles

@@ -721,3 +721,27 @@ clock, the rail-B wound heals 2138 of 2138 on it, the majority
 wound falls silent on it, and the rain lands 106 shots and heals
 every one. The die stopped being a diagram hosting a proven core
 and became the proven thing itself.
+
+## Cycle 26 (2026-08-20): the storms
+
+Eight curated scenarios ask the questions their authors thought of;
+a seeded storm asks the rest. Two storms now run on every push: the
+loader fuzzed at its own boundary - random images, lying memories,
+streams cut mid-byte, resets mid-load, watchdog failures, 120
+episodes per seed under continuous invariants and a liveness
+cadence - and the whole die fuzzed at the pins with the CPU running
+and telemetry flowing.
+
+Both storms paid for themselves before ever passing. The top storm's
+first draft assumed the loader keeps listening, and the die said no:
+the loader rules ONCE per reset - commit lands it in S_RUN, reject
+in S_GOLDEN, and at flight straps both are deaf to further images;
+live A/B re-load listens only at the ISP strap. An unstated contract
+is now a stated one, locked by oracles. Then the fixed storm failed
+three seeds in a row anyway - and this time the die was innocent:
+checking a flood WHILE it streams has no silence to align from, and
+a mid-frame lock reads the same wrong byte forever. hunt_echo's
+docstring predicted that trap years before it bit the bench that
+carried it. The cure is an alignment-free bit-level signature
+search, and the closure gates hold: every armed and closed bin
+filled, every kind drawn enough to count, deterministic per seed.

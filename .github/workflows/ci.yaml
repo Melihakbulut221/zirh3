@@ -35,8 +35,9 @@ jobs:
     runs-on: ubuntu-24.04
     # the pipelined core simulates ~3-4x slower than the bit-serial one
     # it replaced; the top suite alone runs 8-19 minutes locally, and the
-    # runner is slower still - 30 minutes was the SERV era's budget
-    timeout-minutes: 90
+    # runner is slower still - and a slow-runner night has tripped the
+    # 90-minute cap once already; the storm steps add a few more minutes
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
       - name: install iverilog
@@ -71,8 +72,10 @@ jobs:
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.sba
       - name: F28 - boundary scan behind the flight lock
         run: PDK_ROOT=$HOME/.ciel make -C test -B -f Makefile.bscan
-      - name: SV boot scenarios
+      - name: SV boot scenarios + the SV fuzz storm
         run: make sv
+      - name: Cycle 26 - the traffic storm at the pins
+        run: PDK_ROOT=$HOME/.ciel make fuzz
 
   gl:
     runs-on: ubuntu-24.04

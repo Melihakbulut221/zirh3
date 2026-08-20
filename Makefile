@@ -9,9 +9,10 @@
 #   make dft        F28: boundary scan bench + scan-insertion rehearsal
 #   make gl         Cycle 19: TMR'd core boots at gate level, wounded + healed
 #   make gldie      Cycle 25: the WHOLE die on gates boots, wounded + rained-on
+#   make fuzz       Cycle 26: the traffic storm at the pins (seeded)
 #   make everything
 
-.PHONY: units sv formal tmr lint trace dft gl gldie everything
+.PHONY: units sv formal tmr lint trace dft gl gldie fuzz everything
 
 units:
 	$(MAKE) -C test -B -f Makefile.boot
@@ -28,6 +29,7 @@ units:
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot
+	$(MAKE) -C test -f Makefile.svs fuzz
 
 dft:
 	$(MAKE) -C test -B -f Makefile.bscan
@@ -38,6 +40,9 @@ gl:
 
 gldie:
 	bash scripts/gl_die.sh all
+
+fuzz:
+	$(MAKE) -C test -B -f Makefile.top COCOTB_TEST_MODULES=test_top_fuzz
 
 formal:
 	bash scripts/formal.sh
@@ -51,4 +56,4 @@ lint:
 trace:
 	python3 scripts/trace_check.py
 
-everything: lint trace tmr units sv dft gl gldie formal
+everything: lint trace tmr units sv dft gl gldie fuzz formal
