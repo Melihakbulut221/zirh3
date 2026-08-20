@@ -368,3 +368,17 @@ requirements:
       rail nets counted in the routed DEF at both gates; 6414 flops
       in the DB, the DEF and the flow metrics; protection price
       measured 2.49x cell area at unchanged density
+  - id: Z3-R31
+    text: The netlist extracted from the CONFIRMED layout database
+      itself - clock tree, repair buffers and tie cells included -
+      shall boot the full ISP story and survive the wound trio under
+      the same benches as the pre-layout proof, with every replica
+      rail present by name in the netlist text.
+    tests:
+      - pnr/vextmr/dump_netlist.tcl
+      - scripts/gl_pnr_boot.sh
+    evidence: run 32330298237 - the confirmed database's own verilog
+      passes clean flood, rail-B wound with 2138/2138 heal and the
+      majority-wound control; 2138 tmrA/B/C rails counted in the
+      netlist text before simulation; the flow netlist passed the
+      same trio locally first

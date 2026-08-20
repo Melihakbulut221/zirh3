@@ -628,3 +628,21 @@ were the stitcher's rail NETS, alive by name in the routed DEF:
 now counted at both gates of the seal run. A guard that cannot
 fail guards nothing - the same sentence Cycle 19 wrote about the
 telemetry-contaminated hunt, earned twice in two cycles.
+
+## Cycle 21 (2026-08-20): the layout's own netlist boots
+
+The last gap in the protection story was between two artifacts:
+Cycle 19 proved the netlist we HANDED to the flow, Cycle 20 proved
+the flow closes timing on it without killing the triples - but the
+thing that will be fabricated is neither; it is the database the
+flow handed BACK, thirty hold buffers, a clock tree and two setup
+repairs later. So the confirmed database was made to speak for
+itself: write_verilog on the sealed ODB, physical-only cells
+dropped, and the layout's own netlist ran the same wound trio as
+its ancestor - clean flood, every B replica forced wrong from
+before POR and healed 2138 of 2138 on release, the majority wound
+falling properly silent. The rails survived every transformation
+by NAME, netlist text to routed DEF and back, which is what made
+one bench serve three cycles unchanged. What was handed to the
+flow, what the flow closed, and what the flow handed back are now
+one proven thing.
