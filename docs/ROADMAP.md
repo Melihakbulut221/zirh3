@@ -680,3 +680,23 @@ bits netgen admits it cannot tell apart. The gate now PINS that
 ledger; the day a new mismatch class appears, the job goes red.
 The cost study's two named snags are enumerated, understood, and
 fenced - which is what pre-work is for.
+
+## Cycle 24 (2026-08-20): the rain
+
+The wound trio was proof by overkill - a whole rail dead for a whole
+boot. Orbit is not like that; orbit is one bit, one flop, one bad
+moment. So the rain: random single-replica upsets, one clock each -
+which is a real SEU's whole lifetime under voted feedback, because
+the next edge reloads the voted word - landing at random moments
+while the machine loads its image and starts its program. Every
+shot is verified to LAND (a rain that does not touch the state
+proves nothing) and verified to HEAL two clocks later.
+
+The first storm failed its own thinness gate: 53 of 66 slots fell
+on flops still reading X - unreset datapath state the machine had
+not touched yet - and 13 shots is not a campaign. The gate that
+refused to pass a hollow storm is the same sentence this program
+keeps earning; an X pick now costs a redraw, not a slot. Three
+storms then ran: 314 shots, A, B and C rails drawn evenly, 314
+healed, zero divergence - image committed, flood alive, every time.
+Stage 7 of the ladder now rains on every push.

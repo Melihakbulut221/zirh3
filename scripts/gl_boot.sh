@@ -9,14 +9,14 @@
 # voted-feedback TMR and dropped into the otherwise-RTL zirh3_top, and
 # the full ISP boot story runs against the gates:
 #
-#   [1/6] bind    - icache arrays onto RM 2P macros (vexlite_bind.sh)
-#   [2/6] gates   - full synth of zirh_vex_wrap around the bound core;
+#   [1/7] bind    - icache arrays onto RM 2P macros (vexlite_bind.sh)
+#   [2/7] gates   - full synth of zirh_vex_wrap around the bound core;
 #                   coverage guard: every flop is a stitchable type
-#   [3/6] base    - UNstitched gate netlist boots (isolates the cell-
+#   [3/7] base    - UNstitched gate netlist boots (isolates the cell-
 #                   model mix from the stitch before both are in play)
-#   [4/6] stitch  - tmr_stitch.py; guard: stitched count == flop count
-#   [5/6] boot    - the stitched netlist boots the same story clean
-#   [6/6] wound   - replica rail B of EVERY flop is forced wrong for
+#   [4/7] stitch  - tmr_stitch.py; guard: stitched count == flop count
+#   [5/7] boot    - the stitched netlist boots the same story clean
+#   [6/7] wound   - replica rail B of EVERY flop is forced wrong for
 #                   the whole boot: the vote must carry the machine,
 #                   the release must heal every replica, and the
 #                   program must still be speaking afterwards
@@ -25,7 +25,11 @@
 # block delayed_* nets, X under iverilog) - the sed derivation below is
 # the same cure dft_scan.sh and tmr_pilot.sh carry.
 #
-#   PDK_ROOT=... bash scripts/gl_boot.sh [bind|gates|base|stitch|boot|wound|all]
+#   [7/7] seu     - the rain: random single-replica upsets, one clock
+#                   each, land while the boot story runs; every shot
+#                   bite-verified and heal-verified, flood alive at end
+#
+#   PDK_ROOT=... bash scripts/gl_boot.sh [bind|gates|base|stitch|boot|wound|seu|all]
 # =============================================================================
 set -euo pipefail
 
@@ -46,19 +50,19 @@ GL_SOURCES_BASE="${BUILD}/vexwrap_gates.v ${BUILD}/cells_func.v ${CELLS_V}/sg13g
 GL_SOURCES_TMR="${BUILD}/vexwrap_tmr.v ${BUILD}/cells_func.v ${CELLS_V}/sg13g2_udp.v ${RM2P}"
 
 case "${STAGE}" in
-    bind|gates|base|stitch|boot|wound|all) ;;
+    bind|gates|base|stitch|boot|wound|seu|all) ;;
     *) echo "unknown stage '${STAGE}'"; exit 1;;
 esac
 
 run_stage() { case "${STAGE}" in "$1"|all) return 0;; *) return 1;; esac; }
 
 if run_stage bind; then
-    echo "[1/6] binding the icache arrays onto RM 2P macros"
+    echo "[1/7] binding the icache arrays onto RM 2P macros"
     bash "${ROOT}/scripts/vexlite_bind.sh" "${BUILD}/vexlite_bound.v"
 fi
 
 if run_stage gates; then
-    echo "[2/6] full synthesis: zirh_vex_wrap around the bound core"
+    echo "[2/7] full synthesis: zirh_vex_wrap around the bound core"
     cat > "${BUILD}/gates.ys" <<EOF
 read_verilog -lib -DFUNCTIONAL ${SV}/RM_IHPSG13_2P_512x32_c2_bm_bist.v ${SV}/RM_IHPSG13_2P_64x32_c2.v
 read_verilog ${BUILD}/vexlite_bound.v
@@ -107,7 +111,7 @@ PYEOF
 fi
 
 if run_stage base; then
-    echo "[3/6] baseline: the UNstitched gate netlist boots the ISP story"
+    echo "[3/7] baseline: the UNstitched gate netlist boots the ISP story"
     # foundry stdcell models drive function through specify-block
     # delayed_* nets - X under iverilog; derive the functional copy
     sed -e '/specify/,/endspecify/d' \
@@ -121,7 +125,7 @@ if run_stage base; then
 fi
 
 if run_stage stitch; then
-    echo "[4/6] stitching: voted-feedback TMR over every flop"
+    echo "[4/7] stitching: voted-feedback TMR over every flop"
     python3 "${ROOT}/scripts/tmr_stitch.py" \
         "${BUILD}/vexwrap_gates.json" "${BUILD}/vexwrap_tmr.json" \
         | tee "${BUILD}/stitch.log"
@@ -141,7 +145,7 @@ if run_stage stitch; then
 fi
 
 if run_stage boot; then
-    echo "[5/6] the stitched netlist boots the same story, clean"
+    echo "[5/7] the stitched netlist boots the same story, clean"
     COCOTB_TEST_FILTER=test_isp_loads_and_the_program_speaks \
         make -C "${ROOT}/test" -B -f Makefile.top \
         CPU_SOURCES="${GL_SOURCES_TMR}" SIM_BUILD=sim_build/gl_tmr
@@ -149,13 +153,23 @@ if run_stage boot; then
 fi
 
 if run_stage wound; then
-    echo "[6/6] the wound: replica rail B dead for the whole boot"
+    echo "[6/7] the wound: replica rail B dead for the whole boot"
     N_TMR=$(grep -oE 'TMR [0-9]+ flops' "${BUILD}/stitch.log" | grep -oE '[0-9]+')
     GL_TMR_N="${N_TMR}" \
         make -C "${ROOT}/test" -B -f Makefile.top \
         CPU_SOURCES="${GL_SOURCES_TMR}" COCOTB_TEST_MODULES=test_top_gl \
         SIM_BUILD=sim_build/gl_wound
     echo "GL_WOUND: PASS - the vote carried the boot, the release healed the rail"
+fi
+
+if run_stage seu; then
+    echo "[7/7] the rain: random single-replica upsets through the boot"
+    N_TMR=$(grep -oE 'TMR [0-9]+ flops' "${BUILD}/stitch.log" | grep -oE '[0-9]+')
+    GL_TMR_N="${N_TMR}" GL_SEU_SEED="${GL_SEU_SEED:-1}" \
+        make -C "${ROOT}/test" -B -f Makefile.top \
+        CPU_SOURCES="${GL_SOURCES_TMR}" COCOTB_TEST_MODULES=test_top_seu \
+        SIM_BUILD=sim_build/gl_seu
+    echo "GL_SEU: PASS - the rain fell, the vote never blinked"
 fi
 
 echo "GL_BOOT_PROOF: DONE (${STAGE})"

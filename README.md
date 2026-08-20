@@ -42,6 +42,7 @@ checked, formal proofs run on every push):
 | stitched P&R | the same stitched netlist closes 50 MHz through full place-and-route (synthesis disabled so the optimizer cannot collapse the triples): hold +0.19 / setup +2.58 at every corner, routed and extracted; 2138 rail-net triples counted by name in the routed DEF; protection price 2.49x cell area | pnr/vextmr campaign record |
 | layout boot proof | the CONFIRMED database's own netlist - clock tree, repair buffers, tie cells - boots the ISP story and survives the wound trio; what was handed to the flow, what the flow closed, and what it handed back are one proven thing | pnr/vextmr/dump_netlist.tcl, scripts/gl_pnr_boot.sh |
 | signoff pre-work | the two GDS streamouts merge the macro GDS to identical geometry (XOR zero across 38 layers) and LVS matches every device exactly, with the only mismatches pinned to two root-caused tool-view classes - a new class fails the gate | scripts/xor_streams.py, scripts/signoff_lvs.sh |
+| SEU rain | random single-replica upsets - one clock each, verified to land and to heal - fall while the boot story runs: 314 shots over three storms, zero divergence, the flood alive at the end; a storm too thin to prove anything fails its own gate | test_top_seu, gl ladder stage 7 |
 
 The integration map, the honest new-design list (pad ring, ESD, POR,
 the RO clock source, physical macro hardening) and the scope

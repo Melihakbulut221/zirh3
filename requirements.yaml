@@ -397,3 +397,17 @@ requirements:
       one; the pinned ledger holds exactly six macro power-pin nets
       (LEF vs verilog naming) and four constant-bit port symmetries,
       nothing else
+  - id: Z3-R33
+    text: The stitched core shall complete the boot story under a rain
+      of random single-replica upsets - each shot one clock long,
+      verified to land and verified to heal - with the image committed
+      and the program flood alive at the end, and the rain dense
+      enough that a thin storm fails the gate.
+    tests:
+      - test/test_top_seu.py
+      - scripts/gl_boot.sh
+    evidence: three seeds locally, 314 shots total (106 + 102 + 106,
+      rails drawn uniformly), 314 healed, zero divergence; the first
+      storm failed its own thinness gate (53 of 66 slots lost to
+      unwritten X flops) and the redraw fix is recorded; seed 1 runs
+      in CI as stage 7 of the gl ladder
