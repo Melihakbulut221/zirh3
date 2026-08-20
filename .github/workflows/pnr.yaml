@@ -180,14 +180,36 @@ jobs:
               /work/lvs.netgen.rpt \
             2>&1 | tee lvs.log
       - name: LVS verdict ledger
-        # round 1 is PRE-WORK: the deliverable is the enumerated
-        # mismatch ledger, gated only on netgen reaching a verdict;
-        # the match gate tightens once the classes are known
+        # round 1 enumerated the ledger; this gate PINS it. Two known
+        # classes, both tool-view frictions, zero real connectivity
+        # errors: (1) the RM macro power pins are named VDD/VSS/
+        # VDDARRAY by the abstract LEF the extraction saw and VDD!/
+        # VSS!/VDDARRAY! by the verilog model the netlist uses - same
+        # physical pins, 6 one-pin nets on the layout side, net delta
+        # exactly 4; (2) dbus_adr_o[1:0] and ibus_adr_o[1:0] are all
+        # tielo constants - electrically identical ports netgen
+        # cannot disambiguate (its own printed caveat). Devices must
+        # match EXACTLY; any new mismatch class fails this job.
         run: |
           echo "=== NETGEN FINAL RESULT ==="
-          tail -60 lvs.netgen.rpt
+          tail -20 lvs.netgen.rpt
           grep -qaE "Final result" lvs.netgen.rpt
-          echo "VERDICT: netgen reached a verdict - the ledger above is this round's deliverable"
+          DEV=$(grep -ac "Number of devices: .*Mismatch" lvs.netgen.rpt || true)
+          echo "device-count mismatch lines: $DEV (must be 0)"
+          test "$DEV" -eq 0
+          FRAG=$(grep -ac "^Net: u_core.IBusCachedPlugin_cache.icache_" lvs.netgen.rpt || true)
+          echo "unmatched net fragments: $FRAG (must be 6, all icache macro power pins)"
+          test "$FRAG" -eq 6
+          ROGUE=$(grep -aE "^Net: " lvs.netgen.rpt | grep -acv "icache_" || true)
+          echo "unmatched nets OUTSIDE the known class: $ROGUE (must be 0)"
+          test "$ROGUE" -eq 0
+          PINS=$(grep -acE "^(dbus|ibus)_adr_o\[[01]\].*Mismatch" lvs.netgen.rpt || true)
+          echo "port mismatches on the four constant bits: $PINS (must be 4)"
+          test "$PINS" -eq 4
+          ROGUEPINS=$(grep -a "\*\*Mismatch\*\*" lvs.netgen.rpt | grep -av "Number of nets" | grep -avcE "^(dbus|ibus)_adr_o" || true)
+          echo "mismatch marks outside the known classes: $ROGUEPINS (must be 0)"
+          test "$ROGUEPINS" -eq 0
+          echo "VERDICT: devices match exactly; the only mismatches are the two enumerated tool-view classes"
       - name: Upload signoff artifacts
         if: success() || failure()
         uses: actions/upload-artifact@v7
