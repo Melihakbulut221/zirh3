@@ -382,3 +382,18 @@ requirements:
       majority-wound control; 2138 tmrA/B/C rails counted in the
       netlist text before simulation; the flow netlist passed the
       same trio locally first
+  - id: Z3-R32
+    text: The physical-signoff legs shall run on the stitched layout
+      and be gated - the two GDS streamouts shall merge the macro GDS
+      to identical geometry, and LVS shall match every device exactly,
+      with any mismatch pinned to an enumerated, root-caused tool-view
+      class so that a new class fails the gate.
+    tests:
+      - scripts/xor_streams.py
+      - scripts/signoff_lvs.sh
+    evidence: runs 32385949265 and 32389012022 - XOR zero shapes
+      across 38 layers between the magic and klayout streams; netgen
+      devices 36232 both sides with both RM macros matched one to
+      one; the pinned ledger holds exactly six macro power-pin nets
+      (LEF vs verilog naming) and four constant-bit port symmetries,
+      nothing else

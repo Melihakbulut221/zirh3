@@ -659,3 +659,24 @@ honestly (cluster vs finished MCU, estimate vs datasheet), and
 refuses the two comparisons the data cannot yet support: power
 against the VA10805's DC tables, and radiation against HARDSIL's
 heritage - both wait, correctly, behind B10.
+
+## Cycle 23 (2026-08-20): the signoff legs come back online
+
+The timing campaigns turned three judges off and filed the reasons;
+this cycle collected them. Magic DRC stays filed - a 1.76-million
+error storm from scanning foundry SRAM layout with the wrong tech
+is the foundry deck's job, not ours. The other two came back. The
+GDS-merge question answered itself emphatically: magic and klayout
+each merge the RM macro GDS into the die by independent code paths,
+and the two results XOR to ZERO shapes across 38 layers - a
+75-second judge that now gates the workflow. And LVS, run as raw
+netgen inside the flow's own container so the harness's JSON crash
+never enters the path, returned the best verdict available to an
+abstract-view extraction: every device matched exactly, 36232 to
+36232, both macros one to one, and the only mismatches are two
+tool-view frictions with names and root causes - the RM power pins
+that LEF and verilog spell differently, and four constant address
+bits netgen admits it cannot tell apart. The gate now PINS that
+ledger; the day a new mismatch class appears, the job goes red.
+The cost study's two named snags are enumerated, understood, and
+fenced - which is what pre-work is for.
