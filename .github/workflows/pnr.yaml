@@ -19,7 +19,7 @@ on:
         description: which campaign job to run
         type: choice
         default: all
-        options: [all, min, lite, litemac, eco, ecoconfirm, tmr, tmrconfirm]
+        options: [all, min, lite, litemac, eco, ecoconfirm, tmr, tmrconfirm, tmrboot]
 
 jobs:
   eco-confirm:
@@ -128,6 +128,60 @@ jobs:
           path: |
             eco_out/*
             eco.log
+
+  vextmr-boot:
+    if: ${{ inputs.target == 'tmrboot' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PDK_ROOT: /home/runner/pdk
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Download the CONFIRMED layout (Cycle 20 seal run)
+        run: |
+          mkdir -p confirm_in confirm_out
+          for i in 1 2 3 4; do
+            gh run download 32295970007 -R ${{ github.repository }} \
+              -n pnr_vextmr_confirm -D boot_dl && break
+            echo "download attempt $i failed; retrying in 30s"
+            rm -rf boot_dl; sleep 30
+          done
+          cp boot_dl/confirm_out/zirh_vex_wrap_confirm.odb confirm_in/zirh_vex_wrap.odb
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install iverilog + python deps
+        run: |
+          sudo apt-get update && sudo apt-get install -y iverilog
+          pip install -r test/requirements.txt ciel
+      - name: Install the pinned PDK
+        run: |
+          ciel enable --pdk-family ihp-sg13g2 \
+            22f2a25f1734796de3debbbf29cf697cbbc54081 --pdk-root $PDK_ROOT
+      - name: Write the layout's own netlist
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -v "$PDK_ROOT:/pdk" \
+            ghcr.io/librelane/librelane:3.0.5 \
+            openroad -exit /work/pnr/vextmr/dump_netlist.tcl \
+            2>&1 | tee dump.log
+          grep -q "NETLIST DUMPED" dump.log
+      - name: The layout's netlist boots, wounded and healed
+        run: |
+          PDK_ROOT=$PDK_ROOT bash scripts/gl_pnr_boot.sh \
+            "$PWD/confirm_out/zirh_vex_wrap_pnr.v"
+      - name: Upload artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pnr_vextmr_boot
+          path: |
+            confirm_out/zirh_vex_wrap_pnr.v
+            test/sim_build/gl_pnr/*.xml
 
   vextmr-confirm:
     if: ${{ inputs.target == 'tmrconfirm' }}
