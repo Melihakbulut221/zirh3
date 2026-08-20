@@ -646,3 +646,16 @@ by NAME, netlist text to routed DEF and back, which is what made
 one bench serve three cycles unchanged. What was handed to the
 flow, what the flow closed, and what the flow handed back are now
 one proven thing.
+
+## Cycle 22 (2026-08-20): the parity ledger gets its price tags
+
+The VORAGO comparison had feature rows; now it has physics. From
+the campaign's own routed layouts, same flow and corner: the
+protection costs 2.44x standard-cell area, 2.10x die and 3.04x
+power (8.02 to 24.41 milliwatts, tool-estimated) at an unchanged
+50 MHz - the measured price of TMR carried in logic instead of in
+process. docs/PARITY.md holds the ledger, states its scope
+honestly (cluster vs finished MCU, estimate vs datasheet), and
+refuses the two comparisons the data cannot yet support: power
+against the VA10805's DC tables, and radiation against HARDSIL's
+heritage - both wait, correctly, behind B10.

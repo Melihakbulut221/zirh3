@@ -44,7 +44,11 @@ checked, formal proofs run on every push):
 
 The integration map, the honest new-design list (pad ring, ESD, POR,
 the RO clock source, physical macro hardening) and the scope
-discipline are in [docs/SCOPE.md](docs/SCOPE.md). The program
+discipline are in [docs/SCOPE.md](docs/SCOPE.md). The measured
+parity ledger against the VORAGO VA10805 - features proven, the
+protection's area and power price tags from the campaign's own
+layouts, and the comparisons deliberately not made - is
+[docs/PARITY.md](docs/PARITY.md). The program
 register mapping the commercial brief onto THIS repository is
 [docs/PROGRAM.md](docs/PROGRAM.md).
 
