@@ -96,6 +96,8 @@ async def start(dut, strap):
     dut.boot_strap_i.value = strap
     dut.dbg_unlock_strap_i.value = 0
     dut.uart_rx_i.value = 1
+    dut.gpio_a_i.value = 0
+    dut.gpio_b_i.value = 0
     dut.tck_i.value = 0
     dut.tms_i.value = 0
     dut.tdi_i.value = 0

@@ -63,7 +63,17 @@ module zirh3_top #(
     output wire        evt_boot_accept_o,
     output wire        evt_boot_reject_o,
     output wire        dbg_locked_o,
-    output wire        err_o
+    output wire        err_o,
+
+    // GPIO at VORAGO parity (Cycle 27): 56 pins on two ports; the pad
+    // ring folds each o/oe/i triple into one bidirectional pad at
+    // hardening time
+    input  wire [31:0] gpio_a_i,
+    output wire [31:0] gpio_a_o,
+    output wire [31:0] gpio_a_oe,
+    input  wire [23:0] gpio_b_i,
+    output wire [23:0] gpio_b_o,
+    output wire [23:0] gpio_b_oe
 );
 
     // --- conditioned reset + independent oscillator -------------------------
@@ -190,7 +200,9 @@ module zirh3_top #(
         .err_o(clkobs_err));
 
     // --- the imported cluster, attached through the proven mux --------------
-    wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc;
+    wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc, s6_cyc;
+    wire [31:0] gp_rdt;
+    wire        gp_ack, gp_err;
     wire        bf_cyc, bf_ack;
     wire [31:0] bf_adr, bf_rdt;
     wire        mb_start, mb_busy, mb_pass, mb_ack, mb_err;
@@ -235,6 +247,8 @@ module zirh3_top #(
         // slot 5: the MBIST doorway (0x5000)
         .s5_cyc_o(s5_cyc),
         .s5_rdt_i(mb_rdt), .s5_ack_i(mb_ack),
+        .s6_cyc_o(s6_cyc),
+        .s6_rdt_i(gp_rdt), .s6_ack_i(gp_ack),
         // boot fetch: loaded code runs from the program store
         .bf_cyc_o(bf_cyc), .bf_adr_o(bf_adr),
         .bf_rdt_i(bf_rdt), .bf_ack_i(bf_ack),
@@ -309,6 +323,15 @@ module zirh3_top #(
         .page_o(mb_page),
         .err_o(mb_err));
 
+    // --- GPIO at VORAGO parity: 56 pins the software owns -------------------
+    zirh_gpio u_gpio (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s6_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(gp_rdt), .ack_o(gp_ack),
+        .gpio_a_i(gpio_a_i), .gpio_a_o(gpio_a_o), .gpio_a_oe(gpio_a_oe),
+        .gpio_b_i(gpio_b_i), .gpio_b_o(gpio_b_o), .gpio_b_oe(gpio_b_oe),
+        .err_o(gp_err));
+
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
     assign sba_ack = bank_ack & g_sba;
@@ -359,7 +382,7 @@ module zirh3_top #(
         .err_o(tlm_err));
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
-                 | bank_err | hk_infra | tlm_err | mb_err;
+                 | bank_err | hk_infra | tlm_err | mb_err | gp_err;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST

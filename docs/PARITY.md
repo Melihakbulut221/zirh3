@@ -25,6 +25,7 @@ stated only where the conditions are like for like.
 | data memory | 32 KB SRAM | 256 KB bank, 5-slice SECDED + scrubber + address-in-ECC | Cycle 17; SECDED proven formally and by the lying-memory scenario |
 | program execution | flash/ROM + SRAM | loaded programs run FROM the protected bank | Cycle 17 fetch proof |
 | debug | SWD | IEEE 1149.1 TAP + RISC-V DTM/DM behind the flight lock | F27 |
+| GPIO | 56 pins, PORTA 32 + PORTB 24 | 56 pins, same split, at bus slot 6 - OUT/DIR TMR'd, IN double-synced, err into the die aggregate | Cycle 27; block + through-the-die suites |
 | DFT | (production test, undisclosed) | MBIST from software, boundary scan, scan-insertion flow | F28 |
 
 ## Measured physics of the protection (the price tag)

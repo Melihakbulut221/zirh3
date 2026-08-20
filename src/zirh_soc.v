@@ -93,6 +93,12 @@ module zirh_soc #(
     input  wire [31:0] s5_rdt_i,
     input  wire        s5_ack_i,
 
+    // slot 6 slave interface, exported for the GPIO block (Cycle 27);
+    // same shared-lines pattern as slots 4 and 5
+    output wire        s6_cyc_o,
+    input  wire [31:0] s6_rdt_i,
+    input  wire        s6_ack_i,
+
     // boot fetch export (Cycle 17): with boot_sel the CPU's
     // instruction fetches leave the die's ROM and go to the TOP's
     // program store (the paged bank, addressed FLAT) - the loaded
@@ -321,9 +327,15 @@ module zirh_soc #(
     assign s_rdt[191:160] = s5_rdt_i;
     assign s_ack[5]       = s5_ack_i;
 
-    // slots 6..7: unpopulated - the bus watchdog owns them
-    assign s_rdt[255:192] = 64'h0;
-    assign s_ack[7:6]     = 2'b0;
+    // slot 6: exported to the top for the GPIO block (0x6000); same
+    // shared-lines pattern as slots 4 and 5 - Cycle 27
+    assign s6_cyc_o       = s_cyc[6];
+    assign s_rdt[223:192] = s6_rdt_i;
+    assign s_ack[6]       = s6_ack_i;
+
+    // slot 7: unpopulated - the bus watchdog owns it
+    assign s_rdt[255:224] = 32'h0;
+    assign s_ack[7]       = 1'b0;
 
     assign err_o = err_bus | err_uart;
 

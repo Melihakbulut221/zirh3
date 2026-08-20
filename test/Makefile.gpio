@@ -1,0 +1,16 @@
+# ZIRH-3 - GPIO block suite (Cycle 27)
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SIM_BUILD = sim_build/gpio
+
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_gpio.v
+
+TOPLEVEL = zirh_gpio
+COCOTB_TEST_MODULES = test_gpio
+
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_SIM_ENV
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

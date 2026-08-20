@@ -745,3 +745,26 @@ docstring predicted that trap years before it bit the bench that
 carried it. The cure is an alignment-free bit-level signature
 search, and the closure gates hold: every armed and closed bin
 filled, every kind drawn enough to count, deterministic per seed.
+
+## Cycle 27 (2026-08-20): 56 pins, same split
+
+The parity ledger had one row where the yardstick simply had more
+chip: VORAGO's 56 configurable GPIO against our zero. Slot 6 closes
+it - PORTA 32 and PORTB 24, the same split, with this die's
+discipline instead of a catalog's feature list: OUT and DIR are
+TMR'd because a flipped direction bit is a fighting driver and a
+flipped output bit lies to whatever the pin commands; inputs cross
+two flops because pins are asynchronous by definition; the block's
+error joins the die aggregate like every control register here.
+
+The proof is end to end: an ISP-loaded program - arbitrary code,
+written after tape-out - drives a pattern out of PORTA, opens all
+32 drivers, reads what the bench holds on PORTB through the
+synchronizers and floods its verdict on the UART. The debug session
+that preceded the pass was its own small lesson in trusting the
+right suspect: the die had done everything correctly and the bench
+was reading a mid-stream flood with a byte-aligned hunt - Cycle
+26's alignment trap, met again within hours, cured by the same
+signature search. The pad ring will fold each o/oe/i triple into
+one bidirectional pad at hardening; 56 pads joins the pin budget
+the OpenMPW slot must carry.

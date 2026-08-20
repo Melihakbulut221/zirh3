@@ -443,3 +443,19 @@ requirements:
       strap 11; S_GOLDEN is deaf) and the bench-side mid-stream
       alignment trap hunt_echo's docstring had predicted, both now
       locked in oracles
+  - id: Z3-R36
+    text: The die shall carry 56 GPIO at the yardstick's count and
+      split - PORTA 32 and PORTB 24 - with TMR'd output and direction
+      registers feeding the error aggregate, double-synchronized
+      inputs, and an ISP-loaded program proven to own both directions
+      of the pin boundary.
+    tests:
+      - test/test_gpio.py
+      - test/test_top_gpio.py
+    evidence: block suite proves registers, masks, sync latency and
+      the once-per-bus-write load; the through-the-die suite loads a
+      program that drives PORTA, opens all 32 drivers, reads the
+      bench's PORTB pattern through the synchronizers and floods its
+      verdict; guard measured 6 replicas / 453 flops for the block,
+      79 / 32214 for the top; the gate die re-synthesizes and boots
+      with the block in
