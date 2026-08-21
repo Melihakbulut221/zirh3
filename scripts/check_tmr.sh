@@ -201,13 +201,13 @@ EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # tripwire, not a floorplan: what it guards is that the 70 replicas
 # and the core's real state survive the optimizer unmerged.
 run_check "zirh3_top     (full compute die + DFT)" \
-    zirh3_top 85 51401 zirh_tmr_ff \
+    zirh3_top 85 51651 zirh_tmr_ff \
     zirh_tmr_lib.v vex/VexRiscv_Lite.v zirh_vex_wrap.v \
     zirh_rom.v zirh_bus.v zirh_ecc_ram.v zirh_rs422.v zirh_uart_regs.v \
     zirh_soc.v zirh_boot_ctrl.v zirh_isp_rx.v zirh_jtag_dm.v \
     zirh_dbg_gate.v zirh_clkobs.v zirh_por_ro.v zirh_sram_bist.v \
     zirh_sram39.v zirh_tmr_ff32.v zirh_hk.v zirh_tlm2.v zirh_mbist.v \
-    zirh_gpio.v zirh_timer.v zirh_i2c.v zirh_spi.v zirh_fifo.v zirh_uart1.v zirh_irq.v zirh_bank64.v zirh3_top.v
+    zirh_qspi.v zirh_gpio.v zirh_timer.v zirh_i2c.v zirh_spi.v zirh_fifo.v zirh_uart1.v zirh_irq.v zirh_bank64.v zirh3_top.v
 EXTRA_CMDS=""
 
 echo "--------------------------------"

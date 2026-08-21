@@ -112,3 +112,33 @@ GPIO plus its larger peripheral set and its own power population.
 The OpenMPW slot's pad budget is the binding constraint to check
 when the frame is drawn; if it cannot carry 98, GPIO width is the
 knob that scales (PORTB drops first), not the ground ratio.
+
+## Architectural equivalents (datasheet features the open PDK cannot build)
+
+Three VA10805 features have no open-PDK construction; each is
+covered by an equivalent this repository can actually verify, and
+none is pretended at in the parity ledger:
+
+- eFuse (1 Kb): no fuse technology exists in SG13G2's open kit.
+  The equivalent is the MRAM image's CONFIG PAGE - the same
+  external rad-tolerant part that holds firmware holds the
+  configuration words, read at the autonomous boot (Cycle 38) and
+  protected by the same image CRC. Fuses burn once; a CRC'd MRAM
+  page survives more radiation than the die does.
+- IO configuration (per-pin 33k pulls, glitch filters, inversion):
+  pulls and analog glitch filters live in the pad ring, chosen at
+  pad-cell instantiation time - recorded as a pad-time decision.
+  Inversion and direction are already software's through the GPIO
+  block; digital debounce belongs to the timer bank's capture mode.
+- Internal ~1.2 MHz oscillator + 30 ms boot delay: the POR/RO
+  block already provides the ring oscillator and the counted
+  reset delay (POR_CYCLES); the numbers differ, the architecture
+  is the same and the delay is a parameter.
+
+## Ground budget revision (datasheet-informed)
+
+The VA10805's LQFP-128 carries roughly 19 VSS among ~40
+power/ground pins - a ground-to-signal ratio near 1:4.6 against
+this plan's original 1:6 budget. The pad-ring plan moves to
+sixteen grounds (~1:4.6) to match the yardstick's measured
+practice; SSO analysis at pad-time makes the final call.

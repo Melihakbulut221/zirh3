@@ -649,3 +649,18 @@ requirements:
       die answers its name, queues the master's byte for software
       and serves the preload back; guard measured 24 replicas /
       1168 flops, top at 51401
+  - id: Z3-R47
+    text: The compute die shall boot AUTONOMOUSLY - PORTA 31 sampled
+      after reset selects the image transport, and when it reads
+      high the die streams its own boot image from external MRAM
+      over a four-pin x1 QSPI leg on PORTA 30..27, through the same
+      loader contract (framing, CRC, one ruling per reset) the UART
+      path proves, with zero new pads and the ground path untouched.
+    tests:
+      - test/test_top_qspi.py
+    evidence: the through-the-die suite holds PORTA 31 high, serves
+      the framed image from a bench MRAM (a mode-0 x1 slave
+      answering the 0x03 read), and NOT ONE UART byte flows - the
+      die fetches, commits and the program floods its own verdict;
+      the QSPI pins lease only while the stream runs and return to
+      GPIO after; guard measured top at 51651 flops

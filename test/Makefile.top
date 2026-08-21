@@ -20,6 +20,7 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_rs422.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_uart_regs.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_soc.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_boot_ctrl.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_qspi.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_isp_rx.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_jtag_dm.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_dbg_gate.v

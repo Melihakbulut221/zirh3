@@ -18,6 +18,7 @@ module tb_sba;
   zirh3_top #(.POR_CYCLES(16), .RESET_DIV(174)) dut (
     .clk(clk), .rst_n_pad(rst_n_pad), .pwr_good_i(pwr_good),
     .boot_strap_i(boot_strap), .dbg_unlock_strap_i(dbg_unlock),
+    .gpio_a_i(32'd0), .gpio_b_i(24'd0),
     .uart_rx_i(uart_rx), .uart_tx_o(uart_tx),
     .tck_i(tck), .tms_i(tms), .tdi_i(tdi), .tdo_o(tdo), .trst_n_i(trst_n),
     .sys_rst_n_o(sys_rst_n), .boot_sel_o(boot_sel),

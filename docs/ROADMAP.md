@@ -1097,3 +1097,31 @@ bit away from ours, both directions; the disabled chair is proven
 deaf to its own name; and busy, the tx gauge, SADR readback and
 a mid-byte abort each gained their first observer. A test that
 cannot fail proves nothing - ten times over, this cycle.
+
+## Cycle 38 (2026-08-21): the die that boots itself
+
+The last gap in the yardstick's column was independence: a VA10805
+wakes, waits its thirty milliseconds, and pulls its own program
+from SPI memory with nobody watching. This die's compute top could
+only be fed - the UART ISP is a ground crew's tool. Cycle 38 gives
+the top the storage die's own transport: zirh_qspi, the ZIRH-2
+program's MRAM read controller, wired as an ALTERNATE image source
+into the same boot controller, on four PORTA pins that lease only
+while the stream runs. PORTA 31, sampled 128 clocks after reset,
+picks the source; the loader's contract - framing, CRC, one ruling
+per reset, watchdog revert - does not move an inch, because the
+streams-meet-at-valid-and-ready design ZIRH-2 paid for makes the
+transport swappable by construction. The boot leg runs x1 (a boot
+happens once; the quad leg stays the storage die's), and the
+ground path is untouched: with the pin low, Cycle 17's flow is
+bit-identical.
+
+The proof is the program's own silence: not one UART byte flows.
+The bench plays MRAM, the die samples its strap, streams the
+framed image over pins it borrowed, commits, releases the pins to
+GPIO and floods the verdict from software it fetched itself. With
+that, the gap-closure program stands complete: interrupts, FIFOs
+and frame options, wide words and decoded selects, both I2C
+chairs, and a die that boots alone. What the open PDK cannot give
+- fuse bits, pad-level pulls and glitch filters - is recorded in
+SCOPE as architectural equivalents, not pretended at.

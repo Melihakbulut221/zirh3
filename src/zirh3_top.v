@@ -134,10 +134,59 @@ module zirh3_top #(
         else if (bl_rej | wd_verdict) isp_rejected_q <= 1'b1;
     end
 
+    // --- Cycle 38: the autonomous image source ------------------------------
+    // PORTA 31, sampled 128 clocks after reset release, picks where
+    // the image STREAMS from: low is the ground's UART (Cycle 17's
+    // flow, untouched), high is external MRAM over a four-pin x1 QSPI
+    // leg on PORTA 30..27 - command and boot with no ground contact.
+    // The loader's contract does not move: same framing, same CRC,
+    // same one-ruling-per-reset; only the transport changes, which is
+    // exactly what streams-meet-at-valid/ready bought in ZIRH-2.
+    wire       qsel_q;
+    wire [7:0] qage_q;
+    reg        qsel_d;
+    reg  [7:0] qage_d;
+    wire       e_qsel, e_qage;
+    reg  [1:0] pa31_s;
+    always @(posedge clk) pa31_s <= {pa31_s[0], gpio_a_i[31]};
+    always @* begin
+        qage_d = qage_q;
+        qsel_d = qsel_q;
+        if (!qage_q[7]) begin
+            qage_d = qage_q + 8'd1;
+            if (qage_q == 8'd127) qsel_d = pa31_s[1];
+        end
+    end
+    zirh_tmr_reg #(.WIDTH(1)) u_qsel (.clk(clk), .rst_n(sys_rst_n),
+        .en_i(1'b1), .d_i(qsel_d), .q_o(qsel_q), .err_o(e_qsel));
+    zirh_tmr_reg #(.WIDTH(8)) u_qage (.clk(clk), .rst_n(sys_rst_n),
+        .en_i(1'b1), .d_i(qage_d), .q_o(qage_q), .err_o(e_qage));
+
+    wire       q_valid, q_ready, q_busy, qspi_err;
+    wire [7:0] q_data;
+    wire       qspi_sck, qspi_csn;
+    wire [3:0] qspi_io_o, qspi_io_oe;
+    zirh_qspi u_qspi (
+        .clk(clk), .rst_n(sys_rst_n),
+        .start_i(qsel_q & boot_strap_i & qage_q[7]),
+        .quad_i(1'b0),
+        .addr_i(24'd0),
+        .len_i(24'(BANK_WORDS * 4 + 12)),
+        .abort_i(1'b0),
+        .busy_o(q_busy),
+        .st_valid_o(q_valid), .st_data_o(q_data), .st_ready_i(q_ready),
+        .sck_o(qspi_sck), .cs_n_o(qspi_csn),
+        .io_o(qspi_io_o), .io_oe(qspi_io_oe),
+        .io_i({2'b00, gpio_a_i[30], 1'b0}),
+        .err_o(qspi_err));
+    wire qspi_lease = qsel_q & q_busy;
+
     zirh_boot_ctrl #(.BANK_WORDS(BANK_WORDS), .PROTECT(1)) u_boot (
         .clk(clk), .rst_n(sys_rst_n),
         .strap_i({1'b0, boot_strap_i}),
-        .st_valid_i(rx_valid), .st_data_i(rx_data), .st_ready_o(),
+        .st_valid_i(qsel_q ? q_valid : rx_valid),
+        .st_data_i(qsel_q ? q_data : rx_data),
+        .st_ready_o(q_ready),
         .sig_ok_i(1'b1), .signon_i(signon), .wd_fail_i(wd_verdict),
         .m_cyc_o(bl_cyc), .m_adr_o(bl_adr), .m_dat_o(bl_dat), .m_we_o(bl_we),
         .m_rdt_i(bl_rdt), .m_ack_i(bl_ack),
@@ -408,7 +457,12 @@ module zirh3_top #(
     wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
     wire [3:0] i2c_pull  = {i2c1_sda_pull, i2c1_scl_pull,
                             i2c0_sda_pull, i2c0_scl_pull};
-    assign gpio_a_o  = {gpio_a_o_int[31:27],
+    wire [3:0] qspi_pins  = {4{qspi_lease}};   // 30:IO1(in) 29:IO0 28:SCK 27:CSN
+    wire [3:0] qspi_drive = {1'b0, qspi_io_o[0], qspi_sck, qspi_csn};
+    wire [3:0] qspi_oe    = {1'b0, qspi_io_oe[0], 1'b1, 1'b1} & qspi_pins;
+    assign gpio_a_o  = {gpio_a_o_int[31],
+                        (gpio_a_o_int[30:27] & ~qspi_pins)
+                        | (qspi_pins & qspi_drive),
                         (gpio_a_o_int[26:18] & ~mcs_pins)
                         | (mcs_pins & mcs_drive),
                         gpio_a_o_int[17],
@@ -416,7 +470,9 @@ module zirh3_top #(
                         (gpio_a_o_int[15:4] & ~spi_lease_pins)
                         | (spi_lease_pins & spi_drive),
                         gpio_a_o_int[3:0] & ~i2c_lease};
-    assign gpio_a_oe = {gpio_a_oe_int[31:27],
+    assign gpio_a_oe = {gpio_a_oe_int[31],
+                        (gpio_a_oe_int[30:27] & ~qspi_pins)
+                        | qspi_oe,
                         (gpio_a_oe_int[26:18] & ~mcs_pins)
                         | mcs_pins,
                         gpio_a_oe_int[17] & ~u1_lease,
@@ -557,7 +613,8 @@ module zirh3_top #(
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
                  | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err
-                 | i2c0_err | i2c1_err | (|spi_err) | u1_err | irq_err;
+                 | i2c0_err | i2c1_err | (|spi_err) | u1_err | irq_err
+                 | qspi_err | e_qsel | e_qage;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST
