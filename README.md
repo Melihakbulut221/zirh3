@@ -1,5 +1,16 @@
 # ZIRH-3
 
+[![ci](https://github.com/Melihakbulut221/zirh3/actions/workflows/ci.yaml/badge.svg)](https://github.com/Melihakbulut221/zirh3/actions/workflows/ci.yaml)
+[![pnr](https://github.com/Melihakbulut221/zirh3/actions/workflows/pnr.yaml/badge.svg)](https://github.com/Melihakbulut221/zirh3/actions/workflows/pnr.yaml)
+
+One badge, four judges: the ci workflow carries checks (lint,
+traceability, TMR guard, DFT and stitcher pilots, the equivalence
+pilot), units (every block and top suite plus both storms), gl (the
+gate ladders, the full-die boot, the core equivalence) and formal
+(the SMT theorems) as parallel jobs on every push. The pnr badge is
+the dispatchable campaign workflow - P&R closure, signoff, the
+layout equivalence - green at its latest dispatched run.
+
 The dedicated-die rehearsal of the ZIRH program: the radiation-
 tolerant SoC whose every block was designed, verified and argued for
 inside [zirh2](https://github.com/Melihakbulut221/zirh2), integrated
