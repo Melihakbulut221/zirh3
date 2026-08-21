@@ -1056,3 +1056,44 @@ comes back one bit stale, because the MISO listener's two-flop
 synchronizer lags exactly one half-bit at that speed - reads need
 DIV 3 or more, now written at the block's front door. A constraint
 measured is a constraint owned.
+
+## Cycle 37 (2026-08-21): the other chair
+
+The yardstick's I2C sits at both ends of the wire; this die only
+commanded. Cycle 37 adds the slave chair at the same two pins: a
+seven-bit address behind SADR, the Cycle 35 queues both
+directions, and a discipline that leans on the protocol instead
+of fighting it. The slave never stretches the clock - a 50 MHz
+die against a kilohertz bus has no need - and its backpressure is
+I2C's own: a byte arriving to a full queue is NACKed on the wire,
+which loses NOTHING because the master is told to try again; the
+UART's drop-and-flag law would have been a lie here when the
+protocol offers refusal. A read from an empty queue serves
+all-ones with UE sticky, the bus's natural silence dressed as
+data. The register window widened to sixteen words with every
+Cycle 31 offset untouched; the master's command door parks while
+the slave sits, because two engines sharing one SDA pull with
+opposite intentions is how buses die.
+
+The closing proof inverts the bench for the first time: the BENCH
+is the master, bit-banging the die's own PORTA pins, and the die
+answers - ACKs its name, stays silent for a stranger, queues the
+master's bytes for the ISP-loaded program to read, serves the
+program's preload back through a repeated START, and NACKs at
+exactly the sixteenth unread byte while every elder survives.
+
+The adversarial review of this cycle found no RTL defect - it
+found ten ways the BENCH could lie, every one mutation-proven.
+The sharpest: the bench master's repeated start was reaching the
+die's detectors as a stop-then-start, because the ACK slot's tail
+left the slave's release still in the synchronizers when SCL
+rose - so the repeated-START path had never truly been exercised.
+The rebuilt bench raises SDA under a LOW clock, and a wire
+watcher asserts no phantom stop reached the pins. The
+parked-master law turned out vacuous (the master was never
+enabled when the refusal was asserted) and is now armed for real,
+clock-pull silence included; the stranger's address moved to one
+bit away from ours, both directions; the disabled chair is proven
+deaf to its own name; and busy, the tx gauge, SADR readback and
+a mid-byte abort each gained their first observer. A test that
+cannot fail proves nothing - ten times over, this cycle.

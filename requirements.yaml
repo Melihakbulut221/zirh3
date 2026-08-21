@@ -627,3 +627,25 @@ requirements:
       survivors, and the DIV >= 3 read law is recorded - a two-flop
       listener needs a half-bit longer than its own lag; guard
       measured 15 replicas / 1902 flops, top at 49493
+  - id: Z3-R46
+    text: Each I2C controller shall carry the yardstick's other
+      chair - a slave engine behind a seven-bit address, with
+      sixteen-deep TMR'd queues both directions, protocol-native
+      backpressure (a full receive queue NACKs the byte on the
+      wire, losing nothing), all-ones service with a sticky UE flag
+      when read empty, repeated-START honored, and the master
+      chair parked while the slave sits.
+    tests:
+      - test/test_i2c.py
+      - test/test_top_i2c.py
+    evidence: the block suite proves silence at a stranger's
+      address, three bytes queued in arrival order, reads served
+      from the preloaded queue with the master's NACK ending the
+      transaction, the sixteen-byte wall answered with a NACK and
+      zero loss, underflow all-ones with UE write-1-to-clear,
+      repeated-START switching direction without a STOP, and the
+      parked master refusing a leg; the through-the-die suite has
+      the BENCH as the bus master against the die's own pins - the
+      die answers its name, queues the master's byte for software
+      and serves the preload back; guard measured 24 replicas /
+      1168 flops, top at 51401

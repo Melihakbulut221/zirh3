@@ -5,6 +5,7 @@ SRC_DIR = $(PWD)/../src
 SIM_BUILD = sim_build/i2c
 
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_fifo.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_i2c.v
 
 TOPLEVEL = zirh_i2c

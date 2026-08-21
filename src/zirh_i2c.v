@@ -1,5 +1,5 @@
 // =============================================================================
-// ZIRH-3 - I2C master (Cycle 31)
+// ZIRH-3 - I2C master + slave (Cycles 31, 37)
 // src/zirh_i2c.v
 //
 // One of the pair that closes the yardstick's I2C column. A byte
@@ -10,9 +10,15 @@
 // controller only ever pulls low (scl_pull/sda_pull), reads the wire
 // as it actually is, and after RELEASING the clock it waits for SCL
 // to really rise - a slave stretching the clock is obeyed, not
-// fought. Slave mode is deliberately out of scope (recorded, like
-// the timer bank's missing cascade); flight use is commanding
-// sensors, and a master that tolerates stretching covers it.
+// fought. Cycle 37 adds the OTHER chair at the same two pins: a
+// slave engine behind SADR that answers its seven-bit address,
+// queues written bytes sixteen deep and serves reads from its own
+// queue. The slave never stretches SCL (this die shifts at 50 MHz
+// against a kilohertz bus); its backpressure is the protocol's own -
+// a byte arriving to a full queue is NACKed, not dropped, and a read
+// from an empty queue serves all-ones with UE sticky. Master and
+// slave are EXCLUSIVE chairs: enabling the slave address parks the
+// master's command door.
 //
 // Every register is TMR'd - control, divider, command latch, the
 // shift register, the FSM state and its counters - because a wedged
@@ -26,6 +32,13 @@
 //   +0x0C TXD
 //   +0x10 RXD  (RO)
 //   +0x14 STAT {rxack, tip}  (RO; rxack = 1 means slave NACKed)
+//   +0x18 SADR {en, addr[6:0]}          slave chair; en parks the master
+//   +0x1C SSTAT {tx_lvl[20:16], rx_lvl[12:8],
+//                ue[5], rx_full[3], tx_full[2],
+//                rx_valid[1], busy[0]}   ue W1C; a full RX queue
+//                NACKs on the wire, so there is no OE to flag
+//   +0x20 SRXD (RO) read pops the slave RX queue
+//   +0x24 STXD write pushes the slave TX queue
 // =============================================================================
 
 `default_nettype none
@@ -56,14 +69,20 @@ module zirh_i2c (
     localparam [2:0] S_IDLE = 3'd0, S_START = 3'd1, S_BITS = 3'd2,
                      S_ACK  = 3'd3, S_STOP  = 3'd4;
 
-    wire [2:0] reg_sel = adr_i[4:2];
+    wire [3:0] reg_sel = adr_i[5:2];
 
-    reg wr_seen;
+    reg wr_seen, rd_seen;
     always @(posedge clk) begin
-        if (!rst_n) wr_seen <= 1'b0;
-        else        wr_seen <= cyc_i & we_i;
+        if (!rst_n) begin
+            wr_seen <= 1'b0;
+            rd_seen <= 1'b0;
+        end else begin
+            wr_seen <= cyc_i & we_i;
+            rd_seen <= cyc_i & ~we_i;
+        end
     end
     wire wr_fire = cyc_i & we_i & ~wr_seen;
+    wire rd_fire = cyc_i & ~we_i & ~rd_seen;
 
     // pin synchronizers (the wire as it actually is)
     reg [1:0] scl_s, sda_s;
@@ -82,15 +101,15 @@ module zirh_i2c (
 
     zirh_tmr_reg #(.WIDTH(1)) u_ctrl (
         .clk(clk), .rst_n(rst_n),
-        .en_i(wr_fire & (reg_sel == 3'd0)),
+        .en_i(wr_fire & (reg_sel == 4'd0)),
         .d_i(dat_i[0]), .q_o(ctrl_q), .err_o(e_ctrl));
 
     zirh_tmr_reg #(.WIDTH(16)) u_div (
         .clk(clk), .rst_n(rst_n),
-        .en_i(wr_fire & (reg_sel == 3'd1)),
+        .en_i(wr_fire & (reg_sel == 4'd1)),
         .d_i(dat_i[15:0]), .q_o(div_q), .err_o(e_div));
 
-    wire cmd_fire = wr_fire & (reg_sel == 3'd2) & ctrl_q;
+    wire cmd_fire = wr_fire & (reg_sel == 4'd2) & ctrl_q & ~sl_en;
     zirh_tmr_reg #(.WIDTH(5)) u_cmd (
         .clk(clk), .rst_n(rst_n),
         .en_i(cmd_fire),
@@ -103,7 +122,7 @@ module zirh_i2c (
 
     zirh_tmr_reg #(.WIDTH(8)) u_txd (
         .clk(clk), .rst_n(rst_n),
-        .en_i(wr_fire & (reg_sel == 3'd3)),
+        .en_i(wr_fire & (reg_sel == 4'd3)),
         .d_i(dat_i[7:0]), .q_o(txd_q), .err_o(e_txd));
 
     // ------------------------------------------------------------- engine
@@ -219,25 +238,208 @@ module zirh_i2c (
     zirh_tmr_reg #(.WIDTH(1))  u_sdo  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(sdo_d), .q_o(sdo_q), .err_o(e_sdo));
 
+    // ------------------------------------------------- the slave chair
+    wire [7:0] sadr_q;
+    wire       e_sadr;
+    zirh_tmr_reg #(.WIDTH(8)) u_sadr (
+        .clk(clk), .rst_n(rst_n),
+        .en_i(wr_fire & (reg_sel == 4'd6)),
+        .d_i(dat_i[7:0]), .q_o(sadr_q), .err_o(e_sadr));
+    wire       sl_en   = sadr_q[7];
+    wire [6:0] sl_addr = sadr_q[6:0];
+
+    wire [7:0] stf_rdat, srf_rdat;
+    wire       stf_empty, stf_full, srf_empty, srf_full, e_stf, e_srf;
+    wire [4:0] stf_level, srf_level;
+    reg        sl_tx_pop, sl_rx_push;
+    reg  [7:0] srx_dat;
+    zirh_fifo #(.WIDTH(8), .DEPTH_LOG2(4)) u_stxf (
+        .clk(clk), .rst_n(rst_n),
+        .wr_i(wr_fire & (reg_sel == 4'd9) & sl_en),
+        .wdat_i(dat_i[7:0]),
+        .rd_i(sl_tx_pop), .rdat_o(stf_rdat),
+        .empty_o(stf_empty), .full_o(stf_full), .level_o(stf_level),
+        .err_o(e_stf));
+    zirh_fifo #(.WIDTH(8), .DEPTH_LOG2(4)) u_srxf (
+        .clk(clk), .rst_n(rst_n),
+        .wr_i(sl_rx_push), .wdat_i(srx_dat),
+        .rd_i(rd_fire & (reg_sel == 4'd8)), .rdat_o(srf_rdat),
+        .empty_o(srf_empty), .full_o(srf_full), .level_o(srf_level),
+        .err_o(e_srf));
+
+    // bus condition detectors on the synced wires
+    reg scl_p, sda_p;
+    always @(posedge clk) begin
+        scl_p <= scl_in;
+        sda_p <= sda_in;
+    end
+    wire scl_rise = scl_in & ~scl_p;
+    wire scl_fall = ~scl_in & scl_p;
+    wire sda_fall = ~sda_in & sda_p;
+    wire sda_rise = sda_in & ~sda_p;
+    wire bus_start = sl_en & scl_in & sda_fall;    // START/repeated START
+    wire bus_stop  = sl_en & scl_in & sda_rise;    // STOP
+
+    // the engine: shift on SCL rises, present on SCL falls, pull SDA
+    // only for ACKs and zero data bits - open drain, never high
+    localparam [2:0] SL_IDLE = 3'd0, SL_ADDR = 3'd1, SL_AACK = 3'd2,
+                     SL_WRX  = 3'd3, SL_WACK = 3'd4, SL_RTX  = 3'd5,
+                     SL_RACK = 3'd6;
+    wire [2:0] sst_q;
+    wire [7:0] ssh_q;
+    wire [3:0] sbit_q;
+    wire [2:0] sfl_q;                  // {ue, spare, busy}
+    wire       ssda_q;                 // 1 = release, 0 = pull
+    reg  [2:0] sst_d;
+    reg  [7:0] ssh_d;
+    reg  [3:0] sbit_d;
+    reg  [2:0] sfl_d;
+    reg        ssda_d;
+    wire e_sst, e_ssh, e_sbit, e_sfl, e_ssda;
+
+    always @* begin
+        sst_d      = sst_q;
+        ssh_d      = ssh_q;
+        sbit_d     = sbit_q;
+        sfl_d      = sfl_q;
+        ssda_d     = ssda_q;
+        sl_tx_pop  = 1'b0;
+        sl_rx_push = 1'b0;
+        srx_dat    = ssh_q;
+
+        if (wr_fire & (reg_sel == 4'd7))
+            sfl_d[2:1] = sfl_q[2:1] & ~dat_i[5:4];
+
+        if (bus_stop || !sl_en) begin
+            sst_d    = SL_IDLE;
+            sfl_d[0] = 1'b0;
+            ssda_d   = 1'b1;
+        end else if (bus_start) begin
+            sst_d    = SL_ADDR;            // covers repeated START too
+            sbit_d   = 4'd0;
+            sfl_d[0] = 1'b1;
+            ssda_d   = 1'b1;
+        end else case (sst_q)
+            SL_ADDR: if (scl_rise) begin
+                ssh_d  = {ssh_q[6:0], sda_in};
+                sbit_d = sbit_q + 4'd1;
+            end else if (scl_fall && sbit_q == 4'd8) begin
+                if (ssh_q[7:1] == sl_addr) begin
+                    sst_d  = SL_AACK;
+                    ssda_d = 1'b0;         // ACK the address
+                end else
+                    sst_d = SL_IDLE;       // not ours: stay silent
+            end
+            SL_AACK: if (scl_fall) begin
+                sbit_d = 4'd0;
+                if (ssh_q[0]) begin        // master READS us
+                    sst_d = SL_RTX;
+                    if (stf_empty) begin
+                        ssh_d    = 8'hFF;  // starving: all-ones
+                        sfl_d[2] = 1'b1;   // ue sticky
+                    end else begin
+                        ssh_d     = stf_rdat;
+                        sl_tx_pop = 1'b1;
+                    end
+                    ssda_d = stf_empty ? 1'b1 : stf_rdat[7];
+                end else begin             // master WRITES us
+                    sst_d  = SL_WRX;
+                    ssda_d = 1'b1;
+                end
+            end
+            SL_WRX: if (scl_rise) begin
+                ssh_d  = {ssh_q[6:0], sda_in};
+                sbit_d = sbit_q + 4'd1;
+            end else if (scl_fall && sbit_q == 4'd8) begin
+                sst_d = SL_WACK;
+                // the protocol's own backpressure: a full queue
+                // NACKs the byte instead of losing it
+                if (!srf_full) begin
+                    sl_rx_push = 1'b1;
+                    ssda_d     = 1'b0;     // ACK
+                end else
+                    ssda_d = 1'b1;         // NACK: try again later
+            end
+            SL_WACK: if (scl_fall) begin
+                sst_d  = SL_WRX;
+                sbit_d = 4'd0;
+                ssda_d = 1'b1;
+            end
+            SL_RTX: begin
+                if (scl_fall) begin
+                    if (sbit_q == 4'd7) begin
+                        sst_d  = SL_RACK;
+                        ssda_d = 1'b1;     // release for master's verdict
+                    end else begin
+                        sbit_d = sbit_q + 4'd1;
+                        ssda_d = ssh_q[6]; // next bit onto the wire
+                        ssh_d  = {ssh_q[6:0], 1'b1};
+                    end
+                end
+            end
+            SL_RACK: begin
+                if (scl_rise) begin
+                    // master ACK (low) wants more; NACK ends the read
+                    if (sda_in)
+                        sst_d = SL_IDLE;
+                end else if (scl_fall) begin
+                    sbit_d = 4'd0;
+                    sst_d  = SL_RTX;
+                    if (stf_empty) begin
+                        ssh_d    = 8'hFF;
+                        sfl_d[2] = 1'b1;
+                    end else begin
+                        ssh_d     = stf_rdat;
+                        sl_tx_pop = 1'b1;
+                    end
+                    ssda_d = stf_empty ? 1'b1 : stf_rdat[7];
+                end
+            end
+            default: ;
+        endcase
+    end
+
+    zirh_tmr_reg #(.WIDTH(3)) u_sst  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(sst_d), .q_o(sst_q), .err_o(e_sst));
+    zirh_tmr_reg #(.WIDTH(8)) u_ssh  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(ssh_d), .q_o(ssh_q), .err_o(e_ssh));
+    zirh_tmr_reg #(.WIDTH(4)) u_sbit (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(sbit_d), .q_o(sbit_q), .err_o(e_sbit));
+    zirh_tmr_reg #(.WIDTH(3)) u_sfl  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(sfl_d), .q_o(sfl_q), .err_o(e_sfl));
+    zirh_tmr_reg #(.WIDTH(1), .RESET_VALUE(1'b1)) u_ssda (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(ssda_d), .q_o(ssda_q), .err_o(e_ssda));
+
     // START holds scl high while sda falls; everything else follows
     // the phase. Open drain: pull only ever means LOW.
     wire scl_release = (st_q == S_IDLE) | (st_q == S_START) | ph_hi;
-    assign scl_pull_o = ctrl_q & ~scl_release;
-    assign sda_pull_o = ctrl_q & (st_q != S_IDLE) & ~sdo_q;
-    assign lease_o    = ctrl_q;
-    assign rdy_o      = ctrl_q & ~fl_q[0];
+    // the slave never touches SCL; both chairs share the SDA pull
+    assign scl_pull_o = ctrl_q & ~sl_en & ~scl_release;
+    assign sda_pull_o = (ctrl_q & ~sl_en & (st_q != S_IDLE) & ~sdo_q)
+                      | (sl_en & ~ssda_q);
+    assign lease_o    = ctrl_q | sl_en;
+    assign rdy_o      = ctrl_q & ~sl_en & ~fl_q[0];
 
     assign rdt_o =
-        (reg_sel == 3'd0) ? {31'h0, ctrl_q} :
-        (reg_sel == 3'd1) ? {16'h0, div_q} :
-        (reg_sel == 3'd2) ? {27'h0, cmd_q} :
-        (reg_sel == 3'd3) ? {24'h0, txd_q} :
-        (reg_sel == 3'd4) ? {24'h0, sh_q} :
+        (reg_sel == 4'd0) ? {31'h0, ctrl_q} :
+        (reg_sel == 4'd1) ? {16'h0, div_q} :
+        (reg_sel == 4'd2) ? {27'h0, cmd_q} :
+        (reg_sel == 4'd3) ? {24'h0, txd_q} :
+        (reg_sel == 4'd4) ? {24'h0, sh_q} :
+        (reg_sel == 4'd6) ? {24'h0, sadr_q} :
+        (reg_sel == 4'd7) ? {11'h0, stf_level, 3'h0, srf_level,
+                             2'b00, sfl_q[2], 1'b0,
+                             srf_full, stf_full, ~srf_empty, sfl_q[0]} :
+        (reg_sel == 4'd8) ? {24'h0, srf_rdat} :
+        (reg_sel == 4'd5) ? {30'h0, fl_q} :
         {30'h0, fl_q};
 
     assign ack_o = cyc_i;
     assign err_o = e_ctrl | e_div | e_cmd | e_txd | e_st | e_ph
-                 | e_bit | e_dcnt | e_sh | e_fl | e_sdo;
+                 | e_bit | e_dcnt | e_sh | e_fl | e_sdo
+                 | e_sadr | e_stf | e_srf | e_sst | e_ssh
+                 | e_sbit | e_sfl | e_ssda;
 
 endmodule
 
