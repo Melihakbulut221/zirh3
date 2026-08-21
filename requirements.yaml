@@ -541,3 +541,20 @@ requirements:
       the bench slave and floods its verdict on the readback; guard
       measured 12 replicas / 164 flops per master, top at 43010
       flops; subset recorded: master only, 8-bit words
+  - id: Z3-R42
+    text: The die shall carry a second UART - a programmable 8N1
+      endpoint with exact-divisor bit periods, half-bit-centered
+      sampling, false-start rejection and read-clears-valid flow, all
+      state TMR'd, on PORTA alternate functions - closing the
+      yardstick's interface ledger.
+    tests:
+      - test/test_uart1.py
+      - test/test_top_uart1.py
+    evidence: block suite proves the frame on the pin at the
+      programmed rate, an injected frame landing with valid, the
+      read-clear, glitch rejection and newest-byte overwrite; the
+      through-the-die suite runs two UARTs at two rates in one
+      program - the bench byte received on UART1, echoed on UART1,
+      verdict flooded on UART0; guard measured 12 replicas / 272
+      flops, top at 43280; the exact-div lesson recorded: a +1
+      period convention drifts one clock per bit

@@ -891,3 +891,29 @@ slave a config edge dressed as data. The through-the-die program
 paid nothing at all: the addi sign lesson from the I2C cycle built
 0x7800 correctly on the first try. One interface column remains:
 the second UART, named and priced.
+
+## Cycle 33 (2026-08-21): the second voice, and the ledger closes
+
+The last column. UART0 is the die's lifeline and always was -
+console, telemetry and ISP sharing one disciplined pair of
+dedicated pins. The second UART is the PAYLOAD's: a plain
+programmable 8N1 endpoint in slot 7's last window, leasing PORTA
+16 and 17, owned entirely by software. Its one deep lesson was
+about time itself: reload-div-and-tick-at-zero makes every bit
+period div PLUS ONE, and while an SPI slave rides your edges and
+never notices, a UART's peer keeps absolute time - one clock of
+drift per bit is a shifted byte by bit eight. The counters now
+reload div minus one, and the bench measures the rate the register
+promised. The bench paid its own toll too: a serial line idles
+HIGH, and a testbench that parks inputs low hands the receiver a
+permanent false start - the PORTB-pattern lesson, serial edition.
+
+The closing proof runs two UARTs at two rates in one ISP-loaded
+program: the bench's byte arrives on UART1, echoes back on UART1,
+and the verdict floods on UART0. With that, the interface table
+against the VA10805 is COMPLETE: GPIO 56 for 56, timers 24 for 24,
+I2C 2 for 2, SPI 3 for 3, UARTs 2 for 2 - every subset honestly
+recorded, every column proven at the block and through the die,
+every register under the same TMR discipline, and not one new pad
+spent. What remains against the yardstick is what silicon alone
+can claim: heritage. That is B10's business, as it always was.

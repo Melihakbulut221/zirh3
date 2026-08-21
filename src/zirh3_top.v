@@ -216,6 +216,8 @@ module zirh3_top #(
     wire [31:0] tm_rdt_int, spi_rdt [0:2];
     wire        tm_ack_int;
     wire [2:0]  spi_ack, spi_err, spi_sck, spi_mosi, spi_csn, spi_lease;
+    wire [31:0] u1_rdt;
+    wire        u1_ack, u1_err, u1_tx, u1_lease;
     wire        s7_tm_cyc;
     wire [2:0]  s7_spi_cyc;
     wire [23:0] gpio_b_o_int, gpio_b_oe_int;
@@ -387,11 +389,15 @@ module zirh3_top #(
     wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
     wire [3:0] i2c_pull  = {i2c1_sda_pull, i2c1_scl_pull,
                             i2c0_sda_pull, i2c0_scl_pull};
-    assign gpio_a_o  = {gpio_a_o_int[31:16],
+    assign gpio_a_o  = {gpio_a_o_int[31:18],
+                        gpio_a_o_int[17],
+                        u1_lease ? u1_tx : gpio_a_o_int[16],
                         (gpio_a_o_int[15:4] & ~spi_lease_pins)
                         | (spi_lease_pins & spi_drive),
                         gpio_a_o_int[3:0] & ~i2c_lease};
-    assign gpio_a_oe = {gpio_a_oe_int[31:16],
+    assign gpio_a_oe = {gpio_a_oe_int[31:18],
+                        gpio_a_oe_int[17] & ~u1_lease,
+                        gpio_a_oe_int[16] | u1_lease,
                         (gpio_a_oe_int[15:4] & ~spi_lease_pins)
                         | spi_lease_pins,
                         (gpio_a_oe_int[3:0] & ~i2c_lease)
@@ -422,14 +428,26 @@ module zirh3_top #(
     assign s7_spi_cyc[0] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd0);
     assign s7_spi_cyc[1] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd1);
     assign s7_spi_cyc[2] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd2);
+    wire s7_u1_cyc       = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd3);
     assign tm_rdt = s_adr[11]
         ? ((s_adr[9:8] == 2'd0) ? spi_rdt[0] :
-           (s_adr[9:8] == 2'd1) ? spi_rdt[1] : spi_rdt[2])
+           (s_adr[9:8] == 2'd1) ? spi_rdt[1] :
+           (s_adr[9:8] == 2'd2) ? spi_rdt[2] : u1_rdt)
         : tm_rdt_int;
     assign tm_ack = s_adr[11]
         ? ((s_adr[9:8] == 2'd0) ? spi_ack[0] :
-           (s_adr[9:8] == 2'd1) ? spi_ack[1] : spi_ack[2])
+           (s_adr[9:8] == 2'd1) ? spi_ack[1] :
+           (s_adr[9:8] == 2'd2) ? spi_ack[2] : u1_ack)
         : tm_ack_int;
+
+    // --- the second UART: window 3, the payload's serial port ---------------
+    zirh_uart1 u_uart1 (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s7_u1_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(u1_rdt), .ack_o(u1_ack),
+        .tx_o(u1_tx), .rx_i(gpio_a_i[17]),
+        .lease_o(u1_lease),
+        .err_o(u1_err));
 
     genvar gs;
     generate
@@ -506,7 +524,7 @@ module zirh3_top #(
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
                  | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err
-                 | i2c0_err | i2c1_err | (|spi_err);
+                 | i2c0_err | i2c1_err | (|spi_err) | u1_err;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST
