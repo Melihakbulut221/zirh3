@@ -42,6 +42,7 @@ module zirh_spi (
     input  wire        miso_i,
     output wire        cs_n_o,
     output wire        lease_o,
+    output wire        rdy_o,
 
     output wire        err_o
 );
@@ -152,6 +153,7 @@ module zirh_spi (
     assign mosi_o  = mosi_q;
     assign cs_n_o  = ~csr;
     assign lease_o = en;
+    assign rdy_o   = en & ~tip_q;
 
     assign rdt_o =
         (reg_sel == 3'd0) ? {28'h0, ctrl_q} :

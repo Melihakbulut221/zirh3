@@ -208,7 +208,12 @@ module zirh3_top #(
     wire        i2c0_err, i2c1_err;
     wire        i2c0_scl_pull, i2c0_sda_pull, i2c0_lease;
     wire        i2c1_scl_pull, i2c1_sda_pull, i2c1_lease;
-    wire        s6_gpio_cyc, s6_i2c0_cyc, s6_i2c1_cyc;
+    wire        s6_gpio_cyc, s6_i2c0_cyc, s6_i2c1_cyc, s6_irq_cyc;
+    wire [31:0] irq_rdt, irq_raw, irq_pending;
+    wire        irq_ack, irq_err;
+    wire [23:0] tm_irqs;
+    wire        u1_irq_rx, u1_irq_tx, i2c0_rdy, i2c1_rdy;
+    wire [2:0]  spi_rdy;
     wire [31:0] gpio_a_o_int, gpio_a_oe_int;
     wire [31:0] tm_rdt;
     wire        tm_ack, tm_err, tm_irq;
@@ -270,6 +275,7 @@ module zirh3_top #(
         .s7_cyc_o(s7_cyc),
         .s7_rdt_i(tm_rdt), .s7_ack_i(tm_ack),
         .timer_irq_i(tm_irq),
+        .ext_irq_i(irq_pending),
         // boot fetch: loaded code runs from the program store
         .bf_cyc_o(bf_cyc), .bf_adr_o(bf_adr),
         .bf_rdt_i(bf_rdt), .bf_ack_i(bf_ack),
@@ -360,13 +366,24 @@ module zirh3_top #(
     // controller leases PORTA 0/1 (or 2/3), drives ZERO with the pull
     // as the enable, and reads the wire as it actually is - a slave
     // stretching the clock is obeyed, not fought.
-    assign s6_gpio_cyc = s6_cyc & ~s_adr[11];
+    assign s6_gpio_cyc = s6_cyc & ~s_adr[11] & ~s_adr[10];
+    assign s6_irq_cyc  = s6_cyc & ~s_adr[11] &  s_adr[10];
     assign s6_i2c0_cyc = s6_cyc &  s_adr[11] & ~s_adr[10];
     assign s6_i2c1_cyc = s6_cyc &  s_adr[11] &  s_adr[10];
     assign gp_rdt = s_adr[11] ? (s_adr[10] ? i2c1_rdt : i2c0_rdt)
-                              : gp_rdt_int;
+                              : (s_adr[10] ? irq_rdt : gp_rdt_int);
     assign gp_ack = s_adr[11] ? (s_adr[10] ? i2c1_ack : i2c0_ack)
-                              : gp_ack_int;
+                              : (s_adr[10] ? irq_ack : gp_ack_int);
+
+    // --- the interrupt fabric: the tied-off array comes alive ---------------
+    assign irq_raw = {1'b0, spi_rdy, i2c1_rdy, i2c0_rdy,
+                      u1_irq_tx, u1_irq_rx, tm_irqs};
+    zirh_irq u_irq (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s6_irq_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(irq_rdt), .ack_o(irq_ack),
+        .raw_i(irq_raw), .pending_o(irq_pending),
+        .err_o(irq_err));
 
     zirh_i2c u_i2c0 (
         .clk(clk), .rst_n(sys_rst_n),
@@ -374,7 +391,7 @@ module zirh3_top #(
         .rdt_o(i2c0_rdt), .ack_o(i2c0_ack),
         .scl_i(gpio_a_i[0]), .scl_pull_o(i2c0_scl_pull),
         .sda_i(gpio_a_i[1]), .sda_pull_o(i2c0_sda_pull),
-        .lease_o(i2c0_lease),
+        .lease_o(i2c0_lease), .rdy_o(i2c0_rdy),
         .err_o(i2c0_err));
 
     zirh_i2c u_i2c1 (
@@ -383,7 +400,7 @@ module zirh3_top #(
         .rdt_o(i2c1_rdt), .ack_o(i2c1_ack),
         .scl_i(gpio_a_i[2]), .scl_pull_o(i2c1_scl_pull),
         .sda_i(gpio_a_i[3]), .sda_pull_o(i2c1_sda_pull),
-        .lease_o(i2c1_lease),
+        .lease_o(i2c1_lease), .rdy_o(i2c1_rdy),
         .err_o(i2c1_err));
 
     wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
@@ -413,7 +430,7 @@ module zirh3_top #(
         .cyc_i(s7_tm_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
         .rdt_o(tm_rdt_int), .ack_o(tm_ack_int),
         .pwm_o(tm_pwm), .alt_o(tm_alt), .cap_i(gpio_b_i),
-        .timer_irq_o(tm_irq),
+        .timer_irq_o(tm_irq), .irqs_o(tm_irqs),
         .err_o(tm_err));
 
     assign gpio_b_o  = (tm_alt & tm_pwm) | (~tm_alt & gpio_b_o_int);
@@ -447,6 +464,7 @@ module zirh3_top #(
         .rdt_o(u1_rdt), .ack_o(u1_ack),
         .tx_o(u1_tx), .rx_i(gpio_a_i[17]),
         .lease_o(u1_lease),
+        .irq_rx_o(u1_irq_rx), .irq_tx_o(u1_irq_tx),
         .err_o(u1_err));
 
     genvar gs;
@@ -460,6 +478,7 @@ module zirh3_top #(
             .sck_o(spi_sck[gs]), .mosi_o(spi_mosi[gs]),
             .miso_i(gpio_a_i[4 + 4*gs + 2]),
             .cs_n_o(spi_csn[gs]), .lease_o(spi_lease[gs]),
+            .rdy_o(spi_rdy[gs]),
             .err_o(spi_err[gs]));
     end
     endgenerate
@@ -524,7 +543,7 @@ module zirh3_top #(
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
                  | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err
-                 | i2c0_err | i2c1_err | (|spi_err) | u1_err;
+                 | i2c0_err | i2c1_err | (|spi_err) | u1_err | irq_err;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST

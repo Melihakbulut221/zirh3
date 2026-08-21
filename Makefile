@@ -32,6 +32,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.i2c
 	$(MAKE) -C test -B -f Makefile.spi
 	$(MAKE) -C test -B -f Makefile.uart1
+	$(MAKE) -C test -B -f Makefile.irq
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

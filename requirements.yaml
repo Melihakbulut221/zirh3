@@ -558,3 +558,23 @@ requirements:
       verdict flooded on UART0; guard measured 12 replicas / 272
       flops, top at 43280; the exact-div lesson recorded: a +1
       period convention drifts one clock per bit
+  - id: Z3-R43
+    text: The die shall carry an interrupt fabric - thirty-two level
+      sources (24 gated timer overflows, UART1 rx/tx, both I2C and
+      all three SPI ready lines) behind one TMR'd mask with readable
+      RAW and PENDING words at slot 6, the masked lines driving the
+      core's external interrupt array - and the core's timer
+      interrupt line shall be connected, not tied.
+    tests:
+      - test/test_irq.py
+      - test/test_top_irq.py
+    evidence: block suite proves reset-masked silence, PENDING as
+      exactly RAW AND MASK, the no-latch law (a source cleared at its
+      peripheral drops from PENDING the same cycle) and once-per-
+      strobe mask writes; the through-the-die suite ISP-loads a
+      program that unmasks timer 0, arms a five-cycle period and
+      POLLS PENDING before flooding its verdict, then the bench peeks
+      the core boundary - bit 0 standing, all masked sources silent;
+      the integration surfaced and closed a latent defect: the soc
+      had tied the core's timer_irq input to zero since Cycle 30;
+      guard measured 3 replicas / 98 flops, top at 43414

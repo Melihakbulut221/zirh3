@@ -106,6 +106,7 @@ module zirh_soc #(
     input  wire [31:0] s7_rdt_i,
     input  wire        s7_ack_i,
     input  wire        timer_irq_i,
+    input  wire [31:0] ext_irq_i,
 
     // boot fetch export (Cycle 17): with boot_sel the CPU's
     // instruction fetches leave the die's ROM and go to the TOP's
@@ -142,7 +143,8 @@ module zirh_soc #(
     zirh_vex_wrap u_cpu (
         .clk           (clk),
         .rst_n         (rst_n),
-        .timer_irq_i   (1'b0),
+        .timer_irq_i   (timer_irq_i),
+        .ext_irq_i     (ext_irq_i),
         .reset_vector_i(32'h0000_0000),
         .ibus_adr_o    (ibus_adr),
         .ibus_cyc_o    (ibus_cyc),

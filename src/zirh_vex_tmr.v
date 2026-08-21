@@ -24,6 +24,7 @@ module zirh_vex_tmr (
     input  wire        clk,
     input  wire        rst_n,
     input  wire        timer_irq_i,
+    input  wire [31:0] ext_irq_i,
     input  wire [31:0] reset_vector_i,
 
     output wire [31:0] ibus_adr_o,
@@ -48,6 +49,7 @@ module zirh_vex_tmr (
 
     zirh_vex_wrap u_a (
         .clk(clk), .rst_n(rst_n), .timer_irq_i(timer_irq_i),
+        .ext_irq_i(ext_irq_i),
         .reset_vector_i(reset_vector_i),
         .ibus_adr_o(ia_a), .ibus_cyc_o(ic_a),
         .ibus_rdt_i(ibus_rdt_i), .ibus_ack_i(ibus_ack_i),
@@ -56,6 +58,7 @@ module zirh_vex_tmr (
         .dbus_rdt_i(dbus_rdt_i), .dbus_ack_i(dbus_ack_i));
     zirh_vex_wrap u_b (
         .clk(clk), .rst_n(rst_n), .timer_irq_i(timer_irq_i),
+        .ext_irq_i(ext_irq_i),
         .reset_vector_i(reset_vector_i),
         .ibus_adr_o(ia_b), .ibus_cyc_o(ic_b),
         .ibus_rdt_i(ibus_rdt_i), .ibus_ack_i(ibus_ack_i),
@@ -64,6 +67,7 @@ module zirh_vex_tmr (
         .dbus_rdt_i(dbus_rdt_i), .dbus_ack_i(dbus_ack_i));
     zirh_vex_wrap u_c (
         .clk(clk), .rst_n(rst_n), .timer_irq_i(timer_irq_i),
+        .ext_irq_i(ext_irq_i),
         .reset_vector_i(reset_vector_i),
         .ibus_adr_o(ia_c), .ibus_cyc_o(ic_c),
         .ibus_rdt_i(ibus_rdt_i), .ibus_ack_i(ibus_ack_i),

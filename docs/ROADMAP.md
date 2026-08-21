@@ -917,3 +917,35 @@ recorded, every column proven at the block and through the die,
 every register under the same TMR discipline, and not one new pad
 spent. What remains against the yardstick is what silicon alone
 can claim: heritage. That is B10's business, as it always was.
+
+## Cycle 34 (2026-08-21): the tied-off array comes alive
+
+The datasheet study that closed the interface ledger also read out
+the yardstick's nervous system: every peripheral routed through an
+IRQ selector into the M0's NVIC. This die's core had carried a
+32-line external interrupt array since the day the VexRiscv
+arrived - tied to zero, a boundary waiting for meaning. Cycle 34
+gives it meaning: a fabric of thirty-two LEVEL sources - all
+twenty-four timer overflows gated by their own irq_en, UART1's
+receive and transmit-ready, both I2C and all three SPI ready
+lines - behind one TMR'd mask at slot 6's new 0x6400 window, with
+RAW and PENDING readable and PENDING = RAW AND MASK, nothing else.
+The fabric latches nothing, because every flag is already sticky
+and write-1-to-clear at its own peripheral, and a fabric that
+latched would double-book the handshake.
+
+The integration earned its keep before the new block did: wiring
+the pending word to the core exposed that the soc had tied the
+CPU's TIMER interrupt input to zero since Cycle 30 - the timer
+bank's interrupt reached the soc's port and stopped there. The
+Cycle 30 proof measured PWM on a pin, so nothing ever asked the
+core whether it felt the overflow. Both lines are connected now,
+and the closing proof asks properly: an ISP-loaded program unmasks
+timer 0, arms a five-cycle period, and POLLS the fabric's PENDING
+word - the verdict flood only starts after software SAW the
+interrupt through the bus - then the bench peeks the core boundary
+and finds bit 0 standing and every masked source silent. A lesson
+re-learned at a new boundary: a guard that cannot fail guards
+nothing, and an interrupt line nobody reads is not an interrupt
+line. The P&R-pinned rehearsal artifacts predate the wrapper's new
+port and refresh on the next dispatched campaign.

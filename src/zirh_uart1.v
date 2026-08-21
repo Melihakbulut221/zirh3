@@ -40,6 +40,8 @@ module zirh_uart1 (
     output wire        tx_o,
     input  wire        rx_i,
     output wire        lease_o,
+    output wire        irq_rx_o,      // a byte waits
+    output wire        irq_tx_o,      // the transmitter is free,
 
     output wire        err_o
 );
@@ -198,8 +200,10 @@ module zirh_uart1 (
     zirh_tmr_reg #(.WIDTH(16)) u_rcnt  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(rcnt_d), .q_o(rcnt_q), .err_o(e_rcnt));
 
-    assign tx_o    = txl_q;
-    assign lease_o = ctrl_q;
+    assign tx_o     = txl_q;
+    assign lease_o  = ctrl_q;
+    assign irq_rx_o = ctrl_q & rvld_q;
+    assign irq_tx_o = ctrl_q & ~ttip_q;
 
     assign rdt_o =
         (reg_sel == 3'd0) ? {31'h0, ctrl_q} :

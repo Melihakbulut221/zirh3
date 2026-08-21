@@ -18,7 +18,7 @@ module tb_vex_tmr;
   reg         iack = 0, dack = 0;
 
   zirh_vex_tmr dut (
-    .clk(clk), .rst_n(rst_n), .timer_irq_i(1'b0),
+    .clk(clk), .rst_n(rst_n), .timer_irq_i(1'b0), .ext_irq_i(32'd0),
     .reset_vector_i(32'h0000_0000),
     .ibus_adr_o(iadr), .ibus_cyc_o(icyc), .ibus_rdt_i(irdt), .ibus_ack_i(iack),
     .dbus_adr_o(dadr), .dbus_dat_o(ddat), .dbus_sel_o(dsel),

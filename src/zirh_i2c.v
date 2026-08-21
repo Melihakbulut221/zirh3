@@ -48,6 +48,7 @@ module zirh_i2c (
     input  wire        sda_i,
     output wire        sda_pull_o,
     output wire        lease_o,       // en: the pins belong to this block
+    output wire        rdy_o,         // enabled and idle: feed me
 
     output wire        err_o
 );
@@ -224,6 +225,7 @@ module zirh_i2c (
     assign scl_pull_o = ctrl_q & ~scl_release;
     assign sda_pull_o = ctrl_q & (st_q != S_IDLE) & ~sdo_q;
     assign lease_o    = ctrl_q;
+    assign rdy_o      = ctrl_q & ~fl_q[0];
 
     assign rdt_o =
         (reg_sel == 3'd0) ? {31'h0, ctrl_q} :

@@ -21,6 +21,7 @@ module zirh_vex_wrap (
     input  wire        clk,
     input  wire        rst_n,            // active low, inverted here once
     input  wire        timer_irq_i,
+    input  wire [31:0] ext_irq_i,
     input  wire [31:0] reset_vector_i,
 
     // instruction bus (wishbone classic, read-only)
@@ -51,7 +52,7 @@ module zirh_vex_wrap (
         .externalResetVector   (reset_vector_i),
         .timerInterrupt        (timer_irq_i),
         .softwareInterrupt     (1'b0),
-        .externalInterruptArray(32'd0),
+        .externalInterruptArray(ext_irq_i),
         .iBusWishbone_CYC      (icyc),
         .iBusWishbone_STB      (istb),
         .iBusWishbone_ACK      (ibus_ack_i),

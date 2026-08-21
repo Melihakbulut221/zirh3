@@ -1,0 +1,16 @@
+# ZIRH-3 - interrupt fabric block suite (Cycle 34)
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SIM_BUILD = sim_build/irq
+
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_irq.v
+
+TOPLEVEL = zirh_irq
+COCOTB_TEST_MODULES = test_irq
+
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_SIM_ENV
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

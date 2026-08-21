@@ -56,6 +56,7 @@ module zirh_timer #(
     input  wire [N-1:0] cap_i,
 
     output wire        timer_irq_o,   // timer 0, gated by its irq_en
+    output wire [N-1:0] irqs_o,        // every timer's gated overflow
     output wire        err_o          // own TMR mismatch, pulse
 );
 
@@ -186,6 +187,7 @@ module zirh_timer #(
                  : 32'h0;
 
     assign timer_irq_o = t_irq[0];
+    assign irqs_o      = t_irq;
     assign err_o       = altb_err | (|t_err);
     assign ack_o       = cyc_i;
 

@@ -30,6 +30,7 @@ stated only where the conditions are like for like.
 | I2C | 2 controllers | 2 masters at slot 6's upper half (0x6800/0x6C00), byte-command engine, open-drain on PORTA[3:0] alternate functions, clock-stretch OBEYED, all state TMR'd | Cycle 31; subset honest: master only, no slave mode |
 | SPI | 3 (2 master/slave + 1 master) | 3 masters at slot 7's upper half (0x7800/0x7900/0x7A00), all four CPOL/CPHA modes, full duplex, software-owned CS, PORTA[15:4] alternate functions, all state TMR'd | Cycle 32; subset honest: master only, 8-bit words |
 | UART | 2 | 2 - the shared lifeline (console + telemetry + ISP, dedicated pins, strapped rate) plus the payload's programmable 8N1 port at 0x7B00 on PORTA[17:16], all state TMR'd | Cycle 33; the ledger's last column - THE INTERFACE TABLE IS COMPLETE |
+| interrupts | per-peripheral IRQs via selector into the NVIC, per-pin GPIO interrupts | 32-source fabric at 0x6400 - 24 timer overflows, UART1 rx/tx, 2 I2C + 3 SPI ready - TMR'd mask, RAW/PENDING readable, masked lines into the core's external interrupt array; timer 0 also on the dedicated timer line | Cycle 34; subset honest: no per-pin GPIO interrupt sources yet |
 | DFT | (production test, undisclosed) | MBIST from software, boundary scan, scan-insertion flow | F28 |
 
 ## Measured physics of the protection (the price tag)
