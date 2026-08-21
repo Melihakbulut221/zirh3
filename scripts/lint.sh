@@ -17,6 +17,14 @@
 #   PINCONNECTEMPTY           intentionally open outputs
 #   PINMISSING/DECLFILENAME/  vendored SERV and PDK models are not
 #   EOFNEWLINE/VARHIDDEN      rewritten to please a linter
+#   TIMESCALEMOD              the PDK behavioral models carry their own
+#                             timescale; zirh RTL deliberately does not
+#                             (the bench owns time), and mixing the two
+#                             in one lint elaboration is by design
+#   SYNCASYNCNET              the POR block's one job is to turn a
+#                             synchronous power-good count into the
+#                             die's ASYNCHRONOUS reset root; that
+#                             crossing is the architecture, not a slip
 # Gate: verilator must exit 0 AND no remaining warning may point into
 # zirh-authored files. LATCH, WIDTHTRUNC, BLKANDNBLK and the rest of
 # -Wall stay ARMED - the first run caught a real mixed-assignment in
@@ -36,17 +44,20 @@ for TOP in zirh_sram39 zirh_boot_ctrl zirh_qspi zirh_clkobs \
            zirh_sram_dut zirh_isp_rx zirh_jtag_dm zirh_mbist \
            zirh_vex_wrap zirh_vex_tmr \
            zirh3_memsys zirh3_die; do
-  $VL --lint-only -Wall --timing \
+  $VL --lint-only -Wall --Wno-fatal --timing \
       -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \
-      -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ \
+      -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ -Wno-TIMESCALEMOD -Wno-SYNCASYNCNET \
       -Wno-WIDTHEXPAND -Wno-PINCONNECTEMPTY -Wno-PINMISSING \
       -DFUNCTIONAL -DZIRH_SIM_ENV \
       -Isrc \
       --top-module $TOP \
       "$SRAM_V"/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
       "$SRAM_V"/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
-      src/zirh_*.v src/vex/VexRiscv_Lite.v \
-      2>&1 | tee /tmp/zirh3_lint_$TOP.log | grep -E "%Warning" \
+      src/zirh_*.v src/zirh3_*.v src/vex/VexRiscv_Lite.v \
+      > /tmp/zirh3_lint_$TOP.log 2>&1 \
+      || { echo "lint: $TOP - the tool itself ERRORED, nothing was checked"; \
+           tail -5 /tmp/zirh3_lint_$TOP.log; fail=1; }
+  grep -E "%Warning" /tmp/zirh3_lint_$TOP.log \
       | grep -E "zirh_" && { echo "lint: warnings in $TOP"; fail=1; }
 done
 [ $fail -ne 0 ] && exit 1
@@ -55,27 +66,36 @@ echo "lint: zirh3 block library is warning-clean"
 # --- the imported SoC cluster (SERV vendored unmodified, exempt) --------------
 # elaborated as one design with the mask ROM and the ECC RAM; only
 # warnings pointing into zirh-authored soc-layer files fail the build.
-$VL --lint-only -Wall --timing \
+$VL --lint-only -Wall --Wno-fatal --timing \
     -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \
-    -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ \
+    -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ -Wno-TIMESCALEMOD -Wno-SYNCASYNCNET \
     -Wno-WIDTHEXPAND -Wno-PINCONNECTEMPTY -Wno-PINMISSING \
     -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE \
     -DFUNCTIONAL -DZIRH_SIM_ENV -Isrc --top-module zirh_soc \
     src/vex/VexRiscv_Lite.v src/zirh_vex_wrap.v src/zirh_rom.v src/zirh_bus.v src/zirh_ecc_ram.v \
     src/zirh_rs422.v src/zirh_uart_regs.v src/zirh_tmr_lib.v \
-    src/zirh_soc.v 2>&1 | tee /tmp/zirh3_soc_lint.log \
-    | grep -E "%Warning" | grep -iE "zirh_(soc|rom|bus|uart|rs422)" \
+    src/zirh_soc.v > /tmp/zirh3_soc_lint.log 2>&1 \
+    || { echo "lint: soc cluster - the tool itself ERRORED, nothing was checked"; \
+         tail -5 /tmp/zirh3_soc_lint.log; exit 1; }
+grep -E "%Warning" /tmp/zirh3_soc_lint.log \
+    | grep -iE "zirh_(soc|rom|bus|uart|rs422)" \
     | grep -v "src/serv/" && { echo "lint: warnings in soc cluster"; exit 1; }
 echo "lint: soc cluster is warning-clean (vendored core exempt)"
 
 # --- the CPU-carrying top (rung 3) --------------------------------------------
-$VL --lint-only -Wall --timing \
+$VL --lint-only -Wall --Wno-fatal --timing \
     -Wno-DECLFILENAME -Wno-VARHIDDEN -Wno-EOFNEWLINE \
-    -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ \
+    -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ -Wno-TIMESCALEMOD -Wno-SYNCASYNCNET \
     -Wno-WIDTHEXPAND -Wno-PINCONNECTEMPTY -Wno-PINMISSING \
     -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE \
     -DFUNCTIONAL -DZIRH_SIM_ENV -Isrc --top-module zirh3_top \
-    src/serv/*.v src/zirh_*.v src/zirh3_top.v 2>&1 \
-    | grep -E "%Warning" | grep -E "zirh3_top" \
+    "$SRAM_V"/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
+    "$SRAM_V"/RM_IHPSG13_1P_1024x8_c2_bm_bist.v \
+    "$SRAM_V"/RM_IHPSG13_1P_4096x8_c3_bm_bist.v \
+    src/serv/*.v src/vex/VexRiscv_Lite.v src/zirh_*.v src/zirh3_top.v \
+    > /tmp/zirh3_top_lint.log 2>&1 \
+    || { echo "lint: zirh3_top - the tool itself ERRORED, nothing was checked"; \
+         tail -5 /tmp/zirh3_top_lint.log; exit 1; }
+grep -E "%Warning" /tmp/zirh3_top_lint.log | grep -E "zirh3_top" \
     && { echo "lint: warnings in zirh3_top"; exit 1; }
 echo "lint: zirh3_top is warning-clean"

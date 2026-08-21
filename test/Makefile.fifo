@@ -1,15 +1,14 @@
-# ZIRH-3 - second UART block suite (Cycle 33)
+# ZIRH-3 - TMR'd FIFO primitive block suite (Cycle 35)
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-SIM_BUILD = sim_build/uart1
+SIM_BUILD = sim_build/fifo
 
 VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_fifo.v
-VERILOG_SOURCES += $(SRC_DIR)/zirh_uart1.v
 
-TOPLEVEL = zirh_uart1
-COCOTB_TEST_MODULES = test_uart1
+TOPLEVEL = zirh_fifo
+COCOTB_TEST_MODULES = test_fifo
 
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV

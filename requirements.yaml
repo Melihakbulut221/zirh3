@@ -578,3 +578,25 @@ requirements:
       the integration surfaced and closed a latent defect: the soc
       had tied the core's timer_irq input to zero since Cycle 30;
       guard measured 3 replicas / 98 flops, top at 43414
+  - id: Z3-R44
+    text: The payload UART shall carry the yardstick's depth - a
+      sixteen-deep TMR'd FIFO on each direction built from a
+      reusable queue primitive, programmable parity and a second
+      stop bit, and sticky write-1-to-clear flags for overrun,
+      framing and parity faults - with 8N1 defaults bit-identical
+      to the Cycle 33 frame.
+    tests:
+      - test/test_fifo.py
+      - test/test_uart1.py
+      - test/test_top_uart1.py
+    evidence: the primitive's suite proves order through fill and
+      drain, refusal at both walls, an exact level gauge against a
+      running model across many wraparounds; the UART suite proves
+      in-order queueing both directions, the overflow law (the
+      seventeenth byte is dropped, OE goes sticky, the oldest
+      sixteen survive), parity emitted and enforced (a lying frame
+      sets PERR and never enters the queue), FERR on a broken stop,
+      and stop2 stretching the frame by exactly one bit time; the
+      old newest-byte-overwrite law is repealed and the repeal is
+      tested; guard measured 432 flops for the primitive, 15
+      replicas / 1137 flops for the UART, top at 44279

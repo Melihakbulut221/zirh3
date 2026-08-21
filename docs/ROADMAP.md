@@ -949,3 +949,59 @@ re-learned at a new boundary: a guard that cannot fail guards
 nothing, and an interrupt line nobody reads is not an interrupt
 line. The P&R-pinned rehearsal artifacts predate the wrapper's new
 port and refresh on the next dispatched campaign.
+
+## Cycle 35 (2026-08-21): depth for the payload's voice
+
+The datasheet gave the yardstick's serial ports sixteen-word
+FIFOs, parity and configurable stops; this die's second UART
+handed bytes over one at a time and repealed nothing when a new
+byte arrived over an unread one. Cycle 35 builds the depth ONCE -
+zirh_fifo, a queue primitive whose every bit of state, both
+pointers and all sixteen entries, lives in zirh_tmr_reg - and
+gives the payload UART two of them plus the frame options: even
+or odd parity emitted and ENFORCED (a frame whose parity lies
+sets PERR sticky and never enters the queue, the same discipline
+as the false start), FERR for a broken stop, OE for the byte that
+arrived to a full queue and was dropped so the oldest sixteen
+survive - in flight the unread past explains the present. The
+old newest-byte-overwrite law is repealed, and the repeal is
+itself tested: bytes pop in arrival order now.
+
+The bench paid two tolls. A one-cycle strobe set-then-awaited can
+straddle the simulator's write phase and never be seen - the queue
+primitive's suite drives its strobes from the falling edge, half a
+period of margin on both sides. And a pop-on-read queue advances
+on the strobe edge, so the bench must sample the head where a
+one-cycle-ack CPU load samples it - after the first edge, not the
+second; the old late sample read registers that no longer exist.
+The transmit capture learned the same lesson from the other side:
+with frames queued back to back, a level-catch mistakes a zero
+data bit for a start bit, so the collector attaches before the
+first write and syncs on the real falling edge.
+
+The cycle closed with an adversarial review of its own diff, and
+the review paid for itself twice over. First, in coverage: the RX
+overflow proof could not tell "OE at a loss" from "OE at a mere
+fill" (the flag is now asserted CLEAR at exactly sixteen before
+the seventeenth byte flags it), odd-parity enforcement was only
+proven on transmit (an injected frame under PODD now proves the
+receive check flips with the control bit), the TX wall had never
+been provoked (eighteen rapid writes now show tx_full, the refusal
+of the eighteenth byte, and seventeen frames flying in order), the
+interrupt lines had no observer (both are now asserted at the
+walls), and the queue primitive's refusal laws are now proven
+UNDER simultaneous strobes at both walls - a same-cycle drain does
+not buy the newcomer a slot.
+
+Second, in guard integrity: a comment line in the new primitive
+happened to wrap so it began with the linter's own name, which the
+tool parses as a directive and dies on - and the lint gate, which
+grepped only for warnings, swallowed the error and reported clean
+over RTL it never read. The gate now fails on the tool's own exit
+first, and the honest gate immediately unearthed what the lying
+one had buried: a truncated orphan source file dead since F28's
+cycle, a real width defect in the debug module's response mux, a
+stale top-level file list still naming the core this die retired
+in Cycle 14, and two warning classes now waived with their reasons
+on record. A guard that cannot fail guards nothing - this cycle
+that law was earned by the guard itself.

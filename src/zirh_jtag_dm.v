@@ -317,7 +317,7 @@ module zirh_jtag_dm (
                                           8'd0, 2'd0};
                 A_SBDATA0:   dmi_resp <= {sbdata_q, 2'd0};
                 A_SBADDRESS: dmi_resp <= {sbaddr_q, 2'd0};
-                default:     dmi_resp <= {30'd0, dmactive_q, ndmreset_q,
+                default:     dmi_resp <= {29'd0, dmactive_q, ndmreset_q,
                                           haltreq_q, 2'd0};
             endcase
         end
