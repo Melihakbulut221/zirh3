@@ -844,3 +844,28 @@ programs thirty percent, and the bench measures thirty percent on
 the pin. The interface ledger against the VA10805 now reads: GPIO
 matched, timers matched, debug ahead, telemetry ahead - and I2C,
 general SPI and the second UART remain, named and priced.
+
+## Cycle 31 (2026-08-21): two masters, one lesson per boundary
+
+The I2C column closes. Two byte-command masters live in slot 6's
+upper half - the address space the GPIO block never used, split by
+one bit - and lease PORTA's low pins through the same alternate-
+function discipline the timers set: an enabled controller's pins
+are its pins, open-drain, pull-means-low, and the wire is read as
+it actually is. A slave that stretches the clock is obeyed, not
+fought - the master waits for the released wire to really rise,
+which is the difference between a controller that works in a
+datasheet and one that works on a bus. Every register down to the
+engine state is TMR'd: a wedged peripheral FSM in flight is a lost
+instrument.
+
+Each boundary taught once. The bench slave served its read byte one
+clock late and the master faithfully read the shift; the fix put
+bit seven on the wire the moment the ack released. The stretch
+counter counted edges on a wire it was itself holding still; time,
+not edges. And the through-the-die program wrote its registers into
+the MBIST doorway for one whole debugging session because 0x800 as
+an addi immediate is NEGATIVE - the sign bit of a 12-bit constant,
+the oldest RISC-V lesson there is, now paid for and recorded. The
+interface ledger reads: GPIO matched, timers matched, I2C matched;
+general SPI and the second UART remain, named and priced.

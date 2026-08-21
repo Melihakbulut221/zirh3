@@ -509,3 +509,19 @@ requirements:
       timer 5 and the bench measures the duty on the pin; guard
       measured 12 replicas / 9938 flops for the bank, top at 42104
       flops; the gate die re-synthesizes and boots with all 24 in
+  - id: Z3-R40
+    text: The die shall carry two I2C masters at the yardstick's
+      count - byte-command engines with open-drain discipline on
+      PORTA alternate functions, obeying a stretching slave, every
+      register TMR'd including the engine state - reachable at slot
+      6's sub-decoded upper half.
+    tests:
+      - test/test_i2c.py
+      - test/test_top_i2c.py
+    evidence: block suite proves START/byte/ACK, data plus STOP, a
+      read leg served and NACKed, and a stretched clock obeyed with
+      the byte landing intact; the through-the-die suite ISP-loads a
+      program that commands I2C0 and the bench slave on the PORTA
+      pins sees exactly the START and the byte; guard measured 21
+      replicas / 214 flops per master, top at 42524 flops; subset
+      recorded: master only, no slave mode

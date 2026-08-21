@@ -203,6 +203,13 @@ module zirh3_top #(
     wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc, s6_cyc, s7_cyc;
     wire [31:0] gp_rdt;
     wire        gp_ack, gp_err;
+    wire [31:0] gp_rdt_int, i2c0_rdt, i2c1_rdt;
+    wire        gp_ack_int, i2c0_ack, i2c1_ack;
+    wire        i2c0_err, i2c1_err;
+    wire        i2c0_scl_pull, i2c0_sda_pull, i2c0_lease;
+    wire        i2c1_scl_pull, i2c1_sda_pull, i2c1_lease;
+    wire        s6_gpio_cyc, s6_i2c0_cyc, s6_i2c1_cyc;
+    wire [31:0] gpio_a_o_int, gpio_a_oe_int;
     wire [31:0] tm_rdt;
     wire        tm_ack, tm_err, tm_irq;
     wire [23:0] tm_pwm, tm_alt;
@@ -333,11 +340,53 @@ module zirh3_top #(
     // --- GPIO at VORAGO parity: 56 pins the software owns -------------------
     zirh_gpio u_gpio (
         .clk(clk), .rst_n(sys_rst_n),
-        .cyc_i(s6_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
-        .rdt_o(gp_rdt), .ack_o(gp_ack),
-        .gpio_a_i(gpio_a_i), .gpio_a_o(gpio_a_o), .gpio_a_oe(gpio_a_oe),
+        .cyc_i(s6_gpio_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(gp_rdt_int), .ack_o(gp_ack_int),
+        .gpio_a_i(gpio_a_i), .gpio_a_o(gpio_a_o_int), .gpio_a_oe(gpio_a_oe_int),
         .gpio_b_i(gpio_b_i), .gpio_b_o(gpio_b_o_int), .gpio_b_oe(gpio_b_oe_int),
         .err_o(gp_err));
+
+    // --- the I2C pair: slot 6's upper half, PORTA[3:0] leased ---------------
+    // Slot 6 sub-decodes on adr[11]: the GPIO block keeps the lower
+    // half it always had, the two I2C masters split the upper half on
+    // adr[10] (0x6800 / 0x6C00). Open drain at the pins: an enabled
+    // controller leases PORTA 0/1 (or 2/3), drives ZERO with the pull
+    // as the enable, and reads the wire as it actually is - a slave
+    // stretching the clock is obeyed, not fought.
+    assign s6_gpio_cyc = s6_cyc & ~s_adr[11];
+    assign s6_i2c0_cyc = s6_cyc &  s_adr[11] & ~s_adr[10];
+    assign s6_i2c1_cyc = s6_cyc &  s_adr[11] &  s_adr[10];
+    assign gp_rdt = s_adr[11] ? (s_adr[10] ? i2c1_rdt : i2c0_rdt)
+                              : gp_rdt_int;
+    assign gp_ack = s_adr[11] ? (s_adr[10] ? i2c1_ack : i2c0_ack)
+                              : gp_ack_int;
+
+    zirh_i2c u_i2c0 (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s6_i2c0_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(i2c0_rdt), .ack_o(i2c0_ack),
+        .scl_i(gpio_a_i[0]), .scl_pull_o(i2c0_scl_pull),
+        .sda_i(gpio_a_i[1]), .sda_pull_o(i2c0_sda_pull),
+        .lease_o(i2c0_lease),
+        .err_o(i2c0_err));
+
+    zirh_i2c u_i2c1 (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s6_i2c1_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(i2c1_rdt), .ack_o(i2c1_ack),
+        .scl_i(gpio_a_i[2]), .scl_pull_o(i2c1_scl_pull),
+        .sda_i(gpio_a_i[3]), .sda_pull_o(i2c1_sda_pull),
+        .lease_o(i2c1_lease),
+        .err_o(i2c1_err));
+
+    wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
+    wire [3:0] i2c_pull  = {i2c1_sda_pull, i2c1_scl_pull,
+                            i2c0_sda_pull, i2c0_scl_pull};
+    assign gpio_a_o  = {gpio_a_o_int[31:4],
+                        gpio_a_o_int[3:0] & ~i2c_lease};
+    assign gpio_a_oe = {gpio_a_oe_int[31:4],
+                        (gpio_a_oe_int[3:0] & ~i2c_lease)
+                        | (i2c_lease & i2c_pull)};
 
     // --- the timer/PWM bank: 24 timers, PORTB alternate functions -----------
     // When ALTB owns a PORTB pin, the pin drives that timer's PWM and
@@ -405,7 +454,8 @@ module zirh3_top #(
         .err_o(tlm_err));
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
-                 | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err;
+                 | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err
+                 | i2c0_err | i2c1_err;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST

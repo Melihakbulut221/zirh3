@@ -27,6 +27,7 @@ stated only where the conditions are like for like.
 | debug | SWD | IEEE 1149.1 TAP + RISC-V DTM/DM behind the flight lock | F27 |
 | GPIO | 56 pins, PORTA 32 + PORTB 24 | 56 pins, same split, at bus slot 6 - OUT/DIR TMR'd, IN double-synced, err into the die aggregate | Cycle 27; block + through-the-die suites |
 | timers | 24x 32-bit, capture/compare/PWM/pulse, pinned via GPIO alt functions | 24x 32-bit at slot 7, same four modes, PORTB alternate functions, EVERY register TMR'd including the running counters, timer 0 irq wired to the core | Cycle 30; feature subset honest: no cascade/chaining |
+| I2C | 2 controllers | 2 masters at slot 6's upper half (0x6800/0x6C00), byte-command engine, open-drain on PORTA[3:0] alternate functions, clock-stretch OBEYED, all state TMR'd | Cycle 31; subset honest: master only, no slave mode |
 | DFT | (production test, undisclosed) | MBIST from software, boundary scan, scan-insertion flow | F28 |
 
 ## Measured physics of the protection (the price tag)

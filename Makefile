@@ -29,6 +29,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.jtag
 	$(MAKE) -C test -B -f Makefile.gpio
 	$(MAKE) -C test -B -f Makefile.timer
+	$(MAKE) -C test -B -f Makefile.i2c
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

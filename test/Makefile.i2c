@@ -1,0 +1,16 @@
+# ZIRH-3 - I2C master block suite (Cycle 31)
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SIM_BUILD = sim_build/i2c
+
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_i2c.v
+
+TOPLEVEL = zirh_i2c
+COCOTB_TEST_MODULES = test_i2c
+
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_SIM_ENV
+
+include $(shell cocotb-config --makefiles)/Makefile.sim
