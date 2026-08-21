@@ -476,3 +476,20 @@ requirements:
       131 seconds - cell functions generated from the PDK liberty,
       match points from the stitcher's own bookkeeping, RM macros as
       boundary ports; both legs gated against vacuous passes
+  - id: Z3-R38
+    text: Place-and-route shall be proven function-preserving on the
+      stitched core - the netlist extracted from the confirmed layout
+      formally equivalent to the stitched netlist that entered the
+      flow, matched on the rail names both carry, macros cut to the
+      boundary, the clock tree and repair buffers collapsed by the
+      proof itself, and the padframe power budget shall be written
+      from measured currents, not habit.
+    tests:
+      - scripts/formal_equiv.sh
+      - scripts/formal_eqprep.py
+    evidence: 6915 of 6915 points proven (283 combinational, 6632 by
+      induction) in 408 seconds against the Cycle 21 boot artifact's
+      netlist; the unread A_DOUT macro pin taught the cut to skip
+      dangling outputs on both sides; SCOPE.md carries the pad budget
+      - 4 core pairs + 1 array pair + 7 SSO-ruled VDDIO/VSSIO pairs,
+      about 12 ground pads against 74 signals at a 1:6 ratio

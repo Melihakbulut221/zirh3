@@ -795,3 +795,31 @@ gates proven equivalent to stitched gates at full scale, stitched
 gates proven to boot, wound, rain, place, route and close timing.
 The synthesis leg at core scale remains what it is everywhere:
 trusted tooling, cross-checked by the gl ladder booting both sides.
+
+## Cycle 29 (2026-08-21): the chain closes, and the grounds are counted
+
+The custody chain had one unproven hop left: the flow itself. Now
+the netlist extracted from the CONFIRMED layout is formally
+equivalent to the stitched netlist that entered it - 6915 points,
+6632 by induction, six minutes forty-eight. The match needed no new
+bookkeeping: the rails both netlists carry by name are the points,
+the macros are cut to the boundary as before, and the clock tree
+and thirty-two repair buffers evaporate inside the proof, because a
+buffer is an assign to the equivalence library and an assign is a
+wire. One pin taught one lesson: the write-port's A_DOUT hangs
+unread, some writers list it and some omit it, and the cut now
+skips dangling outputs on both sides rather than let a port nobody
+drives break the matching. RTL to gates, gates to stitched,
+stitched to placed-and-routed: every hop is now a theorem, and what
+remains trusted is what every flow trusts - the tools that check,
+checking themselves.
+
+And the grounds are counted before the padframe exists to hold
+them: from the measured 20.3 mA cluster and its 3.54 mV worst IR
+drop, a planning bound of 40-60 mA for the die, four core pairs
+for distribution, one array pair for the retention experiment, and
+seven VDDIO/VSSIO pairs from the SSO rule applied to the 56 GPIO -
+about twelve grounds against seventy-four signals, one to six,
+conservative against the one-to-eight rule. Ninety-eight pads: an
+LQFP-100/128-class frame, and if the OpenMPW slot cannot carry it,
+PORTB is the knob that scales - never the ground ratio.

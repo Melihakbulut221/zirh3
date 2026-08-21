@@ -19,7 +19,7 @@ on:
         description: which campaign job to run
         type: choice
         default: all
-        options: [all, min, lite, litemac, eco, ecoconfirm, tmr, tmrconfirm, tmrboot, signoff]
+        options: [all, min, lite, litemac, eco, ecoconfirm, tmr, tmrconfirm, tmrboot, signoff, eqpnr]
 
 jobs:
   eco-confirm:
@@ -128,6 +128,55 @@ jobs:
           path: |
             eco_out/*
             eco.log
+
+  vextmr-eqpnr:
+    if: ${{ inputs.target == 'eqpnr' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PDK_ROOT: /home/runner/pdk
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Download the layout's own netlist (Cycle 21 boot run)
+        # artifacts expire; when this one does, re-dispatch tmrboot to
+        # mint a fresh netlist from the confirmed ODB and repoint
+        run: |
+          for i in 1 2 3 4; do
+            gh run download 32330298237 -R ${{ github.repository }} \
+              -n pnr_vextmr_boot -D eq_dl && break
+            echo "download attempt $i failed; retrying in 30s"
+            rm -rf eq_dl; sleep 30
+          done
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install yosys + ciel
+        run: |
+          sudo apt-get update && sudo apt-get install -y yosys
+          pip install ciel
+      - name: Install the pinned PDK
+        run: |
+          ciel enable --pdk-family ihp-sg13g2 \
+            22f2a25f1734796de3debbbf29cf697cbbc54081 --pdk-root $HOME/.ciel
+      - name: Rebuild the stitched netlist (the gold side)
+        run: |
+          PDK_ROOT=$HOME/.ciel bash scripts/gl_boot.sh bind
+          PDK_ROOT=$HOME/.ciel bash scripts/gl_boot.sh gates
+          PDK_ROOT=$HOME/.ciel bash scripts/gl_boot.sh stitch
+      - name: Cycle 29 - place-and-route preserved the stitched function
+        run: |
+          PDK_ROOT=$HOME/.ciel bash scripts/formal_equiv.sh pnr \
+            "$PWD/eq_dl/confirm_out/zirh_vex_wrap_pnr.v"
+      - name: Upload proof log
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eqpnr_proof
+          path: test/sim_build/equiv/pnr.log
 
   vextmr-signoff:
     if: ${{ inputs.target == 'signoff' }}

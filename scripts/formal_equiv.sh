@@ -22,7 +22,7 @@
 # The cell functions come from the PDK liberty via formal_eqlib.py -
 # generated, not hand-written.
 #
-#   PDK_ROOT=... bash scripts/formal_equiv.sh [pilot|core|all]
+#   PDK_ROOT=... bash scripts/formal_equiv.sh [pilot|core|pnr|all] [pnr-netlist.v]
 #   (core needs gl_boot products; pilot needs a tmr_pilot build)
 # =============================================================================
 set -euo pipefail
@@ -37,7 +37,7 @@ LIB="${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V
 mkdir -p "${BUILD}"
 
 case "${STAGE}" in
-    pilot|core|all) ;;
+    pilot|core|pnr|all) ;;
     *) echo "unknown stage '${STAGE}'"; exit 1;;
 esac
 
@@ -108,6 +108,37 @@ if run_stage core; then
     echo "equiv points: ${NEQ} (>= 2138 or the proof is vacuous)"
     test "${NEQ}" -ge 2138
     echo "EQUIV CORE: PASS - the stitcher is out of the trusted base"
+fi
+
+if run_stage pnr; then
+    echo "[3/3] pnr: the layout's own netlist vs the stitched one it placed"
+    PNL="${2:-${ROOT}/test/sim_build/equiv/zirh_vex_wrap_pnr.v}"
+    GJ="${ROOT}/test/sim_build/gl_boot"
+    test -f "${PNL}" || { echo "missing post-P&R netlist ${PNL}"; exit 1; }
+    test -f "${GJ}/vexwrap_tmr.json" || {
+        echo "missing gl_boot products - run gl_boot.sh bind/gates/stitch"; exit 1; }
+    yosys -q -p "read_verilog ${ROOT}/pnr/vexlitemac/stubs/rm2p_stubs.v; read_verilog ${PNL}; write_json ${BUILD}/pnr_raw.json"
+    python3 "${ROOT}/scripts/formal_eqlib.py" "${LIB}" "${BUILD}/eqlib_pnr.v" \
+        $(cells_of "${GJ}/vexwrap_tmr.json" "${BUILD}/pnr_raw.json")
+    python3 "${ROOT}/scripts/formal_eqprep.py" "${GJ}/vexwrap_tmr.json" \
+        "${BUILD}/pnr_gold.json" gold sg13g2_dfrbpq_1 rails
+    python3 "${ROOT}/scripts/formal_eqprep.py" "${BUILD}/pnr_raw.json" \
+        "${BUILD}/pnr_gate.json" gate sg13g2_dfrbpq_1 rails
+    timeout 3600 yosys -p "
+        read_verilog ${BUILD}/eqlib_pnr.v;
+        read_json ${BUILD}/pnr_gold.json;
+        read_json ${BUILD}/pnr_gate.json;
+        proc; async2sync; flatten gold; flatten gate;
+        opt_expr; opt_clean;
+        equiv_make gold gate merged;
+        hierarchy -top merged;
+        equiv_simple; equiv_induct;
+        equiv_status -assert" 2>&1 | tee "${BUILD}/pnr.log"
+    grep -aq "Equivalence successfully proven" "${BUILD}/pnr.log"
+    NEQ=$(grep -aoE "Found [0-9]+ .equiv cells" "${BUILD}/pnr.log" | grep -oE "[0-9]+" | tail -1)
+    echo "equiv points: ${NEQ} (>= 6414 or the proof is vacuous)"
+    test "${NEQ}" -ge 6414
+    echo "EQUIV PNR: PASS - place-and-route preserved the stitched function"
 fi
 
 echo "FORMAL_EQUIV: DONE (${STAGE})"

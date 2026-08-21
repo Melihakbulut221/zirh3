@@ -27,7 +27,7 @@ import sys
 MACROS = ("RM_IHPSG13_2P_512x32_c2_bm_bist", "RM_IHPSG13_2P_64x32_c2")
 
 
-def main(inp, outp, side, flop="sg13g2_dfrbpq_1"):
+def main(inp, outp, side, flop="sg13g2_dfrbpq_1", points="eqp"):
     d = json.load(open(inp))
     name = max(d["modules"], key=lambda n: len(d["modules"][n].get("cells", {})))
     mod = d["modules"][name]
@@ -35,7 +35,18 @@ def main(inp, outp, side, flop="sg13g2_dfrbpq_1"):
     ports = mod["ports"]
     nets = mod.setdefault("netnames", {})
 
-    # CUT: macros out, their pins onto the boundary
+    # CUT: macros out, their pins onto the boundary. An OUTPUT pin
+    # nobody reads (the 2P write-port's A_DOUT hangs unread; some
+    # writers list it, some omit it) is skipped on BOTH sides - a
+    # dangling free input proves nothing and breaks port matching.
+    used = set()
+    for cname, cc in cells.items():
+        if cc["type"] in MACROS:
+            continue
+        for bits in cc["connections"].values():
+            used.update(b for b in bits if isinstance(b, int))
+    for p in ports.values():
+        used.update(b for b in p["bits"] if isinstance(b, int))
     for cname in [c for c, cc in cells.items() if cc["type"] in MACROS]:
         cell = cells.pop(cname)
         leaf = cname.split(".")[-1]
@@ -44,11 +55,23 @@ def main(inp, outp, side, flop="sg13g2_dfrbpq_1"):
             # macro input pins are DRIVEN by the design: observe them;
             # macro output pins DRIVE the design: leave them free
             pdir = "output" if direction == "input" else "input"
+            if pdir == "input" and not any(
+                    isinstance(b, int) and b in used for b in bits):
+                continue
             pname = f"eqcut_{leaf}_{pin}".replace("!", "")
             ports[pname] = {"direction": pdir, "bits": bits}
             nets[pname] = {"bits": bits, "hide_name": 0}
 
     # MATCH: one netname per flop boundary, same order both sides
+    # (points="rails": skip - the pair matches on tmr rail names that
+    # both netlists already carry; the post-P&R netlist erased cell
+    # names, so voter bookkeeping has nothing to look up there)
+    if points == "rails":
+        d["modules"] = {side: mod}
+        mod.setdefault("attributes", {})["top"] = 1
+        json.dump(d, open(outp, "w"))
+        print(f"eqprep[{side}]: rail-matched, macros cut, top renamed")
+        return 0
     flops = sorted(c for c, cc in cells.items() if cc["type"] == flop
                  and not c.endswith("__B") and not c.endswith("__C"))
     made = 0

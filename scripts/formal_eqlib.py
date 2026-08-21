@@ -77,7 +77,8 @@ def main(lib_path, out_path, cells):
                     "sg13g2_tielo", "sg13g2_tiehi"):
             continue
         pins, funcs = liberty_cell_functions(text, cell)
-        if not funcs:
+        outs = [n for n, d in pins if d == "output"]
+        if outs and not funcs:
             print(f"ERROR: no function for {cell}", file=sys.stderr)
             return 1
         ports = ", ".join(

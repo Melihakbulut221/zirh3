@@ -77,3 +77,38 @@ integration (a discrete on-board MRAM rehearses the architecture
 first), and anything that would grow the die past the free 2 mm2
 without a measured reason to. The program's rule holds at the die
 level too: add silicon only when data justifies it.
+
+## Pad-ring power budget (hardening-time planning, Cycle 29)
+
+The die today has no pads - that is recorded scope, not an
+oversight - but the question "enough ground pins?" deserves numbers
+before the padframe exists, so the budget is written from what the
+campaigns measured rather than from habit.
+
+MEASURED, die-level: the stitched compute cluster draws 24.4 mW at
+1.20 V typ (20.3 mA) by the flow's own estimate; the routed PDN
+carries it with 3.54 mV worst IR drop and zero power-grid
+violations. The full die adds the 80-macro bank (few macros active
+per access) and the periphery; planning bound: 2-3x the cluster,
+call it 40-60 mA on the core rail.
+
+PLANNED pad pairs, and why:
+  core VDD/VSS      4 pairs - one per side; 60 mA is trivial for a
+                    single pad, DISTRIBUTION and loop inductance are
+                    what the four-sided spread buys
+  VDDARRAY/VSS      1 pair - electrically the core rail (the PDN
+                    ties them), padded separately so the retention
+                    experiment stays possible on the bench
+  VDDIO/VSSIO       7 pairs - the SSO rule (one pair per ~8
+                    simultaneously switching outputs) applied to the
+                    56 GPIO at 3.3 V; UART/JTAG/events are slow and
+                    ride the same rail without adding pairs
+  ground total      ~12 ground pads against ~74 signal pads, a 1:6
+                    ratio - conservative against the 1:8 SSO rule
+
+Signal + power lands near 98 pads: an LQFP-100/128-class frame,
+consistent with the VA10805's 128-pin package carrying the same 56
+GPIO plus its larger peripheral set and its own power population.
+The OpenMPW slot's pad budget is the binding constraint to check
+when the frame is drawn; if it cannot carry 98, GPIO width is the
+knob that scales (PORTB drops first), not the ground ratio.
