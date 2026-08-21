@@ -26,6 +26,7 @@ stated only where the conditions are like for like.
 | program execution | flash/ROM + SRAM | loaded programs run FROM the protected bank | Cycle 17 fetch proof |
 | debug | SWD | IEEE 1149.1 TAP + RISC-V DTM/DM behind the flight lock | F27 |
 | GPIO | 56 pins, PORTA 32 + PORTB 24 | 56 pins, same split, at bus slot 6 - OUT/DIR TMR'd, IN double-synced, err into the die aggregate | Cycle 27; block + through-the-die suites |
+| timers | 24x 32-bit, capture/compare/PWM/pulse, pinned via GPIO alt functions | 24x 32-bit at slot 7, same four modes, PORTB alternate functions, EVERY register TMR'd including the running counters, timer 0 irq wired to the core | Cycle 30; feature subset honest: no cascade/chaining |
 | DFT | (production test, undisclosed) | MBIST from software, boundary scan, scan-insertion flow | F28 |
 
 ## Measured physics of the protection (the price tag)

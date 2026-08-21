@@ -28,6 +28,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.sramdut
 	$(MAKE) -C test -B -f Makefile.jtag
 	$(MAKE) -C test -B -f Makefile.gpio
+	$(MAKE) -C test -B -f Makefile.timer
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

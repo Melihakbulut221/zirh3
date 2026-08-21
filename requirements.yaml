@@ -493,3 +493,19 @@ requirements:
       dangling outputs on both sides; SCOPE.md carries the pad budget
       - 4 core pairs + 1 array pair + 7 SSO-ruled VDDIO/VSSIO pairs,
       about 12 ground pads against 74 signals at a 1:6 ratio
+  - id: Z3-R39
+    text: The die shall carry 24 32-bit timers at the yardstick's
+      count with timer, PWM, capture and pulse modes, pinned through
+      PORTB alternate functions at zero pad cost, every register
+      TMR'd including the running counters, and timer 0's overflow
+      wired to the core's timer interrupt.
+    tests:
+      - test/test_timer.py
+      - test/test_top_timer.py
+    evidence: block suite proves wrap/flag/W1C, 30 percent duty on
+      the pin, capture latching an earlier count, five edges counted
+      as five, ALTB ownership and the irq raise-and-drop; the
+      through-the-die suite ISP-loads a program that leases pin 5 to
+      timer 5 and the bench measures the duty on the pin; guard
+      measured 12 replicas / 9938 flops for the bank, top at 42104
+      flops; the gate die re-synthesizes and boots with all 24 in

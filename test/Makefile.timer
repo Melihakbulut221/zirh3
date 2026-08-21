@@ -1,0 +1,16 @@
+# ZIRH-3 - timer/PWM bank block suite (Cycle 30)
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+SIM_BUILD = sim_build/timer
+
+VERILOG_SOURCES += $(SRC_DIR)/zirh_tmr_lib.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_timer.v
+
+TOPLEVEL = zirh_timer
+COCOTB_TEST_MODULES = test_timer
+
+COMPILE_ARGS += -I$(SRC_DIR)
+COMPILE_ARGS += -DZIRH_SIM_ENV
+
+include $(shell cocotb-config --makefiles)/Makefile.sim

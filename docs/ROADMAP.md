@@ -823,3 +823,24 @@ about twelve grounds against seventy-four signals, one to six,
 conservative against the one-to-eight rule. Ninety-eight pads: an
 LQFP-100/128-class frame, and if the OpenMPW slot cannot carry it,
 PORTB is the knob that scales - never the ground ratio.
+
+## Cycle 30 (2026-08-21): twenty-four timers, zero new pads
+
+The last peripheral class where the yardstick simply had more chip:
+24 configurable counter/timers against none. Slot 7 - the die's
+final bus slot, the watchdog's last unpopulated haunt - now carries
+the bank: 32-bit down-count with sticky overflow, PWM against a
+compare, capture of a free-runner on a synchronized pin edge, pulse
+counting, and VORAGO's own pin philosophy - the timers ride PORTB
+as alternate functions, a leased pin is a timer's pin, and the pad
+budget never hears about it. Every register is TMR'd, the running
+counters included, because a flipped counter bit is a wrong period
+and a flipped compare bit is a wrong duty forever; 9938 flops say
+the discipline was not negotiated. And a wire that waited sixteen
+cycles finally carries meaning: timer 0's overflow is the core's
+timer interrupt - masked by RISC-V default until software asks,
+capability without risk. An ISP-loaded program leases pin 5,
+programs thirty percent, and the bench measures thirty percent on
+the pin. The interface ledger against the VA10805 now reads: GPIO
+matched, timers matched, debug ahead, telemetry ahead - and I2C,
+general SPI and the second UART remain, named and priced.

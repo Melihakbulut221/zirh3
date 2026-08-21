@@ -99,6 +99,14 @@ module zirh_soc #(
     input  wire [31:0] s6_rdt_i,
     input  wire        s6_ack_i,
 
+    // slot 7 slave interface, exported for the timer/PWM bank
+    // (Cycle 30); same shared-lines pattern - and the bank's timer 0
+    // interrupt comes back in for the core
+    output wire        s7_cyc_o,
+    input  wire [31:0] s7_rdt_i,
+    input  wire        s7_ack_i,
+    input  wire        timer_irq_i,
+
     // boot fetch export (Cycle 17): with boot_sel the CPU's
     // instruction fetches leave the die's ROM and go to the TOP's
     // program store (the paged bank, addressed FLAT) - the loaded
@@ -333,9 +341,11 @@ module zirh_soc #(
     assign s_rdt[223:192] = s6_rdt_i;
     assign s_ack[6]       = s6_ack_i;
 
-    // slot 7: unpopulated - the bus watchdog owns it
-    assign s_rdt[255:224] = 32'h0;
-    assign s_ack[7]       = 1'b0;
+    // slot 7: exported to the top for the timer/PWM bank (0x7000);
+    // the bus watchdog retires - every slot is populated now
+    assign s7_cyc_o       = s_cyc[7];
+    assign s_rdt[255:224] = s7_rdt_i;
+    assign s_ack[7]       = s7_ack_i;
 
     assign err_o = err_bus | err_uart;
 

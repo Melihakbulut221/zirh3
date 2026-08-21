@@ -200,9 +200,13 @@ module zirh3_top #(
         .err_o(clkobs_err));
 
     // --- the imported cluster, attached through the proven mux --------------
-    wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc, s6_cyc;
+    wire soc_err, s3_cyc, s4_cyc, s4_ack, s5_cyc, s6_cyc, s7_cyc;
     wire [31:0] gp_rdt;
     wire        gp_ack, gp_err;
+    wire [31:0] tm_rdt;
+    wire        tm_ack, tm_err, tm_irq;
+    wire [23:0] tm_pwm, tm_alt;
+    wire [23:0] gpio_b_o_int, gpio_b_oe_int;
     wire        bf_cyc, bf_ack;
     wire [31:0] bf_adr, bf_rdt;
     wire        mb_start, mb_busy, mb_pass, mb_ack, mb_err;
@@ -249,6 +253,9 @@ module zirh3_top #(
         .s5_rdt_i(mb_rdt), .s5_ack_i(mb_ack),
         .s6_cyc_o(s6_cyc),
         .s6_rdt_i(gp_rdt), .s6_ack_i(gp_ack),
+        .s7_cyc_o(s7_cyc),
+        .s7_rdt_i(tm_rdt), .s7_ack_i(tm_ack),
+        .timer_irq_i(tm_irq),
         // boot fetch: loaded code runs from the program store
         .bf_cyc_o(bf_cyc), .bf_adr_o(bf_adr),
         .bf_rdt_i(bf_rdt), .bf_ack_i(bf_ack),
@@ -329,8 +336,24 @@ module zirh3_top #(
         .cyc_i(s6_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
         .rdt_o(gp_rdt), .ack_o(gp_ack),
         .gpio_a_i(gpio_a_i), .gpio_a_o(gpio_a_o), .gpio_a_oe(gpio_a_oe),
-        .gpio_b_i(gpio_b_i), .gpio_b_o(gpio_b_o), .gpio_b_oe(gpio_b_oe),
+        .gpio_b_i(gpio_b_i), .gpio_b_o(gpio_b_o_int), .gpio_b_oe(gpio_b_oe_int),
         .err_o(gp_err));
+
+    // --- the timer/PWM bank: 24 timers, PORTB alternate functions -----------
+    // When ALTB owns a PORTB pin, the pin drives that timer's PWM and
+    // the drive enable is forced - a pin the software leased to a
+    // timer is a timer's pin. Capture and pulse modes listen to the
+    // same pins regardless of who drives them.
+    zirh_timer u_timer (
+        .clk(clk), .rst_n(sys_rst_n),
+        .cyc_i(s7_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(tm_rdt), .ack_o(tm_ack),
+        .pwm_o(tm_pwm), .alt_o(tm_alt), .cap_i(gpio_b_i),
+        .timer_irq_o(tm_irq),
+        .err_o(tm_err));
+
+    assign gpio_b_o  = (tm_alt & tm_pwm) | (~tm_alt & gpio_b_o_int);
+    assign gpio_b_oe = tm_alt | gpio_b_oe_int;
 
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
@@ -382,7 +405,7 @@ module zirh3_top #(
         .err_o(tlm_err));
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
-                 | bank_err | hk_infra | tlm_err | mb_err | gp_err;
+                 | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err;
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST
