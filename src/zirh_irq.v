@@ -15,7 +15,7 @@
 //   [24]    UART1 rx_valid
 //   [25]    UART1 tx-queue room (not full)
 //   [26]    I2C0 ready     [27] I2C1 ready
-//   [28]    SPI0 ready     [29] SPI1 ready     [30] SPI2 ready
+//   [28]    SPI0 tx-queue room   [29] SPI1   [30] SPI2
 //   [31]    reserved, reads zero
 //
 // Word map (slot 6, 0x6400):

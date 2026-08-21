@@ -136,9 +136,9 @@ run_check "zirh_i2c      (I2C master, all-TMR)" \
     zirh_i2c 21 214 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_i2c.v
 
-run_check "zirh_spi      (SPI master, all-TMR)" \
-    zirh_spi 12 164 zirh_tmr_ff \
-    zirh_tmr_lib.v zirh_spi.v
+run_check "zirh_spi      (SPI master + queues, all-TMR)" \
+    zirh_spi 15 1902 zirh_tmr_ff \
+    zirh_tmr_lib.v zirh_fifo.v zirh_spi.v
 
 run_check "zirh_fifo     (TMR queue primitive)" \
     zirh_fifo 6 432 zirh_tmr_ff \
@@ -201,7 +201,7 @@ EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # tripwire, not a floorplan: what it guards is that the 70 replicas
 # and the core's real state survive the optimizer unmerged.
 run_check "zirh3_top     (full compute die + DFT)" \
-    zirh3_top 79 44279 zirh_tmr_ff \
+    zirh3_top 85 49493 zirh_tmr_ff \
     zirh_tmr_lib.v vex/VexRiscv_Lite.v zirh_vex_wrap.v \
     zirh_rom.v zirh_bus.v zirh_ecc_ram.v zirh_rs422.v zirh_uart_regs.v \
     zirh_soc.v zirh_boot_ctrl.v zirh_isp_rx.v zirh_jtag_dm.v \

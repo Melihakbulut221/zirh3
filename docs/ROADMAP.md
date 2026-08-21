@@ -1005,3 +1005,54 @@ stale top-level file list still naming the core this die retired
 in Cycle 14, and two warning classes now waived with their reasons
 on record. A guard that cannot fail guards nothing - this cycle
 that law was earned by the guard itself.
+
+## Cycle 36 (2026-08-21): width and depth for the wire trio
+
+The yardstick's SPI moves 4-to-16-bit words through sixteen-word
+FIFOs behind multiple chip selects; this die's trio spoke fixed
+bytes, one at a time, one select each. Cycle 36 closes all three
+gaps in one reworked engine. Words: WLEN (resetting to 8, so
+Cycle 32 software runs unchanged) sets the length, the engine
+left-justifies at launch so the MSB always lives at the same flop,
+and the half-bit count's mod-32 arithmetic lands 2*wlen-1 for
+every legal length including 16. Depth: the queue primitive from
+Cycle 35, twice per master - a TXD write queues, the engine drains
+on its own under whatever select software holds, and the reply
+that arrives to a full queue is dropped with OE sticky, the UART's
+law. Selects: CSSEL steers the SAME software-owned assert to one
+of four decoded lines; the three extra lines per master lease
+PORTA pins 18 through 26 only under MCS, and with MCS clear the
+block drives exactly the one pin it always drove.
+
+The cycle's lesson was a phase subtlety the block suite caught on
+its first run: the final edge of a CPHA-1 word is itself a
+sampling edge, and a queue that takes the shift register's CURRENT
+value on that edge misses the last bit - mode 3 replies arrived
+right-shifted by one. The queue takes the register's NEXT value
+(sh_d) now, which is identical for CPHA 0 where the last sample
+came an edge earlier. The through-the-die proof paid a bench toll
+of its own: an expected-value constant built as lui-plus-addi with
+an immediate below -2048 wrapped into the wrong register value -
+the addi sign lesson from the I2C cycle, relearned one immediate
+at a time.
+
+Cycle 36 closed the way Cycle 35 did: an adversarial review of its
+own diff, and again the review drew blood. The real defect was a
+HALF-LATCHED word length: the half-bit count was captured at
+launch but the receive mask was computed from the live register at
+the word's final edge - so software preparing the next, shorter
+word while this one was still on the wire would get this one's
+reply silently truncated, no flag, every suite green. The mask now
+travels WITH the word (latched at go into its own TMR register),
+and a test reconfigures WLEN mid-flight and demands every bit
+back. The coverage findings got the same treatment: both phases at
+every width, WLEN readback and its reset default, an overflow
+proof with sixteen DISTINCT replies popped after the loss to show
+the newcomer died and the elders lived, the repurposed queue-room
+interrupt line observed at its walls, and the die-level proof that
+MCS left clear leaves the nine extra-select pins to the GPIO
+block. The last find was a law, not a bug: at DIV 2 every reply
+comes back one bit stale, because the MISO listener's two-flop
+synchronizer lags exactly one half-bit at that speed - reads need
+DIV 3 or more, now written at the block's front door. A constraint
+measured is a constraint owned.

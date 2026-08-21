@@ -600,3 +600,30 @@ requirements:
       old newest-byte-overwrite law is repealed and the repeal is
       tested; guard measured 432 flops for the primitive, 15
       replicas / 1137 flops for the UART, top at 44279
+  - id: Z3-R45
+    text: The SPI trio shall carry the yardstick's width and depth -
+      word lengths of 4 to 16 bits with WLEN resetting to 8, a
+      sixteen-deep TMR'd FIFO on each direction so bursts fly under
+      one held chip select, an OE flag for the reply that met a full
+      queue, and four decoded chip-select lines steered by CSSEL,
+      software-owned as ever, reaching pins only under MCS.
+    tests:
+      - test/test_spi.py
+      - test/test_top_spi.py
+    evidence: the block suite proves 4, 12 and 16 bit words full
+      duplex both directions, a three-word burst draining in order
+      under one select, the seventeenth unread reply lost with OE
+      sticky and W1C, and CSSEL lowering exactly the chosen line
+      only under MCS; the through-the-die suite adds a 12-bit word
+      through the pin boundary with the select riding a leased
+      extra pin while the classic line stays high; the phase lesson
+      recorded - the final edge of a CPHA-1 word is itself a
+      sampling edge, so the queue takes the register's NEXT value;
+      the review round then hardened the laws: the receive mask is
+      LATCHED at launch so a WLEN write cannot truncate the word in
+      flight (proven by reconfiguring mid-transfer), both phases now
+      run at every width, WLEN readback and its reset default are
+      read, the overflow proof uses distinct replies and pops the
+      survivors, and the DIV >= 3 read law is recorded - a two-flop
+      listener needs a half-bit longer than its own lag; guard
+      measured 15 replicas / 1902 flops, top at 49493

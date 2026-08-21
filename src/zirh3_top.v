@@ -220,7 +220,9 @@ module zirh3_top #(
     wire [23:0] tm_pwm, tm_alt;
     wire [31:0] tm_rdt_int, spi_rdt [0:2];
     wire        tm_ack_int;
-    wire [2:0]  spi_ack, spi_err, spi_sck, spi_mosi, spi_csn, spi_lease;
+    wire [2:0]  spi_ack, spi_err, spi_sck, spi_mosi, spi_lease;
+    wire [11:0] spi_csn;               // four decoded selects per master
+    wire [2:0]  spi_mcs_lease;
     wire [31:0] u1_rdt;
     wire        u1_ack, u1_err, u1_tx, u1_lease;
     wire        s7_tm_cyc;
@@ -406,13 +408,17 @@ module zirh3_top #(
     wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
     wire [3:0] i2c_pull  = {i2c1_sda_pull, i2c1_scl_pull,
                             i2c0_sda_pull, i2c0_scl_pull};
-    assign gpio_a_o  = {gpio_a_o_int[31:18],
+    assign gpio_a_o  = {gpio_a_o_int[31:27],
+                        (gpio_a_o_int[26:18] & ~mcs_pins)
+                        | (mcs_pins & mcs_drive),
                         gpio_a_o_int[17],
                         u1_lease ? u1_tx : gpio_a_o_int[16],
                         (gpio_a_o_int[15:4] & ~spi_lease_pins)
                         | (spi_lease_pins & spi_drive),
                         gpio_a_o_int[3:0] & ~i2c_lease};
-    assign gpio_a_oe = {gpio_a_oe_int[31:18],
+    assign gpio_a_oe = {gpio_a_oe_int[31:27],
+                        (gpio_a_oe_int[26:18] & ~mcs_pins)
+                        | mcs_pins,
                         gpio_a_oe_int[17] & ~u1_lease,
                         gpio_a_oe_int[16] | u1_lease,
                         (gpio_a_oe_int[15:4] & ~spi_lease_pins)
@@ -477,7 +483,8 @@ module zirh3_top #(
             .rdt_o(spi_rdt[gs]), .ack_o(spi_ack[gs]),
             .sck_o(spi_sck[gs]), .mosi_o(spi_mosi[gs]),
             .miso_i(gpio_a_i[4 + 4*gs + 2]),
-            .cs_n_o(spi_csn[gs]), .lease_o(spi_lease[gs]),
+            .cs_n_o(spi_csn[gs*4 +: 4]), .lease_o(spi_lease[gs]),
+            .mcs_lease_o(spi_mcs_lease[gs]),
             .rdy_o(spi_rdy[gs]),
             .err_o(spi_err[gs]));
     end
@@ -488,9 +495,16 @@ module zirh3_top #(
         spi_lease[1], 1'b0, spi_lease[1], spi_lease[1],
         spi_lease[0], 1'b0, spi_lease[0], spi_lease[0]};
     wire [11:0] spi_drive = {
-        spi_csn[2], 1'b0, spi_mosi[2], spi_sck[2],
-        spi_csn[1], 1'b0, spi_mosi[1], spi_sck[1],
+        spi_csn[8], 1'b0, spi_mosi[2], spi_sck[2],
+        spi_csn[4], 1'b0, spi_mosi[1], spi_sck[1],
         spi_csn[0], 1'b0, spi_mosi[0], spi_sck[0]};
+    // the EXTRA selects: three PORTA pins per master above the
+    // classic lease, owned only while that master's MCS is set -
+    // spi0 on [20:18], spi1 on [23:21], spi2 on [26:24]
+    wire [8:0] mcs_pins = {{3{spi_mcs_lease[2]}},
+                           {3{spi_mcs_lease[1]}},
+                           {3{spi_mcs_lease[0]}}};
+    wire [8:0] mcs_drive = {spi_csn[11:9], spi_csn[7:5], spi_csn[3:1]};
 
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
