@@ -30,6 +30,7 @@ units:
 	$(MAKE) -C test -B -f Makefile.gpio
 	$(MAKE) -C test -B -f Makefile.timer
 	$(MAKE) -C test -B -f Makefile.i2c
+	$(MAKE) -C test -B -f Makefile.spi
 
 sv:
 	$(MAKE) -C test -f Makefile.svs boot

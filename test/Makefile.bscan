@@ -21,7 +21,7 @@ $(BUILD)/bscan.vvp: tb_bscan.v $(SRC_DIR)/zirh3_top.v $(wildcard $(SRC_DIR)/zirh
 	  $(SRC_DIR)/zirh_clkobs.v $(SRC_DIR)/zirh_por_ro.v \
 	  $(SRC_DIR)/zirh_sram_bist.v $(SRC_DIR)/zirh_sram39.v \
 	  $(SRC_DIR)/zirh_tmr_ff32.v $(SRC_DIR)/zirh_hk.v $(SRC_DIR)/zirh_tlm2.v \
-	  $(SRC_DIR)/zirh_mbist.v $(SRC_DIR)/zirh_gpio.v $(SRC_DIR)/zirh_timer.v $(SRC_DIR)/zirh_i2c.v $(SRC_DIR)/zirh_bank64.v \
+	  $(SRC_DIR)/zirh_mbist.v $(SRC_DIR)/zirh_gpio.v $(SRC_DIR)/zirh_timer.v $(SRC_DIR)/zirh_i2c.v $(SRC_DIR)/zirh_spi.v $(SRC_DIR)/zirh_bank64.v \
 	  $(SRC_DIR)/zirh3_top.v
 clean:
 	rm -rf $(BUILD)

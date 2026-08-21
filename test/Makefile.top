@@ -31,6 +31,7 @@ VERILOG_SOURCES += $(SRC_DIR)/zirh_mbist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_gpio.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_timer.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_i2c.v
+VERILOG_SOURCES += $(SRC_DIR)/zirh_spi.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_bank64.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram_bist.v
 VERILOG_SOURCES += $(SRC_DIR)/zirh_sram39.v

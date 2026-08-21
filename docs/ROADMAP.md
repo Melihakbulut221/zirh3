@@ -869,3 +869,25 @@ an addi immediate is NEGATIVE - the sign bit of a 12-bit constant,
 the oldest RISC-V lesson there is, now paid for and recorded. The
 interface ledger reads: GPIO matched, timers matched, I2C matched;
 general SPI and the second UART remain, named and priced.
+
+## Cycle 32 (2026-08-21): three masters and the edges that matter
+
+The SPI column closes at the yardstick's count. Three full-duplex
+masters take slot 7's upper half through the same one-bit split the
+I2C pair proved, and lease PORTA's next twelve pins - SCK, MOSI and
+CS driven, MISO listening - under the discipline that is now house
+style: an enabled controller's pins are its pins. All four clock
+modes, and a chip select that belongs to SOFTWARE, because auto-CS
+is a guess about a protocol the controller cannot know.
+
+The cycle's lessons were all about edges. MOSI must advance on the
+NON-sampling edge - a wire that moves when the slave looks races
+every device on the bus - so the out bit got its own register. The
+idle clock IS the polarity, so a CPOL change reaches the pin before
+the next arm, not after. And two bench-side truths: a slave is deaf
+while deselected, and configure-then-select is not etiquette but
+correctness - flipping CPOL in the write that asserts CS hands the
+slave a config edge dressed as data. The through-the-die program
+paid nothing at all: the addi sign lesson from the I2C cycle built
+0x7800 correctly on the first try. One interface column remains:
+the second UART, named and priced.

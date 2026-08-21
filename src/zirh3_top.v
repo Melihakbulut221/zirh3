@@ -213,6 +213,11 @@ module zirh3_top #(
     wire [31:0] tm_rdt;
     wire        tm_ack, tm_err, tm_irq;
     wire [23:0] tm_pwm, tm_alt;
+    wire [31:0] tm_rdt_int, spi_rdt [0:2];
+    wire        tm_ack_int;
+    wire [2:0]  spi_ack, spi_err, spi_sck, spi_mosi, spi_csn, spi_lease;
+    wire        s7_tm_cyc;
+    wire [2:0]  s7_spi_cyc;
     wire [23:0] gpio_b_o_int, gpio_b_oe_int;
     wire        bf_cyc, bf_ack;
     wire [31:0] bf_adr, bf_rdt;
@@ -382,9 +387,13 @@ module zirh3_top #(
     wire [3:0] i2c_lease = {i2c1_lease, i2c1_lease, i2c0_lease, i2c0_lease};
     wire [3:0] i2c_pull  = {i2c1_sda_pull, i2c1_scl_pull,
                             i2c0_sda_pull, i2c0_scl_pull};
-    assign gpio_a_o  = {gpio_a_o_int[31:4],
+    assign gpio_a_o  = {gpio_a_o_int[31:16],
+                        (gpio_a_o_int[15:4] & ~spi_lease_pins)
+                        | (spi_lease_pins & spi_drive),
                         gpio_a_o_int[3:0] & ~i2c_lease};
-    assign gpio_a_oe = {gpio_a_oe_int[31:4],
+    assign gpio_a_oe = {gpio_a_oe_int[31:16],
+                        (gpio_a_oe_int[15:4] & ~spi_lease_pins)
+                        | spi_lease_pins,
                         (gpio_a_oe_int[3:0] & ~i2c_lease)
                         | (i2c_lease & i2c_pull)};
 
@@ -395,14 +404,56 @@ module zirh3_top #(
     // same pins regardless of who drives them.
     zirh_timer u_timer (
         .clk(clk), .rst_n(sys_rst_n),
-        .cyc_i(s7_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
-        .rdt_o(tm_rdt), .ack_o(tm_ack),
+        .cyc_i(s7_tm_cyc), .adr_i(s_adr), .dat_i(s_dat), .we_i(s_we),
+        .rdt_o(tm_rdt_int), .ack_o(tm_ack_int),
         .pwm_o(tm_pwm), .alt_o(tm_alt), .cap_i(gpio_b_i),
         .timer_irq_o(tm_irq),
         .err_o(tm_err));
 
     assign gpio_b_o  = (tm_alt & tm_pwm) | (~tm_alt & gpio_b_o_int);
     assign gpio_b_oe = tm_alt | gpio_b_oe_int;
+
+    // --- the SPI trio: slot 7's upper half, PORTA[15:4] leased --------------
+    // Same shape as the I2C split: adr[11] separates the timer bank
+    // from the SPI windows, adr[9:8] picks the controller (0x7800,
+    // 0x7900, 0x7A00). Push-pull pins per controller - SCK, MOSI and
+    // CS drive when leased, MISO listens on the third pin.
+    assign s7_tm_cyc     = s7_cyc & ~s_adr[11];
+    assign s7_spi_cyc[0] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd0);
+    assign s7_spi_cyc[1] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd1);
+    assign s7_spi_cyc[2] = s7_cyc &  s_adr[11] & (s_adr[9:8] == 2'd2);
+    assign tm_rdt = s_adr[11]
+        ? ((s_adr[9:8] == 2'd0) ? spi_rdt[0] :
+           (s_adr[9:8] == 2'd1) ? spi_rdt[1] : spi_rdt[2])
+        : tm_rdt_int;
+    assign tm_ack = s_adr[11]
+        ? ((s_adr[9:8] == 2'd0) ? spi_ack[0] :
+           (s_adr[9:8] == 2'd1) ? spi_ack[1] : spi_ack[2])
+        : tm_ack_int;
+
+    genvar gs;
+    generate
+    for (gs = 0; gs < 3; gs = gs + 1) begin : g_spi
+        zirh_spi u_spi (
+            .clk(clk), .rst_n(sys_rst_n),
+            .cyc_i(s7_spi_cyc[gs]), .adr_i(s_adr), .dat_i(s_dat),
+            .we_i(s_we),
+            .rdt_o(spi_rdt[gs]), .ack_o(spi_ack[gs]),
+            .sck_o(spi_sck[gs]), .mosi_o(spi_mosi[gs]),
+            .miso_i(gpio_a_i[4 + 4*gs + 2]),
+            .cs_n_o(spi_csn[gs]), .lease_o(spi_lease[gs]),
+            .err_o(spi_err[gs]));
+    end
+    endgenerate
+
+    wire [11:0] spi_lease_pins = {
+        spi_lease[2], 1'b0, spi_lease[2], spi_lease[2],
+        spi_lease[1], 1'b0, spi_lease[1], spi_lease[1],
+        spi_lease[0], 1'b0, spi_lease[0], spi_lease[0]};
+    wire [11:0] spi_drive = {
+        spi_csn[2], 1'b0, spi_mosi[2], spi_sck[2],
+        spi_csn[1], 1'b0, spi_mosi[1], spi_sck[1],
+        spi_csn[0], 1'b0, spi_mosi[0], spi_sck[0]};
 
     // route the shared ack/data back to whichever master owns the cycle
     assign sba_rdt = bank_rdt;
@@ -455,7 +506,7 @@ module zirh3_top #(
 
     wire err_int = bl_err | jtag_err | gate_err | clkobs_err | soc_err
                  | bank_err | hk_infra | tlm_err | mb_err | gp_err | tm_err
-                 | i2c0_err | i2c1_err;
+                 | i2c0_err | i2c1_err | (|spi_err);
 
     // --- boundary scan at the pins (F28) ------------------------------------
     // SAMPLE captures the functional pin values through bs_cap; EXTEST

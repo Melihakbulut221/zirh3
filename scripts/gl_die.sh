@@ -56,7 +56,7 @@ if run_stage gates; then
     for f in zirh_tmr_lib zirh_tmr_ff32 zirh_rom zirh_bus zirh_ecc_ram \
              zirh_rs422 zirh_uart_regs zirh_soc zirh_boot_ctrl zirh_isp_rx \
              zirh_jtag_dm zirh_dbg_gate zirh_clkobs zirh_por_ro zirh_hk \
-             zirh_tlm2 zirh_mbist zirh_gpio zirh_timer zirh_i2c zirh_bank64 zirh_sram_bist zirh_sram39; do
+             zirh_tlm2 zirh_mbist zirh_gpio zirh_timer zirh_i2c zirh_spi zirh_bank64 zirh_sram_bist zirh_sram39; do
         RTL_FILES="${RTL_FILES} ${ROOT}/src/${f}.v"
     done
     RTL_FILES="${RTL_FILES} ${ROOT}/src/zirh3_top.v"

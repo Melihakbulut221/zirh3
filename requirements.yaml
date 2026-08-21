@@ -525,3 +525,19 @@ requirements:
       pins sees exactly the START and the byte; guard measured 21
       replicas / 214 flops per master, top at 42524 flops; subset
       recorded: master only, no slave mode
+  - id: Z3-R41
+    text: The die shall carry three SPI masters at the yardstick's
+      count - full-duplex 8-bit engines with all four CPOL/CPHA modes
+      and software-owned chip select on PORTA alternate functions,
+      every register TMR'd - reachable at slot 7's sub-decoded upper
+      half.
+    tests:
+      - test/test_spi.py
+      - test/test_top_spi.py
+    evidence: block suite proves mode-0 full duplex both directions
+      across two bytes of one CS frame, the CS pin under software,
+      and mode 3 idling high and transferring both ways; the
+      through-the-die suite ISP-loads a program that clocks a byte at
+      the bench slave and floods its verdict on the readback; guard
+      measured 12 replicas / 164 flops per master, top at 43010
+      flops; subset recorded: master only, 8-bit words
