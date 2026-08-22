@@ -191,7 +191,7 @@ jobs:
       - name: Download the stitched final artifact
         run: |
           for i in 1 2 3 4; do
-            gh run download 32271803469 -R ${{ github.repository }} \
+            gh run download 32573379231 -R ${{ github.repository }} \
               -n pnr_vextmr -D tmr_dl && break
             echo "download attempt $i failed; retrying in 30s"
             rm -rf tmr_dl; sleep 30
@@ -333,11 +333,11 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
-      - name: Download the round-2 final artifact
+      - name: Download the stitched final artifact (Cycle 46 refresh)
         run: |
           mkdir -p confirm_in confirm_out
           for i in 1 2 3 4; do
-            gh run download 32271803469 -R ${{ github.repository }} \
+            gh run download 32573379231 -R ${{ github.repository }} \
               -n pnr_vextmr -D tmr_dl && break
             echo "download attempt $i failed; retrying in 30s"
             rm -rf tmr_dl; sleep 30
