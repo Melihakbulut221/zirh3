@@ -13,5 +13,8 @@ COCOTB_TEST_MODULES = test_i2c
 
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
+# a short stretch limit so the wedge test finishes in simulation time;
+# flight keeps the generous default
+COMPILE_ARGS += -Pzirh_i2c.STRETCH_LOG2=4
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

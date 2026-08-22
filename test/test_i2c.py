@@ -440,3 +440,83 @@ async def test_repeated_start_switches_direction(dut):
 
     assert int(dut.err_o.value) == 0
     print("I2C slave rs: PASS")
+
+
+@cocotb.test()
+async def test_a_wedged_bus_does_not_take_the_master_with_it(dut):
+    """Cycle 42: a slave that never releases SCL must not hang us.
+
+    The stretch wait used to reload its counter forever, and CTRL.en=0
+    did not clear the engine - so one latched-up device on the bus took
+    the controller with it, tip high, no software escape. The wait is
+    finite now: the leg is abandoned, the verdict is sticky, and the
+    controller is immediately usable again.
+    """
+    await sl_bring_up(dut)
+    w = Wire(dut)
+    await bus_write(dut, DIV, 4)
+    await bus_write(dut, CTRL, 1)
+
+    # the bench holds SCL LOW and never lets go
+    w.scl = 0
+    w.sda = 1
+    await settle(dut, w, n=4)
+
+    await bus_write(dut, CMD, 0x5)               # STA | WR
+    assert (await bus_read(dut, STAT)) & 1, "the leg must start"
+
+    for _ in range(4000):
+        await settle(dut, w, n=4)
+        if (await bus_read(dut, STAT)) & 1 == 0:
+            break
+    stat = await bus_read(dut, STAT)
+    assert stat & 1 == 0, "the master must ABANDON a bus that never ticks"
+    assert stat & 4, "and it must say why - the stretch verdict is sticky"
+    assert int(dut.scl_pull_o.value) == 0, "and let the clock line go"
+
+    await bus_write(dut, STAT, 4)
+    assert (await bus_read(dut, STAT)) & 4 == 0, "the verdict is W1C"
+
+    # the bus recovers and so do we: a normal leg runs afterwards
+    w.scl = 1
+    await settle(dut, w, n=8)
+    await bus_write(dut, SADR, 0x80 | 0x42)      # answer ourselves
+    await bus_write(dut, CTRL, 0)
+    await m_start(dut, w)
+    assert await m_byte_out(dut, w, (0x42 << 1) | 0), \
+        "the pins must work again after the wedge"
+    await m_stop(dut, w)
+
+    assert int(dut.err_o.value) == 0
+    print("I2C wedge: PASS (abandoned, flagged, cleared, recovered)")
+
+
+@cocotb.test()
+async def test_disabling_the_master_clears_the_engine(dut):
+    """A switched-off controller is idle, not frozen mid-leg."""
+    await sl_bring_up(dut)
+    w = Wire(dut)
+    await bus_write(dut, DIV, 8)
+    await bus_write(dut, CTRL, 1)
+
+    w.scl = 1
+    w.sda = 1
+    await settle(dut, w, n=4)
+    await bus_write(dut, CMD, 0x5)
+    assert (await bus_read(dut, STAT)) & 1, "the leg must start"
+
+    await bus_write(dut, CTRL, 0)                # switch it off mid-leg
+    await ClockCycles(dut.clk, 4)
+    assert (await bus_read(dut, STAT)) & 1 == 0, \
+        "a disabled controller must not stay in progress"
+    assert int(dut.scl_pull_o.value) == 0 and int(dut.sda_pull_o.value) == 0, \
+        "and must hold neither wire"
+
+    # re-enabling starts FRESH: no resumed half-transaction
+    await bus_write(dut, CTRL, 1)
+    await ClockCycles(dut.clk, 4)
+    assert (await bus_read(dut, STAT)) & 1 == 0, \
+        "a re-enable must not resume a transaction the bus forgot"
+
+    assert int(dut.err_o.value) == 0
+    print("I2C disable: PASS (engine idle, wires free, no resume)")

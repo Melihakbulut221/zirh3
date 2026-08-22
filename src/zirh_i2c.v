@@ -31,7 +31,9 @@
 //   +0x08 CMD  {NACK,RD,WR,STO,STA}   write starts the leg
 //   +0x0C TXD
 //   +0x10 RXD  (RO)
-//   +0x14 STAT {rxack, tip}  (RO; rxack = 1 means slave NACKed)
+//   +0x14 STAT {stretch_to, rxack, tip}   rxack = 1 means slave NACKed;
+//         stretch_to is sticky and write-1-to-clear - the leg was
+//         ABANDONED because the slave held SCL past the limit
 //   +0x18 SADR {en, addr[6:0]}          slave chair; en parks the master
 //   +0x1C SSTAT {tx_lvl[20:16], rx_lvl[12:8],
 //                ue[5], rx_full[3], tx_full[2],
@@ -43,7 +45,13 @@
 
 `default_nettype none
 
-module zirh_i2c (
+module zirh_i2c #(
+    // quarter-bit ticks a slave may hold the clock before the master
+    // gives up on the leg. Generous by default - a real device may
+    // stretch for milliseconds - but FINITE, which is the whole point:
+    // a bus that never lets go must not take the controller with it.
+    parameter integer STRETCH_LOG2 = 12
+) (
     input  wire        clk,
     input  wire        rst_n,
 
@@ -134,16 +142,19 @@ module zirh_i2c (
     wire [3:0]  bit_q;
     wire [15:0] dcnt_q;
     wire [7:0]  sh_q;
-    wire [1:0]  fl_q;                  // {rxack, tip}
+    wire [2:0]  fl_q;                  // {stretch_to, rxack, tip}
     wire        sdo_q;                 // sda value the engine presents
     reg  [2:0]  st_d;
     reg  [1:0]  ph_d;
     reg  [3:0]  bit_d;
     reg  [15:0] dcnt_d;
     reg  [7:0]  sh_d;
-    reg  [1:0]  fl_d;
+    reg  [2:0]  fl_d;
     reg         sdo_d;
-    wire e_st, e_ph, e_bit, e_dcnt, e_sh, e_fl, e_sdo;
+    wire e_st, e_ph, e_bit, e_dcnt, e_sh, e_fl, e_sdo, e_sto;
+    // how long the current stretch has lasted, in quarter-bit ticks
+    wire [STRETCH_LOG2-1:0] sto_q;
+    reg  [STRETCH_LOG2-1:0] sto_d;
 
     wire tick   = (dcnt_q == 16'd0);
     wire ph_hi  = ph_q[1];             // phases 2,3: clock released
@@ -155,13 +166,27 @@ module zirh_i2c (
         sh_d   = sh_q;
         fl_d   = fl_q;
         sdo_d  = sdo_q;
+        sto_d  = sto_q;
         dcnt_d = tick ? div_q : dcnt_q - 16'd1;
 
         // phase 2 waits for the RELEASED clock to actually rise
         if (st_q != S_IDLE && tick) begin
-            if (ph_q == 2'd2 && !scl_in)
+            if (ph_q == 2'd2 && !scl_in) begin
                 dcnt_d = div_q;                     // stretched: wait
-            else begin
+                sto_d  = sto_q + {{(STRETCH_LOG2-1){1'b0}}, 1'b1};
+                if (&sto_q) begin
+                    // the slave has held the clock past the limit. Let
+                    // the leg go: release the wire, drop tip so software
+                    // can command again, and SAY so in a sticky flag.
+                    // Waiting forever is not patience, it is a hang.
+                    st_d    = S_IDLE;
+                    fl_d[0] = 1'b0;
+                    fl_d[2] = 1'b1;
+                    sdo_d   = 1'b1;
+                    sto_d   = {STRETCH_LOG2{1'b0}};
+                end
+            end else begin
+                sto_d = {STRETCH_LOG2{1'b0}};
                 ph_d = ph_q + 2'd1;                 // wraps 3 -> 0
                 if (ph_q == 2'd2) begin             // sampling edge
                     if (st_q == S_BITS && c_rd)
@@ -207,6 +232,10 @@ module zirh_i2c (
             end
         end
 
+        // STAT is write-1-to-clear for the sticky stretch verdict
+        if (wr_fire & (reg_sel == 4'd5))
+            fl_d[2] = fl_q[2] & ~dat_i[2];
+
         // command acceptance: from idle, one leg per CMD write
         if (cmd_fire && st_q == S_IDLE) begin
             fl_d[0] = 1'b1;                         // tip
@@ -221,6 +250,18 @@ module zirh_i2c (
                 sdo_d = dat_i[2] ? txd_q[7] : 1'b1;
             end
         end
+
+        // a controller that is switched off - or parked behind the
+        // slave chair - is IDLE. Leaving the engine frozen mid-leg
+        // meant a re-enable resumed a transaction the bus had long
+        // forgotten, and gave software no way out of a wedge at all.
+        if (!ctrl_q || sl_en) begin
+            st_d    = S_IDLE;
+            ph_d    = 2'd0;
+            fl_d[0] = 1'b0;
+            sdo_d   = 1'b1;
+            sto_d   = {STRETCH_LOG2{1'b0}};
+        end
     end
 
     zirh_tmr_reg #(.WIDTH(3))  u_st   (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
@@ -233,8 +274,11 @@ module zirh_i2c (
         .d_i(dcnt_d), .q_o(dcnt_q), .err_o(e_dcnt));
     zirh_tmr_reg #(.WIDTH(8))  u_sh   (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(sh_d), .q_o(sh_q), .err_o(e_sh));
-    zirh_tmr_reg #(.WIDTH(2))  u_fl   (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+    zirh_tmr_reg #(.WIDTH(3))  u_fl   (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(fl_d), .q_o(fl_q), .err_o(e_fl));
+    zirh_tmr_reg #(.WIDTH(STRETCH_LOG2)) u_sto (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(sto_d), .q_o(sto_q), .err_o(e_sto));
     zirh_tmr_reg #(.WIDTH(1))  u_sdo  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(sdo_d), .q_o(sdo_q), .err_o(e_sdo));
 
@@ -432,12 +476,12 @@ module zirh_i2c (
                              2'b00, sfl_q[2], 1'b0,
                              srf_full, stf_full, ~srf_empty, sfl_q[0]} :
         (reg_sel == 4'd8) ? {24'h0, srf_rdat} :
-        (reg_sel == 4'd5) ? {30'h0, fl_q} :
-        {30'h0, fl_q};
+        (reg_sel == 4'd5) ? {29'h0, fl_q} :
+        {29'h0, fl_q};
 
     assign ack_o = cyc_i;
     assign err_o = e_ctrl | e_div | e_cmd | e_txd | e_st | e_ph
-                 | e_bit | e_dcnt | e_sh | e_fl | e_sdo
+                 | e_bit | e_dcnt | e_sh | e_fl | e_sdo | e_sto
                  | e_sadr | e_stf | e_srf | e_sst | e_ssh
                  | e_sbit | e_sfl | e_ssda;
 
