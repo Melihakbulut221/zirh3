@@ -127,10 +127,24 @@ module zirh_sram39 #(
     localparam [1:0] S_IDLE = 2'd0, S_RD = 2'd1,
                  S_SCRUB_RD = 2'd2, S_SCRUB_FIX = 2'd3;
 
-    reg [1:0] state;
+    // Cycle 41: the transaction path is VOTED. The scrubber's counter
+    // and address were triplicated from the start - "an upset in the
+    // scrubber must not become a scribble engine" - but the FSM that
+    // answers the bus was left plain, and that is the more dangerous
+    // half: an upset that raises the ack flop in IDLE returns the
+    // stale read register with a VALID ack and no error, and because
+    // ~ack_q also gates issue_rd the real read never happens. SECDED
+    // guards the array; nothing guarded the wrapper that hands the
+    // word over, on the path the CPU fetches instructions through.
+    wire [1:0] state;
+    reg  [1:0] state_d;
+    wire       state_err;
+    reg        evt_corr_d, evt_uncorr_d, evt_scrub_corr_d;
     // the row a read was ISSUED to - decode and writeback must use the
     // captured row, not a bus address that may have moved on
-    reg  [AW-1:0] row_q;
+    wire [AW-1:0] row_q;
+    reg  [AW-1:0] row_d;
+    wire          row_err;
     wire [AW-1:0] widx = adr_i[AW+1:2];
 
     wire full_wr = &sel_i;
@@ -191,7 +205,8 @@ module zirh_sram39 #(
         .fail_map_o(bist_fail_map_o), .err_o(bist_err));
     assign bist_fail_adr_o = {{(12-AW){1'b0}}, bist_fail_adr_w};
 
-    assign err_o = div_err | pend_err | sadr_err | bist_err;
+    assign err_o = div_err | pend_err | sadr_err | bist_err
+                 | state_err | row_err | rdt_err | ack_err;
 
     // --- the five slices ----------------------------------------------------
     // read data returns one cycle after ren; write is same-cycle
@@ -295,53 +310,80 @@ module zirh_sram39 #(
                   ^ amask(wr_full ? widx : row_q);
 
     // --- FSM + registered outputs ------------------------------------------
-    reg [31:0] rdt_q;
-    reg        ack_q;
+    wire [31:0] rdt_q;
+    reg  [31:0] rdt_d;
+    wire        rdt_err;
+    wire        ack_q;
+    reg         ack_d;
+    wire        ack_err;
 
+    always @* begin
+        state_d          = state;
+        row_d            = row_q;
+        rdt_d            = rdt_q;
+        ack_d            = 1'b0;
+        evt_corr_d       = 1'b0;
+        evt_uncorr_d     = 1'b0;
+        evt_scrub_corr_d = 1'b0;
+        case (state)
+            S_IDLE: begin
+                if (wr_full)       ack_d = 1'b1;
+                else if (issue_rd) begin
+                    row_d   = widx;
+                    state_d = S_RD;
+                end else if (scrub_take) begin
+                    row_d   = sadr_q;
+                    state_d = S_SCRUB_RD;
+                end
+            end
+            S_RD: begin
+                // decode cycle: data + ack for reads and RMWs; the
+                // scrub or RMW write strobes the port this same
+                // cycle, so IDLE is safe to reenter immediately
+                rdt_d        = rd_data;
+                ack_d        = 1'b1;
+                evt_corr_d   = had_corr;
+                evt_uncorr_d = uncorr;
+                state_d      = S_IDLE;
+            end
+            S_SCRUB_RD: state_d = S_SCRUB_FIX;   // read in flight
+            S_SCRUB_FIX: begin
+                // repair (if any) strobes this cycle at row_q;
+                // no ack, the bus never sees the beat
+                evt_scrub_corr_d = had_corr;
+                evt_uncorr_d     = uncorr;
+                state_d          = S_IDLE;
+            end
+            default: state_d = S_IDLE;   // safe-state trap
+        endcase
+    end
+
+    zirh_tmr_reg #(.WIDTH(2)) u_state (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(state_d), .q_o(state), .err_o(state_err));
+    zirh_tmr_reg #(.WIDTH(AW)) u_row (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(row_d), .q_o(row_q), .err_o(row_err));
+    zirh_tmr_reg #(.WIDTH(32)) u_rdt (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(rdt_d), .q_o(rdt_q), .err_o(rdt_err));
+    zirh_tmr_reg #(.WIDTH(1)) u_ack (
+        .clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(ack_d), .q_o(ack_q), .err_o(ack_err));
+
+    // the telemetry pulses stay plain by design: a flipped event bit
+    // costs a spurious or missed counter tick, never a wrong word, and
+    // the events are already the observability channel rather than the
+    // data path. Recorded, like every other honest subset on this die.
     always @(posedge clk) begin
         if (!rst_n) begin
-            state            <= S_IDLE;
-            row_q            <= 10'd0;
-            ack_q            <= 1'b0;
             evt_corr_o       <= 1'b0;
             evt_uncorr_o     <= 1'b0;
             evt_scrub_corr_o <= 1'b0;
         end else begin
-            ack_q            <= 1'b0;
-            evt_corr_o       <= 1'b0;
-            evt_uncorr_o     <= 1'b0;
-            evt_scrub_corr_o <= 1'b0;
-            case (state)
-                S_IDLE: begin
-                    if (wr_full)       ack_q <= 1'b1;
-                    else if (issue_rd) begin
-                        row_q <= widx;
-                        state <= S_RD;
-                    end else if (scrub_take) begin
-                        row_q <= sadr_q;
-                        state <= S_SCRUB_RD;
-                    end
-                end
-                S_RD: begin
-                    // decode cycle: data + ack for reads and RMWs; the
-                    // scrub or RMW write strobes the port this same
-                    // cycle, so IDLE is safe to reenter immediately
-                    rdt_q        <= rd_data;
-                    ack_q        <= 1'b1;
-                    evt_corr_o   <= had_corr;
-                    evt_uncorr_o <= uncorr;
-                    state        <= S_IDLE;
-                end
-                S_SCRUB_RD: state <= S_SCRUB_FIX;   // read in flight
-                S_SCRUB_FIX: begin
-                    // repair (if any) strobes this cycle at row_q;
-                    // no ack, the bus never sees the beat
-                    evt_scrub_corr_o <= had_corr;
-                    evt_uncorr_o     <= uncorr;
-                    state            <= S_IDLE;
-                end
-                default: state <= S_IDLE;   // safe-state trap
-            endcase
+            evt_corr_o       <= evt_corr_d;
+            evt_uncorr_o     <= evt_uncorr_d;
+            evt_scrub_corr_o <= evt_scrub_corr_d;
         end
     end
 

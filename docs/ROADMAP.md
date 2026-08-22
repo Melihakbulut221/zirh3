@@ -1266,3 +1266,42 @@ measurement - a full-die power analysis on the routed netlist, and
 an SSO simulation with the real package and pad models. Until those
 exist, twenty-two is a defensible budget, not a result, and the
 document says so in those words.
+
+## Cycle 41 (2026-08-22): the wrapper the array trusted
+
+Cycle 39's audit left a ledger of things it found and did not fix.
+This cycle takes the worst of them. zirh_sram39 protects its
+storage with SECDED and its scrubber with TMR - the header even
+says why, "an upset in the scrubber must not become a scribble
+engine" - but the FSM that answers the bus was plain registers:
+the state, the captured row, the read data and the acknowledge
+flop. That is the more dangerous half. Force the ack flop for one
+cycle while the machine sits idle and it returns the stale read
+register with a VALID acknowledge and err_o low; and because the
+same flop gates issue_rd, the real read never happens. On this die
+that path carries the CPU's instruction fetch, so the fault
+delivers a wrong INSTRUCTION dressed as a right one - the worst
+class of failure a rad-hard part can have, because every layer
+downstream believes it.
+
+The transaction path is voted now, mismatches folded into err_o
+beside the scrubber's. The telemetry pulses stay plain by decision
+rather than by oversight: a flipped event bit costs a counter tick,
+never a word, and that is written down where the other honest
+subsets are.
+
+The proof is a wound at the exact flop the audit forced. One
+wounded replica must be outvoted, the acknowledge must stay down,
+the words must come back true, and err_o must SAY it happened. The
+positive control is the escape-witness idea the ring theorem
+already uses: wound TWO replicas and the vote must break, because a
+single-replica pass proves nothing if the injection never reached
+the register. Writing that control taught the cycle its lesson -
+the first version sampled after the clock edge, by which time every
+replica had reloaded from the next-state value, so both checks were
+reading a wound that no longer existed. The wound is read inside
+the cycle it lives in now. And the two-replica escape on the ack
+flop turned out to trip the module's own embedded invariant and
+kill the run outright, which is a fine answer to "would anyone
+notice" but a poor control, so the control rides the read register
+instead.

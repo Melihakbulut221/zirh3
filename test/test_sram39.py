@@ -6,7 +6,8 @@ import random
 import cocotb
 import fsm_cov
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, NextTimeStep, ReadOnly, RisingEdge
+from cocotb.triggers import (ClockCycles, NextTimeStep, ReadOnly,
+                             RisingEdge, Timer)
 
 
 async def bus(dut, adr, we=0, dat=0, sel=0xF, timeout=16):
@@ -138,3 +139,89 @@ async def test_sram39_secded(dut):
     dut._log.info("sram39: roundtrip, per-slice correction, scrub-on-read, "
                   "double-bit detection, corrupted-merge, background "
                   "scrubber heal, wrong-row detection all good")
+
+
+@cocotb.test()
+async def test_the_transaction_path_survives_a_wound(dut):
+    """Cycle 41: the exact fault the audit found.
+
+    An upset that raises the ack flop while the FSM sits idle used to
+    hand the master the stale read register with a VALID ack and no
+    error - and because ~ack_q gates issue_rd, the real read never
+    happened. On this die that flop is on the CPU's instruction fetch
+    path, so it is a wrong INSTRUCTION delivered as if it were right.
+    The path is voted now: one wounded replica must be outvoted, the
+    word must be the true one, and err_o must SAY the upset happened.
+    """
+    cocotb.start_soon(Clock(dut.clk, 40, unit="ns").start())
+    dut.cyc_i.value = 0
+    dut.we_i.value = 0
+    dut.sel_i.value = 0
+    dut.bist_start_i.value = 0
+    dut.bist_mode_i.value = 0
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 4)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 4)
+
+    await bus(dut, 0x00, we=1, dat=0xCAFEF00D)
+    await bus(dut, 0x40, we=1, dat=0xDEADBEEF)
+    rdt, _, _ = await bus(dut, 0x00)
+    assert rdt == 0xCAFEF00D, f"plain read broke: {rdt:#x}"
+
+    # wound replica B of the ack register while the FSM is idle - the
+    # upset the audit reproduced, injected at the same flop
+    errs = []
+
+    async def watch_err():
+        while True:
+            await RisingEdge(dut.clk)
+            await ReadOnly()
+            if int(dut.err_o.value):
+                errs.append(1)
+
+    cocotb.start_soon(watch_err())
+
+    # the wound must be read IN the cycle it exists: en_i is tied high
+    # here, so every replica reloads from the next-state value at each
+    # edge - sample after the edge and the injection is already gone,
+    # which is a test that cannot fail
+    await RisingEdge(dut.clk)
+    await NextTimeStep()
+    dut.u_ack.u_ff_b.q_o.value = 1
+    await Timer(5, unit="ns")
+    assert int(dut.ack_o.value) == 0, \
+        "a single wounded replica must NOT produce a phantom ack"
+
+    # the machine still answers, and answers TRUE
+    rdt, _, _ = await bus(dut, 0x40)
+    assert rdt == 0xDEADBEEF, f"stale word after the wound: {rdt:#x}"
+    rdt, _, _ = await bus(dut, 0x00)
+    assert rdt == 0xCAFEF00D, f"stale word after the wound: {rdt:#x}"
+
+    assert errs, "the upset must be REPORTED, not silently outvoted"
+
+    # positive control, the escape-witness idea the ring theorem uses:
+    # wound TWO replicas and the vote MUST break. Without it the
+    # single-replica pass above could be a force that never reached
+    # the flop - a guard that cannot fail guards nothing. The control
+    # rides the READ register rather than the ack flop, because a
+    # two-replica ack escape trips the module's own a_ack_from_idle
+    # invariant and $fatals the run - which is itself the answer to
+    # "would anyone notice", but makes for a poor control.
+    rdt, _, _ = await bus(dut, 0x00)
+    assert rdt == 0xCAFEF00D
+    await RisingEdge(dut.clk)
+    await NextTimeStep()
+    dut.u_rdt.u_ff_b.q_o.value = 0
+    dut.u_rdt.u_ff_c.q_o.value = 0
+    await Timer(5, unit="ns")
+    assert int(dut.rdt_o.value) == 0, \
+        "two wounded replicas MUST escape - otherwise the injection " \
+        "never reached the register and the test above proved nothing"
+    await ClockCycles(dut.clk, 2)
+
+    # and the machine heals: the next transaction reloads all three
+    rdt, _, _ = await bus(dut, 0x40)
+    assert rdt == 0xDEADBEEF, f"no heal after the double wound: {rdt:#x}"
+    print("SRAM39 wound: PASS (one contained + reported, two escape, healed)")

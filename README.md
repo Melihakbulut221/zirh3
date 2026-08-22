@@ -37,7 +37,7 @@ checked, formal proofs run on every push):
 
 | block | role | proof |
 |---|---|---|
-| zirh_sram39 | 5-slice SECDED SRAM word (32+6+1 over five 1024x8 macros), background scrubber, address-in-ECC | test_sram39, f_amask, f_ecc |
+| zirh_sram39 | the sliced 39-bit SECDED array with a background scrubber - and since Cycle 41 a VOTED transaction path: state, captured row, read register and ack flop in TMR with mismatches in err_o, because an upset in the wrapper handed the CPU a stale word with a valid ack while the array itself was perfectly protected | test_sram39, f_amask, f_ecc |
 | zirh_sram_bist | march/pattern engine for the macro word | test_bist |
 | zirh_boot_ctrl | trusted loader: MAGIC/len/ver/CRC32 image, READ-BACK verify of the stored words, A/B banks, watchdog revert ladder, ISP | test_boot, SV scenario suite incl. the lying-memory case |
 | zirh_qspi | QSPI-MRAM controller, x1/x4, backpressure = SCK freeze | test_qspi |

@@ -723,3 +723,25 @@ requirements:
       routed netlist and an SSO simulation with the real package
       and pad models - are named as open items rather than implied
       to have been done
+  - id: Z3-R50
+    text: The SECDED array's TRANSACTION path shall be voted like its
+      scrubber - the FSM state, the captured row, the read register
+      and the ack flop in TMR registers whose mismatches reach err_o -
+      so that an upset in the wrapper cannot hand a master a stale
+      word with a valid acknowledge on the path the CPU fetches
+      instructions through.
+    tests:
+      - test/test_sram39.py
+    evidence: an audit found the scrubber triplicated from the start
+      while the bus-facing FSM stayed plain, and reproduced the
+      consequence - forcing the ack flop for one cycle returned the
+      stale read register with ack high, err_o low, and the real read
+      suppressed because the same flop gates issue_rd; the wound test
+      now injects at that exact flop and proves the vote holds the
+      phantom ack down while err_o reports the upset, with a
+      two-replica escape as the positive control (a single-replica
+      force that never reached the register would make the
+      containment check unfalsifiable) and a heal check after; the
+      telemetry event pulses stay plain by recorded decision - a
+      flipped event bit costs a counter tick, never a word; guard
+      measured 21 replicas / 366 flops per instance, top at 53219
