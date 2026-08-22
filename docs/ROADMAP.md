@@ -1364,3 +1364,42 @@ wrong, but a guard that was pointing somewhere other than where it
 claimed. The instrument that did not bite, the invariants compiled
 out of the runs that mattered, the ratio copied instead of derived,
 the proof of a retyped copy. Each one looked green.
+
+## Cycle 44 (2026-08-22): the storm reaches the other half
+
+The last finding on Cycle 39's ledger was about coverage rather
+than correctness: across 240 measured episodes the boot storm never
+selected bank B, never strapped host mode, never refused a
+signature and never raised a firmware sign-on. Three whole branches
+of the loader - the two-bank fallback ladder, the ISP re-entry, and
+the signature gate that top-level RTL hardwires true - rested on a
+handful of hand-written cases while the storm rolled over the same
+half of the machine, 120 episodes at a time, looking thorough.
+
+Four new episode kinds draw them now: a load into bank B with the
+fetch mux checked at the far bank, a host-mode reload arriving
+while the die is running and required to land in the INACTIVE bank
+without stopping it, an image with a perfect CRC that the signature
+refuses, and a sign-on racing a watchdog failure on the same edge -
+the regression for Cycle 39's ping-pong theorem, at storm level.
+Checks rose from 243 to 284.
+
+The host episode failed on its first run, and the failure was the
+SENDER, not the die. The storm's stream task sampled ready AFTER
+the clock edge and credited the next cycle's readiness to the byte
+it had already offered. That is harmless while ready holds steady
+and loses exactly one byte at every 0-to-1 edge - and the loader's
+ready does that exactly once, on the re-entry from RUN into HDR,
+which is the one path the storm had never drawn. The block suite's
+loader model had always spoken the handshake properly, which is why
+the RTL was right and looked wrong. A second sender defect came out
+with it: the verdict is a one-cycle pulse and the inter-byte gap
+loop was not watching for it, so a committed image could read as
+never-committed - a corruption report with no corruption behind it.
+
+Both are fixed in the sender. The RTL is unchanged this cycle,
+which is the honest result: the widening found nothing wrong with
+the die, and two things wrong with the instrument that had been
+measuring it. That makes four instruments corrected this week, and
+it is worth naming the pattern - every one of them was found by
+pointing the tool somewhere it had never been asked to look.

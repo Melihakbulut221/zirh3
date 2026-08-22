@@ -314,7 +314,13 @@ module zirh_boot_ctrl #(
                     end
                 end else if ((strap_q == 2'b11) & st_valid_i) begin
                     // ISP: a fresh image arrives while running - stage it
-                    // into the inactive bank (the running one is live)
+                    // into the inactive bank (the running one is live).
+                    // The waking byte is NOT consumed here: this state
+                    // raises no ready, so a transport that honours the
+                    // handshake re-offers it once HDR does. The block
+                    // suite's loader model proves that path; the storm's
+                    // simplified sender did not, which is what Cycle 44
+                    // actually found.
                     tgt_d   = ~pref_q;
                     bcnt_d  = 4'd0;
                     idx_d   = {IDXW{1'b0}};

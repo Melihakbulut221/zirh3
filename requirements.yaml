@@ -785,3 +785,27 @@ requirements:
       row pairs in one BMC step, and the unification is
       mutation-proven - restoring the old ten-bit fold in the include
       now FAILS the proof, where before it passed silently
+  - id: Z3-R53
+    text: The constrained-random boot storm shall reach the half of
+      the loader it had never drawn - the second bank, host-mode
+      re-entry while running, a refused signature verdict, and a
+      firmware sign-on racing a watchdog failure on the same edge -
+      and its sender shall honour the valid/ready contract it claims
+      to speak.
+    tests:
+      - test/sv/zirh_boot_fuzz_tb.sv
+    evidence: an audit measured 240 episodes in which bank B was
+      never selected, host mode never strapped, the signature never
+      refused and sign-on never raised, so three whole branches of
+      the loader rested on hand-written cases; four new episode
+      kinds now draw them, and the storm's check count rose from 243
+      to 284 with commits from 74 to 84; the host episode failed on
+      its first run and the failure was the SENDER, not the die - it
+      sampled ready after the clock edge and credited the next
+      cycle's readiness to the byte already offered, which is
+      harmless while ready holds steady and loses exactly one byte
+      at every 0-to-1 edge, and the loader's ready does that once,
+      on the re-entry from RUN into HDR, the one path never drawn;
+      a second bench defect surfaced with it - the verdict is a
+      one-cycle pulse and the gap loop was not watching, so a
+      committed image read as never-committed

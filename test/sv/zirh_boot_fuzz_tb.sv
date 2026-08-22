@@ -168,18 +168,37 @@ module zirh_boot_fuzz_tb;
   task stream(input integer stop_at, input integer timeout,
               input integer max_gap);
     integer i, t, g;
+    reg     took;
     begin
       acc_seen = 0; rej_seen = 0; i = 0; t = 0;
       while (i < stop_at && t < timeout) begin
+        // Offer the byte and read ready in the SAME cycle it is
+        // offered - that is what the loader's valid/ready contract
+        // means. Reading ready after the edge asks about the NEXT
+        // cycle, which is harmless while ready holds steady and loses
+        // a byte at every 0->1 edge; the loader's ready does exactly
+        // that on the host-mode re-entry, and that one unexercised
+        // path is where the storm's sender had been wrong all along.
         st_valid = 1'b1;
         st_data  = blob[i];
+        #1;
+        took = st_ready;
         @(posedge clk);
         #1;
-        if (st_ready) begin
+        if (took) begin
           i = i + 1;
           if (max_gap > 0) begin
             st_valid = 1'b0;
-            for (g = rnd(max_gap + 1); g > 0; g = g - 1) @(posedge clk);
+            // the verdict is a ONE-cycle pulse and it can land in a
+            // silence: a gap loop that does not watch for it reports a
+            // committed image as never-committed, which reads exactly
+            // like a corrupted one
+            for (g = rnd(max_gap + 1); g > 0; g = g - 1) begin
+              @(posedge clk);
+              #1;
+              acc_seen = acc_seen + evt_accept;
+              rej_seen = rej_seen + evt_reject;
+            end
           end
         end
         acc_seen = acc_seen + evt_accept;
@@ -223,8 +242,18 @@ module zirh_boot_fuzz_tb;
   // ---------------------------------------------------------------- episodes
   localparam integer K_GOOD = 0, K_BADMAGIC = 1, K_BADCRC = 2,
                      K_OVERSIZE = 3, K_TRUNC = 4, K_LIE = 5,
-                     K_GAPPY = 6, K_MIDPOR = 7, K_GOLDEN = 8, K_WDFAIL = 9;
-  localparam integer NKINDS = 10;
+                     K_GAPPY = 6, K_MIDPOR = 7, K_GOLDEN = 8, K_WDFAIL = 9,
+                     // Cycle 44: the region the storm could not see. An
+                     // audit measured 240 episodes in which bank B was
+                     // never selected, host mode never strapped, the
+                     // signature verdict never false and sign-on never
+                     // raised - so the two-bank ladder, the ISP
+                     // re-entry and the signature gate rested on a
+                     // handful of hand-written cases while the storm
+                     // rolled over the same half of the machine.
+                     K_BANKB = 10, K_HOST = 11, K_SIGFAIL = 12,
+                     K_SIGNON_RACE = 13;
+  localparam integer NKINDS = 14;
   integer kind_count [0:NKINDS-1];
 
   task episode(input integer kind);
@@ -296,6 +325,68 @@ module zirh_boot_fuzz_tb;
           cur_scn = "golden"; por(2'b00);
           repeat (150) @(posedge clk);
           check(boot_sel === 1'b0, "golden strap must fetch ROM");
+        end
+        K_BANKB: begin
+          // the OTHER bank: strap 10 loads and runs bank B
+          cur_scn = "bank_b"; por(2'b10);
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1 && rej_seen == 0, "bank B image must commit");
+          check(boot_sel === 1'b1, "bank B must run");
+          check(bank === 1'b1, "and the fetch mux must point AT bank B");
+          commits = commits + 1;
+        end
+        K_HOST: begin
+          // host mode: a fresh image arrives while the die is running,
+          // and must be staged into the INACTIVE bank without
+          // disturbing the one under the CPU's feet
+          cur_scn = "host_reload"; por(2'b11);
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1, "host mode must accept the first image");
+          check(boot_sel === 1'b1, "and run it");
+          k = bank;
+          acc_seen = 0; rej_seen = 0;
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1 && rej_seen == 0,
+                "a second image must land while running");
+          check(boot_sel === 1'b1, "the die must never stop running");
+          check(bank !== k[0:0],
+                "the reload must land in the INACTIVE bank");
+          commits = commits + 2;
+        end
+        K_SIGFAIL: begin
+          // a perfect image the signature refuses: the CRC gate is not
+          // the only gate, and until now nothing ever proved it
+          cur_scn = "sig_refused"; por(2'b01);
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          sig_ok = 1'b0;
+          stream(blob_len, 200_000, 0);
+          check(rej_seen == 1 && acc_seen == 0,
+                "a refused signature must refuse the image");
+          check(boot_sel === 1'b0, "and it must never run");
+          sig_ok = 1'b1;
+          rejects = rejects + 1;
+        end
+        K_SIGNON_RACE: begin
+          // sign-on and watchdog failure on the SAME edge. The loader
+          // used to let the sign-on erase the mark the watchdog had
+          // just set, so the ladder swapped banks forever instead of
+          // falling to the mask ROM. It must SETTLE.
+          cur_scn = "signon_race"; probe_alive;
+          for (k = 0; k < 6; k = k + 1) begin
+            signon  = 1'b1;
+            wd_fail = 1'b1;
+            @(posedge clk);
+            signon  = 1'b0;
+            wd_fail = 1'b0;
+            repeat (20) @(posedge clk);
+          end
+          repeat (200) @(posedge clk);
+          check(boot_sel === 1'b0,
+                "a die that keeps failing must REACH golden, not oscillate");
+          reverts = reverts + 1;
         end
         K_WDFAIL: begin
           cur_scn = "wd_fail"; probe_alive;
