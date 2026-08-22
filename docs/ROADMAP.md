@@ -1125,3 +1125,97 @@ and frame options, wide words and decoded selects, both I2C
 chairs, and a die that boots alone. What the open PDK cannot give
 - fuse bits, pad-level pulls and glitch filters - is recorded in
 SCOPE as architectural equivalents, not pretended at.
+
+## Cycle 39 (2026-08-22): a theorem for the anchor, and an instrument that bites
+
+An outside reading of this repository landed on the honest gap:
+formal coverage stopped at four harnesses - the TMR escape window,
+the SECDED contract, the address mask and the debug lock - and the
+boot controller, the block that decides what code this die runs,
+carried tests but no theorem. The criticism was correct, and worse
+than it knew: of the three blocks that could reasonably be called
+trust anchors, two already had proofs and the third, arguably the
+one that matters most, had none.
+
+It has five now, proven by unbounded induction over completely free
+inputs - the byte stream, the strap, the signature verdict, the
+watchdog and every bus answer:
+
+  * a bank turns bootable ONLY out of verification. The stream is
+    transport; nothing but the STORED image judged by its read-back
+    CRC can raise a valid flag, so no interrupted, truncated or
+    hostile stream can leave a bank looking bootable.
+  * GOLDEN is absorbing. One clock inside the mask-ROM state and the
+    die is there for good with the fetch mux pointed at ROM.
+  * at flight straps a ruling is FINAL: the loader holds no bus,
+    hears no stream, and can never re-enter the load path. Host mode
+    is exempt by design - that strap exists to accept a new image.
+  * the array is written only from LOAD, and a committed bank always
+    implies its valid flag.
+
+The proof is deliberately run at PROTECT=0. The containment theorem
+already proves the voted register carries the machine under any
+one-replica-per-cycle upset stream; this proof is about the LOGIC,
+and the two compose: correct logic, and a register that keeps it.
+The anti-vacuity gate is reachability - a loader that can never rule
+satisfies every safety property for free, so the suite proves the
+same free-input machine genuinely commits at step 22 and genuinely
+refuses at step 15, and dumps both witness traces.
+
+The cycle's larger finding was about the instrument, not the design.
+A yosys new enough to emit $check cells writes SMT2 whose assertions
+an $assert-only front end never queries: BMC then reports PASSED
+over a design with no properties at all, and the log is
+indistinguishable from a theorem. That is not hypothetical - it
+produced four green "theorems" here before it was caught, and the
+first draft of this cycle's own proof passed the same way. So the
+suite now proves its instrument before it proves anything else: a
+counter and the false claim that it never reaches three, which MUST
+be refuted. Run the suite against the lying toolchain today and it
+aborts on the first stage instead of printing green. The same audit
+found the embedded invariants compiled into the narrow block suites
+and out of the top-level runs - enabled exactly where the stimulus
+is thin and disabled where the storm lives. They are live everywhere
+now. A guard that cannot fail guards nothing; this cycle the law
+reached the guards themselves.
+
+The cycle then turned its own instrument on the rest of the die, and
+the audit paid for the trouble twice over. Two REAL defects, both
+reproduced in simulation before anything was changed:
+
+  * the autonomous boot of Cycle 38 never released its transport.
+    The loader goes deaf the moment it rules - that is now a theorem -
+    but the MRAM reader was never told, so it parked in its emit
+    state with the chip select held LOW forever: four PORTA pins
+    never returned to the GPIO block and the external part was never
+    let go. Forty thousand clocks after commit the lease had not
+    dropped once. The ruling now aborts the reader, and the suite
+    asserts the release; without the abort that assertion fails.
+  * the revert ladder could erase its own evidence. A firmware
+    sign-on arriving on the same edge as a watchdog failure cleared
+    the suspect mark the watchdog had just set, so a starving die
+    would swap between two banks forever instead of falling to the
+    mask ROM. A failure cycle now clears nothing, and the theorem
+    that says so fails on the original design and passes on the fix.
+
+What the audit found and this cycle did NOT close is recorded here
+rather than quietly carried:
+
+  * zirh_sram39 keeps its transaction FSM, row register and ack flop
+    as PLAIN registers. A single upset in the ack flop hands a master
+    a stale word with a valid ack and err_o low - on the path the
+    CPU's instruction fetch uses.
+  * formal/f_amask proves a hand-retyped TEN-bit copy of the address
+    fold; the shipped zirh_sram39 folds TWELVE bits at the built
+    BANK_DEPTH, and the harness never compiles the shipped module. The
+    property holds for the shipped width by an independent exhaustive
+    check, but the repository's proof does not cover the repository's
+    RTL.
+  * zirh_i2c waits indefinitely for a stretched clock to release and
+    offers software no way out of the wedge.
+  * the constrained-random storm never draws straps 10 or 11, never
+    raises signon, and never sets the signature verdict false, so the
+    two-bank fallback, the ISP re-entry and the signature gate rest on
+    hand-written cases rather than on the storm.
+  * docs/BOOT.md is cited as the contract by three RTL files and has
+    never existed in any commit on any branch.

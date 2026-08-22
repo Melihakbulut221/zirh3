@@ -79,3 +79,12 @@ async def test_the_die_boots_itself_from_mram(dut):
         "the die must commit an image it fetched itself"
     assert await z_signature(dut), \
         "the self-booted program must speak"
+
+    # the ruling must RELEASE the transport: a reader left emitting
+    # would hold CS low forever and keep four PORTA pins hostage
+    await ClockCycles(dut.clk, 2000)
+    oe = int(dut.gpio_a_oe.value)
+    assert (oe >> 27) & 0xF == 0, \
+        "after the ruling the QSPI pins must return to the GPIO block"
+    assert int(dut.u_qspi.cs_n_o.value) == 1, "and the MRAM must be released"
+    assert int(dut.u_qspi.busy_o.value) == 0, "the reader must be idle"

@@ -664,3 +664,37 @@ requirements:
       die fetches, commits and the program floods its own verdict;
       the QSPI pins lease only while the stream runs and return to
       GPIO after; guard measured top at 51651 flops
+  - id: Z3-R48
+    text: The boot controller - the program's trust anchor, the block
+      that decides which code the die runs - shall carry THEOREMS,
+      not only tests: a bank turns bootable only out of verification,
+      GOLDEN is absorbing, a watchdog failure never erases its own
+      evidence, and at flight straps a ruling is final (deaf to the
+      stream, silent on the bank bus, unable to re-enter the load
+      path). The proof suite shall first prove its own
+      instrument, refusing to report any theorem on a toolchain that
+      drops assertions.
+    tests:
+      - formal/f_boot.sv
+      - formal/f_selftest.sv
+      - test/test_boot.py
+    evidence: unbounded k-induction over free inputs - stream, strap,
+      signature verdict, watchdog and bus answers all free - closes
+      at k=21 on nine assertions; the anti-vacuity gate is a
+      reachability cover proving the same free-input machine can
+      genuinely commit (step 22) and genuinely refuse (step 15),
+      with witness traces dumped; PROTECT=0 by design so the proof
+      is about the LOGIC while f_ring's containment theorem covers
+      the register, the two composing; the instrument self-test is
+      itself mutation-checked - run against a yosys that emits
+      $check cells into an $assert-only front end, the suite aborts
+      instead of printing green theorems over an empty proof; the
+      embedded invariants now compile into every top-level run,
+      where the storm and ISP stimulus actually live; the
+      suspect-mark theorem was written against a REAL defect an audit
+      found and is mutation-proven to catch it - the pre-Cycle-39
+      loader let a firmware sign-on arriving on the same edge as a
+      watchdog failure clear the mark the watchdog had just set, so
+      the revert ladder swapped banks forever instead of falling to
+      the mask ROM; the fixed design closes induction, the original
+      fails it

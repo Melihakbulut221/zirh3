@@ -322,8 +322,12 @@ module zirh_boot_ctrl #(
                     state_d = S_HDR;
                 end
                 // signon_i clears the suspect mark of the running bank -
-                // the firmware proved itself
-                if (signon_i) begin
+                // the firmware proved itself. NEVER in the same cycle
+                // the watchdog condemned that bank: a failure and a
+                // sign-on together must resolve as FAILURE, or the
+                // revert ladder erases its own evidence and ping-pongs
+                // between two banks forever instead of reaching golden
+                if (signon_i && !wd_fail_i) begin
                     if (pref_q) sb_d = 1'b0;
                     else        sa_d = 1'b0;
                 end
@@ -348,6 +352,86 @@ module zirh_boot_ctrl #(
     `ZIRH_ASSERT(a_state_legal, state_q <= S_RUN)
     `ZIRH_ASSERT(a_sel_implies_valid,
                  !sel_q || (pref_q ? vb_q : va_q))
+    // the array is touched ONLY while streaming payload: no other
+    // state can write a bank, so GOLDEN can never scribble on one and
+    // a ruling cannot be undone by a late write
+    `ZIRH_ASSERT(a_write_implies_load, !m_we_o || (state_q == S_LOAD))
+
+`ifdef FORMAL
+    // ------------------------------------------------------------------
+    // Cycle 39 - the trust anchor's theorems.
+    //
+    // Everything below is PROOF SCAFFOLDING: without -DFORMAL it does
+    // not exist, so simulation and the ASIC netlist carry none of it.
+    // The shadows live here rather than in the harness because these
+    // are TRANSITION properties and this is where the state lives -
+    // formal/f_boot.sv supplies the free inputs and the anti-vacuity
+    // covers, exactly the split zirh_assert.vh describes.
+    // ------------------------------------------------------------------
+    // the shadows mirror the machine's OWN reset - a shadow that
+    // survives reset reports yesterday's die and fails tomorrow's
+    // theorem for reasons that have nothing to do with the design
+    reg [2:0] f_state_p;
+    reg       f_va_p, f_vb_p, f_ruled;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            f_state_p <= S_STRAP;
+            f_va_p    <= 1'b0;
+            f_vb_p    <= 1'b0;
+            f_ruled   <= 1'b0;
+        end else begin
+            f_state_p <= state_q;
+            f_va_p    <= va_q;
+            f_vb_p    <= vb_q;
+            if (evt_accept_o | evt_reject_o) f_ruled <= 1'b1;
+        end
+    end
+
+    always @(posedge clk) if (rst_n) begin
+        // THEOREM 1 - a bank becomes bootable only out of VERIFY. The
+        // stream is transport; the only thing that can raise a valid
+        // flag is the STORED image judged by its read-back CRC. An
+        // interrupted, truncated or corrupted load cannot leave a
+        // bank looking bootable, whatever the stream does.
+        a_valid_rises_only_from_verify:
+            assert (!((va_q & ~f_va_p) | (vb_q & ~f_vb_p))
+                    || (f_state_p == S_VERIFY));
+
+        // THEOREM 2 - GOLDEN is absorbing. One clock inside the mask
+        // ROM state and the machine is there for good with the fetch
+        // mux pointed at ROM: no stream, no strap wiggle, no watchdog
+        // verdict can talk the die back into fetching SRAM.
+        if (f_state_p == S_GOLDEN)
+            a_golden_absorbing: assert ((state_q == S_GOLDEN) && !sel_q);
+
+        // THEOREM 3 - a watchdog failure never erases its own
+        // evidence. In any cycle the watchdog condemns the running
+        // bank, no suspect mark may fall - otherwise a firmware
+        // sign-on arriving on the same edge lets the revert ladder
+        // swap banks forever and never reach the mask ROM, which is
+        // exactly the shape a starving flight die would take.
+        // (stated on the next-state values so it reads as what it
+        // means: in THIS run cycle, with the watchdog condemning,
+        // nothing is being cleared. A verified accept legitimately
+        // clears a suspect mark, which is why the claim is scoped to
+        // the running state rather than to wd_fail_i alone.)
+        if ((state_q == S_RUN) && wd_fail_i)
+            a_failure_never_clears_suspect:
+                assert (!((sa_q & ~sa_d) | (sb_q & ~sb_d)));
+
+        // THEOREM 4 - ONE RULING PER RESET at flight straps. Once the
+        // loader has ruled it is done: it holds no bus, hears no
+        // stream, and can never re-enter the load path. Host mode
+        // (2'b11) is exempt BY DESIGN - that strap exists precisely to
+        // accept a fresh image while the die keeps running.
+        if (f_ruled && (strap_q != 2'b11)) begin
+            a_ruling_is_final:  assert ((state_q == S_RUN)
+                                        || (state_q == S_GOLDEN));
+            a_ruled_is_deaf:    assert (!st_ready_o);
+            a_ruled_writes_not: assert (!m_we_o);
+        end
+    end
+`endif
 
 endmodule
 

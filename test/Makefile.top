@@ -60,6 +60,11 @@ COMPILE_ARGS += -Pzirh3_top.BANK_PAGES=4
 COMPILE_ARGS += -Pzirh3_top.BANK_WORDS=8192
 COMPILE_ARGS += -I$(SRC_DIR)
 COMPILE_ARGS += -DZIRH_SIM_ENV
+# the embedded invariants police EVERY top-level run, not just the
+# narrow block suites: the storm and the ISP scenarios are where the
+# stimulus actually lives, and an invariant that is compiled out
+# exactly where the interesting traffic runs is a guard in name only
+COMPILE_ARGS += -DZIRH_ASSERTIONS
 # the PDK macro's behavioral write path lives behind FUNCTIONAL - without
 # it the model swallows writes silently and every read is X (measured:
 # the lw-X hunt of rung 4; the sram39 suite carries the same define)

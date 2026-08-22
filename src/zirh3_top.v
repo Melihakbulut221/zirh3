@@ -172,7 +172,13 @@ module zirh3_top #(
         .quad_i(1'b0),
         .addr_i(24'd0),
         .len_i(24'(BANK_WORDS * 4 + 12)),
-        .abort_i(1'b0),
+        // the ruling releases the transport. Cycle 39 proved the
+        // loader goes deaf the moment it rules; a reader that is
+        // never told would park in its emit state with CS held LOW
+        // forever - the pins never return to GPIO and the MRAM is
+        // never let go. Measured, not feared: 40k clocks after
+        // commit the lease had not dropped once.
+        .abort_i(bl_sel | isp_rejected_q),
         .busy_o(q_busy),
         .st_valid_o(q_valid), .st_data_o(q_data), .st_ready_i(q_ready),
         .sck_o(qspi_sck), .cs_n_o(qspi_csn),

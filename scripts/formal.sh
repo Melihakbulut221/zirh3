@@ -37,6 +37,28 @@ smt() {
   if [ $rc -ne 0 ]; then echo "FORMAL FAIL: $label (rc=$rc)"; exit 1; fi
 }
 
+# --- the instrument test, before any theorem ------------------------------
+# A proof is only as honest as the tool that checked it. This stage
+# hands the solver a claim that is FALSE by construction and demands to
+# be refuted; a toolchain that drops assertions (a yosys emitting
+# $check cells against a front-end that only queries $assert) reports
+# PASSED over an empty proof, and every stage below would inherit that
+# silence. Measured, not assumed: this exact failure produced four
+# green "theorems" on a 0.67 toolchain before it was caught.
+echo "=== instrument: the solver must refute a false claim ==="
+$YOSYS -q -p "
+  read_verilog -sv -formal formal/f_selftest.sv
+  prep -top f_selftest
+  write_smt2 formal/out/selftest.smt2"
+if timeout "${SMT_CAP:-300}" $SMTBMC -s z3 --presat -t 8 \
+       formal/out/selftest.smt2 > formal/out/selftest.log 2>&1; then
+    echo "FORMAL FAIL: the toolchain ACCEPTED a false claim - assertions are"
+    echo "             being dropped; every theorem below would be vacuous."
+    echo "             (yosys $($YOSYS -V | head -1))"
+    exit 1
+fi
+echo "    the instrument bites: assertions reach the solver"
+
 for N in $NS; do
   echo "=== N=$N: containment (BMC + induction) ==="
   $YOSYS -q -p "
@@ -99,4 +121,33 @@ $YOSYS -q -p "
 smt "dbg cover" $SMTBMC -s z3 --presat -c -t 6 formal/out/dbg_cover.smt2
 echo "    PROVEN: locked is inert and absorbing; the bench path exists"
 
-echo "formal: rings, ECC, address mask and debug lock proven, witnesses dumped"
+echo "=== boot controller: the trust anchor\'s rulings (Cycle 39) ==="
+$YOSYS -q -p "
+  read_verilog -sv -formal src/zirh_tmr_lib.v src/zirh_boot_ctrl.v formal/f_boot.sv
+  prep -top f_boot
+  write_smt2 formal/out/boot.smt2"
+# the loader carries eight invariants; a build that lost some of them
+# would still say PASSED, so the count is part of the gate
+BOOT_A=$($YOSYS -p "read_verilog -sv -formal src/zirh_tmr_lib.v src/zirh_boot_ctrl.v formal/f_boot.sv; prep -top f_boot; stat" 2>/dev/null \
+         | grep -F '$assert' | awk '{s += $2} END {print s+0}')
+if [ "${BOOT_A:-0}" -lt 9 ]; then
+    echo "FORMAL FAIL: boot harness carries $BOOT_A assertions, expected 9"
+    exit 1
+fi
+echo "    $BOOT_A assertions in the harness"
+smt "boot BMC"       $SMTBMC -s z3 --presat -t 24 formal/out/boot.smt2
+smt "boot induction" $SMTBMC -s z3 --presat -i -t 24 formal/out/boot.smt2
+$YOSYS -q -p "
+  read_verilog -sv -formal -DF_COVER src/zirh_tmr_lib.v src/zirh_boot_ctrl.v formal/f_boot.sv
+  prep -top f_boot
+  write_smt2 formal/out/boot_cover.smt2"
+# anti-vacuity: safety theorems about a loader that can never rule are
+# free. Both verdicts must be REACHABLE in the same free-input machine.
+smt "boot verdicts reachable" $SMTBMC -s z3 --presat -c -t 40 \
+    --dump-vcd formal/out/boot_rule.vcd formal/out/boot_cover.smt2
+echo "    PROVEN: a bank turns bootable only out of VERIFY; GOLDEN is"
+echo "            absorbing; at flight straps a ruling is final - deaf,"
+echo "            bus-silent and unable to re-enter the load path"
+
+echo "formal: instrument checked; rings, ECC, address mask, debug lock and"
+echo "        the boot controller proven, witnesses dumped"

@@ -9,11 +9,11 @@ fuzz: $(BUILD)/fuzz.vvp
 	vvp $(BUILD)/fuzz.vvp +SEED=$(or $(SEED),1) +EPISODES=$(or $(EPISODES),120)
 $(BUILD)/fuzz.vvp: sv/zirh_boot_fuzz_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
 	mkdir -p $(BUILD)
-	iverilog -g2012 -I$(SRC_DIR) -s zirh_boot_fuzz_tb -o $@ \
+	iverilog -g2012 -DZIRH_ASSERTIONS -I$(SRC_DIR) -s zirh_boot_fuzz_tb -o $@ \
 	  sv/zirh_boot_fuzz_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
 $(BUILD)/boot.vvp: sv/zirh_boot_scenarios_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
 	mkdir -p $(BUILD)
-	iverilog -g2012 -I$(SRC_DIR) -s zirh_boot_scenarios_tb -o $@ \
+	iverilog -g2012 -DZIRH_ASSERTIONS -I$(SRC_DIR) -s zirh_boot_scenarios_tb -o $@ \
 	  sv/zirh_boot_scenarios_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
 clean:
 	rm -rf $(BUILD)
