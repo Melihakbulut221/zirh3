@@ -13,7 +13,7 @@
 
 create_clock -name clk -period 20 [get_ports clk]
 
-set_input_delay  4 -clock clk [get_ports {rst_n timer_irq_i reset_vector_i[*] ibus_rdt_i[*] ibus_ack_i dbus_rdt_i[*] dbus_ack_i}]
+set_input_delay  4 -clock clk [get_ports {rst_n timer_irq_i ext_irq_i[*] reset_vector_i[*] ibus_rdt_i[*] ibus_ack_i dbus_rdt_i[*] dbus_ack_i}]
 set_output_delay 4 -clock clk [all_outputs]
 
 set_max_fanout 16 [current_design]
