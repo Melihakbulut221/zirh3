@@ -1305,3 +1305,62 @@ flop turned out to trip the module's own embedded invariant and
 kill the run outright, which is a fine answer to "would anyone
 notice" but a poor control, so the control rides the read register
 instead.
+
+## Cycle 42 (2026-08-22): the bus does not get to keep us
+
+Next from Cycle 39's ledger. The I2C master obeys clock stretching
+by design - it waits for a released SCL to actually rise before it
+believes the bus - and that patience had no end. The wait reloaded
+its counter forever, and switching the controller off gated the
+pins while leaving the engine frozen mid-leg, so one latched-up
+device on a flight bus took the controller with it: in progress
+forever, no command accepted, and no way for software to get out.
+Obeying a stretch is correct; obeying it without limit is a hang
+wearing correctness as a costume.
+
+The wait is finite now. Past a parameterized number of quarter-bit
+ticks - generous by default, because real devices do stretch for
+milliseconds - the leg is abandoned: the wire is released, the
+in-progress flag drops so software can command again, and a sticky
+write-1-to-clear verdict in STAT says why. A disabled controller,
+or one parked behind the slave chair, is idle rather than frozen,
+which also closes the smaller trap that a re-enable used to resume
+a transaction the bus had long forgotten.
+
+The proof is a bench that never lets go: SCL held low from before
+the command, and the controller must escape, flag, clear and then
+run a normal transaction on the same pins. It is mutation-proven -
+push the limit beyond the test's reach and the test fails - which
+matters here because the first version of this cycle's own RTL
+patch silently did not apply. A string replace that matches nothing
+changes nothing and reports success, and the suite caught it only
+because the wedge test failed for real. Anchors are asserted now.
+
+## Cycle 43 (2026-08-22): one fold, one place
+
+The last of Cycle 39's audit findings that was cheap to close, and
+the most uncomfortable. The address-in-ECC mask - the defence that
+makes a wrong-row read land UNCORRECTABLE instead of arriving as
+clean data - existed twice. The SRAM wrapper folded twelve address
+bits; formal/f_amask.sv folded TEN, retyped by hand, under a
+comment in the RTL asserting the two were identical at the default
+depth. They were not: the built bank is 4096 words deep, so all
+twelve bits are live, and the proof had been proving a function the
+die does not contain. Nothing was wrong with the die - an
+independent exhaustive check says the twelve-bit fold satisfies the
+property - but the repository's proof did not cover the
+repository's RTL, which is a different and worse kind of wrong.
+
+The fold now lives in exactly one place, the shared SECDED include
+that both the wrapper and the harness compile, and the harness
+proves it at the width the die builds: all 2^32 data words against
+all 2^24 row pairs, in one BMC step. The unification is
+mutation-proven the only way that means anything here - put the old
+ten-bit fold back into the include and the proof FAILS, where
+before the drift was exactly what made it pass.
+
+That is the shape of every finding this week: not a design that was
+wrong, but a guard that was pointing somewhere other than where it
+claimed. The instrument that did not bite, the invariants compiled
+out of the runs that mattered, the ratio copied instead of derived,
+the proof of a retyped copy. Each one looked green.

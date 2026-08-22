@@ -11,6 +11,16 @@
 // Codeword positions 1..38: parity at the powers of two (1,2,4,8,16,
 // 32), data scattered over the rest, overall parity as bit [38] of
 // the stored 39-bit word.
+//
+// The address-in-ECC mask lives here too, and it lives here for a
+// reason found the hard way: it used to exist twice, once in the SRAM
+// wrapper at twelve address bits and once retyped inside its own
+// formal harness at TEN, with a comment claiming the two were
+// identical at the default depth. They were not - the built bank is
+// 4096 deep, so all twelve bits are live - and the proof was
+// therefore proving a function the die does not contain. One source
+// now: the harness proves what the RTL folds, because it is the same
+// text.
 // =============================================================================
 
     function [38:1] place_data;
@@ -71,3 +81,23 @@
         end
     endfunction
 
+
+// -----------------------------------------------------------------------------
+// Address-in-ECC mask: fold the row into six bits, scatter them onto
+// the parity positions and the overall bit. Data written under row A
+// and read under row B lands UNCORRECTABLE whenever the folds differ -
+// which covers every single-bit address error, the fault model the
+// mask exists for. Callers zero-extend narrower rows.
+// -----------------------------------------------------------------------------
+function [38:0] amask;
+    input [11:0] a;
+    reg [5:0] p6;
+    integer i;
+    begin
+        p6 = a[5:0] ^ a[11:6];
+        amask = 39'd0;
+        for (i = 0; i < 6; i = i + 1)
+            amask[(1 << i) - 1] = p6[i];
+        amask[38] = ^p6;
+    end
+endfunction

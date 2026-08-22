@@ -745,3 +745,43 @@ requirements:
       telemetry event pulses stay plain by recorded decision - a
       flipped event bit costs a counter tick, never a word; guard
       measured 21 replicas / 366 flops per instance, top at 53219
+  - id: Z3-R51
+    text: An I2C controller shall not be taken hostage by the bus it
+      commands: a slave that holds SCL beyond a parameterized limit
+      shall have its leg ABANDONED with the wire released, the
+      in-progress flag cleared and a sticky write-1-to-clear verdict
+      in STAT, and a controller that is disabled or parked behind the
+      slave chair shall be idle rather than frozen mid-transaction.
+    tests:
+      - test/test_i2c.py
+    evidence: an audit found the stretch wait reloading its counter
+      forever with no software escape - CTRL.en=0 gated the pins but
+      left the engine mid-leg, so a single latched-up device wedged
+      the controller permanently with tip high; the wedge test now
+      holds SCL low and never lets go, and proves the leg is
+      abandoned, the clock line released, the verdict sticky and
+      write-1-to-clear, and the pins usable immediately afterwards;
+      mutation-proven - raising the limit beyond the test's reach
+      makes it fail; the disable test proves a switched-off
+      controller holds neither wire and a re-enable does not resume a
+      transaction the bus has forgotten; guard measured 27 replicas /
+      1208 flops per controller, top at 53299
+  - id: Z3-R52
+    text: The address-in-ECC mask shall exist in exactly ONE place -
+      the shared SECDED include that both the SRAM wrapper and its
+      formal harness compile - so that the proof covers the function
+      the die actually folds, at the address width the die actually
+      builds.
+    tests:
+      - formal/f_amask.sv
+      - test/test_sram39.py
+    evidence: an audit found the fold written twice - twelve bits in
+      the wrapper, ten in a retyped copy inside the harness, with an
+      RTL comment claiming the two identical "at the default depth"
+      while the built bank is 4096 deep and every one of the twelve
+      bits is live; the proof was therefore proving a function the
+      die does not contain; the fold now lives only in
+      zirh_secded.vh, the harness proves it over 2^32 words and 2^24
+      row pairs in one BMC step, and the unification is
+      mutation-proven - restoring the old ten-bit fold in the include
+      now FAILS the proof, where before it passed silently

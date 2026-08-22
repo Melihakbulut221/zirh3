@@ -248,19 +248,8 @@ module zirh_sram39 #(
     // parity in the overall bit - even weight, so an address mismatch
     // always decodes as UNCORRECTABLE, never as a clean or correctable
     // word (see header)
-    function [38:0] amask;
-        input [11:0] a;      // callers zero-extend; identical to the
-                             // proven 10-bit fold at the default depth
-        reg [5:0] p6;
-        integer i;
-        begin
-            p6 = a[5:0] ^ a[11:6];
-            amask = 39'd0;
-            for (i = 0; i < 6; i = i + 1)
-                amask[(1 << i) - 1] = p6[i];
-            amask[38] = ^p6;
-        end
-    endfunction
+    // amask now lives in zirh_secded.vh - one source, and the
+    // formal harness proves THIS function rather than a retyping
 
 `ifdef FORMAL
     wire [38:0] raw = ({q4[6:0], q3, q2, q1, q0} ^ amask({{(12-AW){1'b0}}, row_q}))

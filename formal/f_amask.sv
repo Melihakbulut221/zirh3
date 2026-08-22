@@ -21,22 +21,9 @@ module f_amask (
 
     `include "zirh_secded.vh"
 
-    function [38:0] amask;
-        input [9:0] a;
-        reg [5:0] p6;
-        integer i;
-        begin
-            p6 = a[5:0] ^ {2'b00, a[9:6]};
-            amask = 39'd0;
-            for (i = 0; i < 6; i = i + 1)
-                amask[(1 << i) - 1] = p6[i];
-            amask[38] = ^p6;
-        end
-    endfunction
-
     (* anyconst *) wire [31:0] d;
-    (* anyconst *) wire [9:0]  row_wr;
-    (* anyconst *) wire [9:0]  row_rd;
+    (* anyconst *) wire [11:0] row_wr;
+    (* anyconst *) wire [11:0] row_rd;
 
     wire [38:0] stored = encode(d) ^ amask(row_wr);
     wire [38:0] raw    = stored ^ amask(row_rd);
@@ -58,8 +45,8 @@ module f_amask (
     // p6 folding collides for rows 64k apart with equal fold; the claim
     // is scoped to rows whose FOLD differs - which includes every
     // single-bit address error, the SET model the mask is built for
-    wire [5:0] fold_wr = row_wr[5:0] ^ {2'b00, row_wr[9:6]};
-    wire [5:0] fold_rd = row_rd[5:0] ^ {2'b00, row_rd[9:6]};
+    wire [5:0] fold_wr = row_wr[5:0] ^ row_wr[11:6];
+    wire [5:0] fold_rd = row_rd[5:0] ^ row_rd[11:6];
 
     always @(posedge clk) begin
         if (fold_wr == fold_rd) begin
