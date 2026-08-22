@@ -157,9 +157,32 @@ async def test_boot_contract(dut):
     assert int(dut.bank_o.value) == 0, "ISP flips to the fresh bank"
     await NextTimeStep()
 
+    # --- 6c. the version gate (Cycle 47): the floor stands at 3 now.
+    # A v1 image is a ROLLBACK - refused at the header, no payload
+    # taken, and the running die untouched by the refusal
+    wr = [random.getrandbits(32) for _ in range(32)]
+    acc, rej = await stream(dut, image(wr, version=1), 'S6c')
+    assert acc == 0 and rej == 1, "an older version must be refused"
+    await ReadOnly()
+    assert int(dut.boot_sel_o.value) == 1 and int(dut.bank_o.value) == 0, (
+        "the rollback refusal must not disturb the running bank")
+    await NextTimeStep()
+
+    # equal is maintenance, not rollback: v3 lands again
+    acc, rej = await stream(dut, image(wb, version=3), 'S6d')
+    assert acc == 1, "re-flashing the running version is legitimate"
+    await NextTimeStep()
+
+    # the ladder's law is "the OTHER valid bank", not a literal index -
+    # the equal-version re-flash above legitimately moved the running
+    # bank, so the assertion records where it stood and demands the flip
+    await ReadOnly()
+    pre_bank = int(dut.bank_o.value)
+    await NextTimeStep()
     await pulse(dut, dut.wd_fail_i)
     await ReadOnly()
-    assert int(dut.boot_sel_o.value) == 1 and int(dut.bank_o.value) == 1, (
+    assert int(dut.boot_sel_o.value) == 1 and \
+        int(dut.bank_o.value) == 1 - pre_bank, (
         "first failure must revert to the other valid bank")
     await NextTimeStep()
 

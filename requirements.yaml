@@ -834,3 +834,32 @@ requirements:
       dispatch's three-minute death is part of the evidence - the
       config did not know the die's 32 new interrupt pins, and the
       fix timed them in the SDC rather than merely placing them
+  - id: Z3-R55
+    text: The loader shall enforce a ROLLBACK floor - a monotonic
+      version held in the same POR-domain TMR state as the bank
+      bookkeeping, refusing any image whose header version is below
+      it before a payload byte is taken, rising to the accepted
+      version on every commit, surviving watchdog resets, and never
+      constraining the revert ladder, because survival outranks
+      rollback.
+    tests:
+      - test/test_boot.py
+      - test/sv/zirh_boot_fuzz_tb.sv
+      - formal/f_boot.sv
+    evidence: proven by unbounded induction over free inputs - the
+      floor never falls (Theorem 4) and nothing below it ever
+      commits (Theorem 5), with the strengthening invariant that an
+      image in flight already cleared the floor, which is what made
+      the commit theorem inductive; reachability covers show the
+      floor genuinely rising and a version refusal genuinely
+      happening (step 36); mutation-proven - removing the header
+      gate fails induction on the in-flight invariant; the block
+      test walks v2-v3-then-v1-refused-then-v3-again through host
+      mode with the running die undisturbed, and the storm's
+      K_ROLLBACK episode does the same under random interleaving;
+      the honest limit is recorded in BOOT.md - the floor resets at
+      power-on, and the product part seeds it from the MRAM config
+      page; two instrument fixes came out of the cycle - the storm
+      episode budget now scales with its kind count instead of
+      starving its own coverage gate, and the Makefile override
+      that silently pinned it at 120 is conditional now

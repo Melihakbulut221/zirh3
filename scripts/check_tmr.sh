@@ -99,7 +99,7 @@ run_check "zirh_tmr_reg  (TMR register replicas)" \
     zirh_tmr_lib.v
 
 run_check "zirh_boot_ctrl (loader, PROTECT=1)" \
-    zirh_boot_ctrl 21 426 zirh_tmr_ff \
+    zirh_boot_ctrl 21 524 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_boot_ctrl.v
 
 run_check "zirh_qspi     (QSPI-MRAM controller)" \
@@ -180,14 +180,14 @@ EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # entry is a regression tripwire on the integration as wired, and its
 # number will move legitimately as tie-offs change with the SoC import.
 run_check "zirh3_memsys  (integration: loader+bank+qspi+clkobs+dbg)" \
-    zirh3_memsys 51 1053 zirh_tmr_ff \
+    zirh3_memsys 51 1151 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_boot_ctrl.v \
     zirh_qspi.v zirh_clkobs.v zirh_dbg_gate.v zirh3_memsys.v
 EXTRA_CMDS=""
 
 EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 run_check "zirh3_die     (die: por_ro + isp_rx + jtag + memsys)" \
-    zirh3_die 51 1427 zirh_tmr_ff \
+    zirh3_die 51 1525 zirh_tmr_ff \
     zirh_tmr_lib.v zirh_sram_bist.v zirh_sram39.v zirh_boot_ctrl.v \
     zirh_qspi.v zirh_clkobs.v zirh_dbg_gate.v zirh_por_ro.v \
     zirh_isp_rx.v zirh_jtag_dm.v zirh3_memsys.v zirh3_die.v
@@ -201,7 +201,7 @@ EXTRA_CMDS="read_verilog $(cd "$(dirname "$0")" && pwd)/sram_macro_stub.v;"
 # tripwire, not a floorplan: what it guards is that the 70 replicas
 # and the core's real state survive the optimizer unmerged.
 run_check "zirh3_top     (full compute die + DFT)" \
-    zirh3_top 85 53299 zirh_tmr_ff \
+    zirh3_top 85 53397 zirh_tmr_ff \
     zirh_tmr_lib.v vex/VexRiscv_Lite.v zirh_vex_wrap.v \
     zirh_rom.v zirh_bus.v zirh_ecc_ram.v zirh_rs422.v zirh_uart_regs.v \
     zirh_soc.v zirh_boot_ctrl.v zirh_isp_rx.v zirh_jtag_dm.v \

@@ -20,7 +20,7 @@ of 32-bit words, each little-endian.
 |---|---|---|---|
 | 0 | 4 | magic | `0x5A495248` - the ASCII bytes `HRIZ` on the wire |
 | 4 | 2 | length | payload size in WORDS |
-| 6 | 2 | version | parsed and discarded; no decision reads it |
+| 6 | 2 | version | gates the ROLLBACK floor since Cycle 47 - see below |
 | 8 | 4 | crc32 | over the payload bytes only, header excluded |
 | 12 | 4 x length | payload | the program, word by word |
 
@@ -29,10 +29,39 @@ initial and final values - `zlib.crc32` of the payload bytes, with no
 further transformation.
 
 A header is accepted when the magic matches, the length is non-zero,
-and the length fits the bank with three words to spare. Anything else
-is a refusal, decided the moment the twelfth header byte lands: a
-loader that started writing before it believed the header would have
-to un-write it.
+the length fits the bank with three words to spare, and the version
+clears the rollback floor. Anything else is a refusal, decided the
+moment the twelfth header byte lands: a loader that started writing
+before it believed the header would have to un-write it.
+
+## The rollback floor
+
+The loader holds a monotonic version floor in the same POR-domain
+TMR state as the bank bookkeeping. An image whose version is BELOW
+the floor is refused at the header, before a single payload byte is
+taken; an image at or above it may proceed, and an ACCEPT raises the
+floor to the accepted version. Equal is allowed on purpose -
+re-flashing the version you already run is maintenance, and a floor
+that forbids it forces every re-flash to lie about its version.
+
+Three edges of the law, each deliberate:
+
+- the floor survives a watchdog reset, like the rest of the
+  bookkeeping - one starved boot must not reopen the door.
+- the REVERT ladder is policy-free. A watchdog failure falls to the
+  other valid bank whatever its version, because survival outranks
+  rollback: a die that refuses its only working image on principle
+  is not protected, it is dead.
+- the floor resets at power-on. That is the experiment-class subset:
+  true anti-rollback needs state that survives power, which this
+  open PDK cannot fuse - the product part seeds the floor from the
+  MRAM config page (the same architectural equivalent SCOPE records
+  for eFuse), and the loader logic is identical either way.
+
+These are theorems, not intentions: the floor never falls, and
+nothing below it ever commits - proven by the same unbounded
+induction as the ruling laws, with reachability covers showing a
+genuine rise and a genuine version refusal.
 
 ## The transport
 
@@ -134,8 +163,8 @@ its own front door, and this is the document it defers to.
 
 ## Honest limits
 
-- The version field is parsed and ignored. Nothing rejects an image
-  for its version, and no rollback rule exists.
+- The rollback floor resets at power-on; the product part seeds it
+  from the MRAM config page. Within a session it is a theorem.
 - `sig_ok_i` is hardwired true in both instantiations on this die.
 - The bound on length is the bank's size less three words; there is
   no separate minimum beyond non-zero.

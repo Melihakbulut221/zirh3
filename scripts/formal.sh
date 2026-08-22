@@ -126,12 +126,12 @@ $YOSYS -q -p "
   read_verilog -sv -formal src/zirh_tmr_lib.v src/zirh_boot_ctrl.v formal/f_boot.sv
   prep -top f_boot
   write_smt2 formal/out/boot.smt2"
-# the loader carries eight invariants; a build that lost some of them
+# the loader carries its invariant set; a build that lost some of them
 # would still say PASSED, so the count is part of the gate
 BOOT_A=$($YOSYS -p "read_verilog -sv -formal src/zirh_tmr_lib.v src/zirh_boot_ctrl.v formal/f_boot.sv; prep -top f_boot; stat" 2>/dev/null \
          | grep -F '$assert' | awk '{s += $2} END {print s+0}')
-if [ "${BOOT_A:-0}" -lt 9 ]; then
-    echo "FORMAL FAIL: boot harness carries $BOOT_A assertions, expected 9"
+if [ "${BOOT_A:-0}" -lt 52 ]; then
+    echo "FORMAL FAIL: boot harness carries $BOOT_A assertions, expected 52"
     exit 1
 fi
 echo "    $BOOT_A assertions in the harness"

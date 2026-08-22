@@ -1472,3 +1472,47 @@ moved with the flop count, so the proof cannot silently shrink.
 What was handed to the flow, what the flow closed, and what the flow
 handed back are one proven thing again - and this time the sentence
 is about the die that will actually fly.
+
+## Cycle 47 (2026-08-22): the floor - rollback protection for the loader
+
+First of the product-die gaps, by approval. The header's version
+field had been parsed and discarded since the loader was written -
+BOOT.md said so in its honest-limits section - which meant a
+host-mode updater could commit an OLDER image over a newer one and
+the loader would call it maintenance. Flight practice calls it a
+downgrade attack, or just a mistake with the same consequences.
+
+The loader now holds a rollback floor: a monotonic version in the
+same POR-domain TMR state as the bank bookkeeping. An image below
+the floor is refused at the header, before a single payload byte is
+taken, exactly like a bad magic; an accept raises the floor to the
+accepted version. Equal is allowed on purpose - re-flashing the
+version you run is maintenance, and a floor that forbids it forces
+every re-flash to lie. The floor survives watchdog resets, and the
+revert ladder stays policy-free: a watchdog failure falls to the
+other valid bank whatever its version, because a die that refuses
+its only working image on principle is not protected, it is dead.
+The floor resets at power-on - the experiment-class subset, written
+in BOOT.md, with the product part seeding it from the MRAM config
+page.
+
+The floor is a theorem twice over. It never falls, and nothing
+below it ever commits - and the second proof taught the cycle its
+formal lesson: the bare commit-check passes bounded model checking
+and FAILS induction, because nothing ties the in-flight image to
+the floor from an arbitrary state. The strengthening invariant -
+an image in LOAD or VERIFY already cleared the floor - is what the
+header gate actually establishes, and stating it is what let
+induction close. Removing the gate fails induction on exactly that
+invariant, and the reachability covers show a genuine rise and a
+genuine refusal, so the theorems guard a machine that really does
+both.
+
+The storm grew a rollback episode and promptly found two more
+instrument defects. Its episode budget was a hard 120 tuned for ten
+kinds; at fifteen kinds the coverage gate starved and failed - so
+the budget now scales with the kind count. And the fix did nothing
+at first, because the Makefile passed its own hard 120 as a plusarg
+that silently overrode the bench: the override is conditional now.
+The same fixed-budget shape, found twice in one afternoon, four
+layers apart.

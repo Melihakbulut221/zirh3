@@ -118,6 +118,16 @@ module zirh_boot_ctrl #(
     wire [1:0]  strap_q;
     wire        tgt_q;          // bank being loaded
     wire [15:0] hlen_q;
+    // Cycle 47: the version is STORED now, and a monotonic floor
+    // lives beside it. Both in the POR domain like the rest of the
+    // bookkeeping - a watchdog reset must not erase the rollback
+    // floor, or one starved boot would reopen the door the floor
+    // exists to close. The floor does reset at power-on: that is the
+    // experiment-class subset, recorded in docs/BOOT.md, and the
+    // product part seeds it from the MRAM config page instead.
+    wire [15:0] ver_q, vmin_q;
+    reg  [15:0] ver_d, vmin_d;
+    wire        e_ver, e_vmin;
     wire [31:0] hcrc_q, crc_q, word_q;
     wire [IDXW-1:0] idx_q;
     wire [3:0]  bcnt_q;
@@ -134,6 +144,10 @@ module zirh_boot_ctrl #(
         .d_i(tgt_d), .q_o(tgt_q), .err_o(e8));
     zirh_boot_reg #(.WIDTH(16), .PROTECT(PROTECT)) u_hlen (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(hlen_d), .q_o(hlen_q), .err_o(e9));
+    zirh_boot_reg #(.WIDTH(16), .PROTECT(PROTECT)) u_ver  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(ver_d), .q_o(ver_q), .err_o(e_ver));
+    zirh_boot_reg #(.WIDTH(16), .PROTECT(PROTECT)) u_vmin (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
+        .d_i(vmin_d), .q_o(vmin_q), .err_o(e_vmin));
     zirh_boot_reg #(.WIDTH(32), .PROTECT(PROTECT)) u_hcrc (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
         .d_i(hcrc_d), .q_o(hcrc_q), .err_o(e11));
     zirh_boot_reg #(.WIDTH(32), .PROTECT(PROTECT)) u_crc  (.clk(clk), .rst_n(rst_n), .en_i(1'b1),
@@ -148,7 +162,7 @@ module zirh_boot_ctrl #(
         .d_i(bcnt_d), .q_o(bcnt_q), .err_o(e15));
 
     assign err_o = state_err | e1 | e2 | e3 | e4 | e5 | e6 | e7 | e8
-                 | e9 | e11 | e12 | e13 | e14 | e15;
+                 | e9 | e11 | e12 | e13 | e14 | e15 | e_ver | e_vmin;
 
     // --- bus mastering ------------------------------------------------------
     // sub-phase: in LOAD, a completed word issues one write; in VERIFY,
@@ -190,6 +204,7 @@ module zirh_boot_ctrl #(
         sa_d    = sa_q;    sb_d = sb_q;  sel_d = sel_q;
         strap_d = strap_q; tgt_d = tgt_q;
         hlen_d  = hlen_q;  hcrc_d = hcrc_q;
+        ver_d   = ver_q;   vmin_d = vmin_q;
         crc_d   = crc_q;   word_d = word_q;
         idx_d   = idx_q;   bcnt_d = bcnt_q;
         evt_accept_o = 1'b0;
@@ -222,8 +237,8 @@ module zirh_boot_ctrl #(
                         4'd3:  word_d[31:24] = st_data_i;
                         4'd4:  hlen_d[7:0]   = st_data_i;
                         4'd5:  hlen_d[15:8]  = st_data_i;
-                        4'd6:  ;   // version: parsed, not stored -
-                        4'd7:  ;   // no decision ever reads it
+                        4'd6:  ver_d[7:0]  = st_data_i;
+                        4'd7:  ver_d[15:8] = st_data_i;
                         4'd8:  hcrc_d[7:0]   = st_data_i;
                         4'd9:  hcrc_d[15:8]  = st_data_i;
                         4'd10: hcrc_d[23:16] = st_data_i;
@@ -233,8 +248,16 @@ module zirh_boot_ctrl #(
                 end
                 if (bcnt_q == 4'd12) begin
                     bcnt_d = 4'd0;
+                    // the ROLLBACK gate sits with the other header
+                    // checks: an image whose version is below the
+                    // floor is refused before a single payload byte
+                    // is taken, exactly like a bad magic. Equal is
+                    // allowed - re-flashing the version you already
+                    // run is legitimate maintenance, and the floor
+                    // only ever moves UP, on accept.
                     if ((word_q == MAGIC) && (hlen_q != 16'd0)
-                        && (hlen_q <= BANK_WORDS[15:0] - 16'd3))
+                        && (hlen_q <= BANK_WORDS[15:0] - 16'd3)
+                        && (ver_q >= vmin_q))
                         state_d = S_LOAD;
                     else begin
                         evt_reject_o = 1'b1;
@@ -283,6 +306,7 @@ module zirh_boot_ctrl #(
                     idx_d  = {IDXW{1'b0}};
                     if (((crc_q ^ 32'hFFFFFFFF) == hcrc_q) & sig_ok_i) begin
                         evt_accept_o = 1'b1;
+                        vmin_d = ver_q;    // the floor rises with the ruling
                         if (tgt_q) begin vb_d = 1'b1; sb_d = 1'b0; end
                         else       begin va_d = 1'b1; sa_d = 1'b0; end
                         pref_d  = tgt_q;
@@ -379,16 +403,19 @@ module zirh_boot_ctrl #(
     // theorem for reasons that have nothing to do with the design
     reg [2:0] f_state_p;
     reg       f_va_p, f_vb_p, f_ruled;
+    reg [15:0] f_vmin_p;
     always @(posedge clk) begin
         if (!rst_n) begin
             f_state_p <= S_STRAP;
             f_va_p    <= 1'b0;
             f_vb_p    <= 1'b0;
             f_ruled   <= 1'b0;
+            f_vmin_p  <= 16'd0;
         end else begin
             f_state_p <= state_q;
             f_va_p    <= va_q;
             f_vb_p    <= vb_q;
+            f_vmin_p  <= vmin_q;
             if (evt_accept_o | evt_reject_o) f_ruled <= 1'b1;
         end
     end
@@ -425,7 +452,36 @@ module zirh_boot_ctrl #(
             a_failure_never_clears_suspect:
                 assert (!((sa_q & ~sa_d) | (sb_q & ~sb_d)));
 
-        // THEOREM 4 - ONE RULING PER RESET at flight straps. Once the
+        // THEOREM 4 - THE FLOOR NEVER FALLS. Whatever the stream,
+        // the straps, the watchdog or the bus answers do, the
+        // rollback floor is monotonic within a power-on session -
+        // there is no path that lowers it, because a floor that can
+        // be talked down is a suggestion.
+        a_floor_never_falls: assert (vmin_q >= f_vmin_p);
+
+        // the strengthening invariant that makes Theorem 5
+        // inductive: an image IN FLIGHT already cleared the floor.
+        // The header gate establishes it on entry to LOAD, nothing
+        // writes the version outside header collection, and the
+        // floor only moves at the accept edge itself - so the
+        // property is preserved step to step, which is exactly what
+        // induction needs and the bare commit-check could not give.
+        if (state_q == S_LOAD || state_q == S_VERIFY)
+            a_inflight_above_floor: assert (ver_q >= vmin_q);
+
+        // THEOREM 5 - NOTHING BELOW THE FLOOR EVER COMMITS. At the
+        // accept edge the stored image's version clears the floor
+        // that stood before the ruling; the floor then rises to it.
+        if (evt_accept_o)
+            a_no_rollback_commit: assert (ver_q >= f_vmin_p);
+
+        // reachability, checked by the cover stage: the floor
+        // genuinely rises, and a version refusal genuinely happens -
+        // a gate no image ever hits is a comment, not a gate
+        c_floor_rises:     cover (vmin_q != 16'd0);
+        c_version_refusal: cover (evt_reject_o && (ver_q < vmin_q));
+
+        // THEOREM 6 - ONE RULING PER RESET at flight straps. Once the
         // loader has ruled it is done: it holds no bus, hears no
         // stream, and can never re-enter the load path. Host mode
         // (2'b11) is exempt BY DESIGN - that strap exists precisely to

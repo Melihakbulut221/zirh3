@@ -139,6 +139,12 @@ module zirh_boot_fuzz_tb;
   reg [7:0] blob [0:11 + 4*IMG_WORDS];
   integer   blob_len;
 
+  // Cycle 47: the version rides a bench global rather than a new
+  // task argument, so twelve existing call sites stay untouched and
+  // every legacy episode keeps building version 1 - which the fresh
+  // floor of its own POR always admits
+  reg [15:0] img_version;
+
   task build_image(input [31:0] magic, input [15:0] len,
                    input use_good_crc, input [31:0] forced_crc);
     integer i, w;
@@ -157,7 +163,7 @@ module zirh_boot_fuzz_tb;
       if (!use_good_crc) crc = forced_crc;
       for (i = 0; i < 4; i = i + 1) blob[i]     = magic[8*i +: 8];
       for (i = 0; i < 2; i = i + 1) blob[4 + i] = len[8*i +: 8];
-      blob[6] = 8'h01; blob[7] = 8'h00;
+      blob[6] = img_version[7:0]; blob[7] = img_version[15:8];
       for (i = 0; i < 4; i = i + 1) blob[8 + i] = crc[8*i +: 8];
       blob_len = 12 + 4*IMG_WORDS;
     end
@@ -220,6 +226,7 @@ module zirh_boot_fuzz_tb;
     begin
       st_valid = 1'b0; st_data = 8'h00; sig_ok = 1'b1;
       signon = 1'b0; wd_fail = 1'b0; strap = s; lie_addr = -1;
+      img_version = 16'h0001;
       rst_n = 1'b0;
       repeat (5) @(posedge clk);
       rst_n = 1'b1;
@@ -252,8 +259,8 @@ module zirh_boot_fuzz_tb;
                      // handful of hand-written cases while the storm
                      // rolled over the same half of the machine.
                      K_BANKB = 10, K_HOST = 11, K_SIGFAIL = 12,
-                     K_SIGNON_RACE = 13;
-  localparam integer NKINDS = 14;
+                     K_SIGNON_RACE = 13, K_ROLLBACK = 14;
+  localparam integer NKINDS = 15;
   integer kind_count [0:NKINDS-1];
 
   task episode(input integer kind);
@@ -388,6 +395,34 @@ module zirh_boot_fuzz_tb;
                 "a die that keeps failing must REACH golden, not oscillate");
           reverts = reverts + 1;
         end
+        K_ROLLBACK: begin
+          // the version gate, at storm level: a v5 commit raises the
+          // floor, a v3 reload is refused with the die still running,
+          // an equal re-flash is legitimate, and a v7 lands
+          cur_scn = "rollback"; por(2'b11);
+          img_version = 16'd5;
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1, "v5 must commit on a fresh floor");
+          check(boot_sel === 1'b1, "and run");
+          img_version = 16'd3;
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(rej_seen == 1 && acc_seen == 0,
+                "v3 under a v5 floor is a ROLLBACK and must be refused");
+          check(boot_sel === 1'b1,
+                "and the refusal must not stop the running die");
+          img_version = 16'd5;
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1, "re-flashing the version you run is allowed");
+          img_version = 16'd7;
+          build_image(MAGIC, IMG_WORDS[15:0], 1'b1, 32'h0);
+          stream(blob_len, 200_000, 0);
+          check(acc_seen == 1, "a newer version lands");
+          commits = commits + 3;
+          rejects = rejects + 1;
+        end
         K_WDFAIL: begin
           cur_scn = "wd_fail"; probe_alive;
           wd_fail = 1'b1;
@@ -412,7 +447,12 @@ module zirh_boot_fuzz_tb;
     m_ack = 1'b0; m_rdt = 32'h0; lie_addr = -1; guards_on = 1'b0;
     if (!$value$plusargs("SEED=%d", seed)) seed = 1;
     seed0 = seed;
-    if (!$value$plusargs("EPISODES=%d", n_episodes)) n_episodes = 120;
+    // the budget scales WITH the kind count: 12 draws per kind on
+    // average, which is what the original 120 bought for ten kinds -
+    // a fixed budget quietly starves its own coverage gate every
+    // time a new episode kind is added, which is how Cycle 47 found
+    // this line
+    if (!$value$plusargs("EPISODES=%d", n_episodes)) n_episodes = 12 * NKINDS;
     for (k = 0; k < NKINDS; k = k + 1) kind_count[k] = 0;
 
     guards_on = 1'b1;

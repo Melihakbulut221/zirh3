@@ -6,7 +6,11 @@ BUILD := sim_build/svs
 boot: $(BUILD)/boot.vvp
 	vvp $(BUILD)/boot.vvp
 fuzz: $(BUILD)/fuzz.vvp
-	vvp $(BUILD)/fuzz.vvp +SEED=$(or $(SEED),1) +EPISODES=$(or $(EPISODES),120)
+	# EPISODES only overrides when the caller sets it: the bench's own
+	# default scales with its kind count, and a hard 120 in this line
+	# was silently starving the coverage gate every time a kind was
+	# added - the bench-side fix was unreachable from here
+	vvp $(BUILD)/fuzz.vvp +SEED=$(or $(SEED),1) $(if $(EPISODES),+EPISODES=$(EPISODES))
 $(BUILD)/fuzz.vvp: sv/zirh_boot_fuzz_tb.sv $(SRC_DIR)/zirh_boot_ctrl.v $(SRC_DIR)/zirh_tmr_lib.v
 	mkdir -p $(BUILD)
 	iverilog -g2012 -DZIRH_ASSERTIONS -I$(SRC_DIR) -s zirh_boot_fuzz_tb -o $@ \
