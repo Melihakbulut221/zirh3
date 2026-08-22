@@ -28,7 +28,7 @@ mkdir -p "${BUILD}"
 for R in tmrA tmrB tmrC; do
     N=$(grep -cE "wire ${R}_[0-9]+;" "${NETLIST}" || true)
     echo "${R} rails in the netlist: ${N}"
-    test "${N}" -eq 2138
+    test "${N}" -eq 2173
 done
 
 sed -e '/specify/,/endspecify/d' \
@@ -38,7 +38,7 @@ sed -e '/specify/,/endspecify/d' \
 
 GL_SOURCES="${NETLIST} ${BUILD}/cells_func.v ${CELLS_V}/sg13g2_udp.v ${SV}/RM_IHPSG13_2P_512x32_c2_bm_bist.v ${SV}/RM_IHPSG13_2P_64x32_c2.v ${SV}/RM_IHPSG13_2P_core_behavioral_bm_bist_ideal.v ${SV}/RM_IHPSG13_2P_core_behavioral_ideal.v"
 
-GL_TMR_N=2138 \
+GL_TMR_N=2173 \
     make -C "${ROOT}/test" -B -f Makefile.top \
     CPU_SOURCES="${GL_SOURCES}" COCOTB_TEST_MODULES=test_top_gl \
     SIM_BUILD=sim_build/gl_pnr

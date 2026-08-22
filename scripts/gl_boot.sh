@@ -29,6 +29,14 @@
 #                   each, land while the boot story runs; every shot
 #                   bite-verified and heal-verified, flood alive at end
 #
+# The stitched flop count is a MEASURED number that the P&R guards
+# downstream pin by hand: 2138 through Cycle 33, 2173 from Cycle 34 on
+# (the core's external interrupt array stopped being tied off, so its
+# registered shadow and the timer sync became real flops). When this
+# count moves, scripts/gl_pnr_boot.sh, scripts/formal_equiv.sh and the
+# rail-net guards in .github/workflows/pnr.yaml move with it - they are
+# guards precisely because they do not follow silently.
+#
 #   PDK_ROOT=... bash scripts/gl_boot.sh [bind|gates|base|stitch|boot|wound|seu|all]
 # =============================================================================
 set -euo pipefail

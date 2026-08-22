@@ -355,12 +355,12 @@ jobs:
           for R in tmrA tmrB tmrC; do
             N=$(grep -cE "^ *- ${R}_[0-9]+ " "$DEF" || true)
             echo "$R rail nets in the routed DEF: $N"
-            test "$N" -eq 2138
+            test "$N" -eq 2173
           done
           NF=$(grep -cE "sg13g2_dfrbpq" "$DEF" || true)
           echo "flop instances: $NF"
-          test "$NF" -eq 6414
-          echo "VERDICT: all 2138 triples survived placement and routing"
+          test "$NF" -eq 6519
+          echo "VERDICT: all 2173 triples survived placement and routing"
       - name: Setup python + PDK
         uses: actions/setup-python@v6
         with:
@@ -388,11 +388,11 @@ jobs:
           python3 -c "import sys; sys.exit(0 if float('$MIN')>=0 and float('$MAX')>=0 else 1)"
           NFLOPS=$(grep -a "FLOPS IN THE CONFIRMED LAYOUT" confirm.log | awk '{print $NF}')
           echo "flops in the confirmed layout: $NFLOPS"
-          test "$NFLOPS" -eq 6414
+          test "$NFLOPS" -eq 6519
           for R in tmrA tmrB tmrC; do
             N=$(grep -cE "^ *- ${R}_[0-9]+ " confirm_out/zirh_vex_wrap_confirm.def || true)
             echo "$R rail nets in the CONFIRMED DEF: $N"
-            test "$N" -eq 2138
+            test "$N" -eq 2173
           done
           echo "VERDICT: the STITCHED layout closes at every corner, routed and extracted, triples intact"
       - name: Upload confirm artifacts
@@ -483,8 +483,12 @@ jobs:
           NC=$(grep -c -- "__C " "$NL" || true)
           NF=$(grep -c "sg13g2_dfrbpq" "$NL" || true)
           echo "replicas in the ROUTED netlist: __B=$NB __C=$NC flops=$NF"
-          test "$NB" -eq 2138 && test "$NC" -eq 2138 && test "$NF" -eq 6414
-          echo "VERDICT: all 2138 triples survived placement and routing"
+          # separate test lines: an && chain is exempt from bash -e, so
+          # a failing middle link would slip through as a passing step
+          test "$NB" -eq 2173
+          test "$NC" -eq 2173
+          test "$NF" -eq 6519
+          echo "VERDICT: all 2173 triples survived placement and routing"
       - name: Upload artifacts
         if: success() || failure()
         uses: actions/upload-artifact@v7

@@ -10,7 +10,7 @@
 #           carrier's whole state is port-visible, so the ports are
 #           the match points and induction closes over them.
 #   [core]  the TRANSFORMATION at full scale: the pre-stitch gate
-#           netlist against the stitched one, 2138 triples. Match
+#           netlist against the stitched one, 2173 triples. Match
 #           points come from the stitcher's own bookkeeping (flop N's
 #           Q in gold, N__vor1's Y in gate); the RM macros are cut to
 #           the boundary - both sides must drive them identically and
@@ -84,7 +84,7 @@ if run_stage pilot; then
 fi
 
 if run_stage core; then
-    echo "[2/2] core: the stitch transformation at 2138 triples"
+    echo "[2/2] core: the stitch transformation at 2173 triples"
     GJ="${ROOT}/test/sim_build/gl_boot"
     test -f "${GJ}/vexwrap_tmr.json" || {
         echo "missing gl_boot products - run gl_boot.sh bind/gates/stitch"; exit 1; }
@@ -105,8 +105,8 @@ if run_stage core; then
         equiv_status -assert" 2>&1 | tee "${BUILD}/core.log"
     grep -aq "Equivalence successfully proven" "${BUILD}/core.log"
     NEQ=$(grep -aoE "Found [0-9]+ .equiv cells" "${BUILD}/core.log" | grep -oE "[0-9]+" | tail -1)
-    echo "equiv points: ${NEQ} (>= 2138 or the proof is vacuous)"
-    test "${NEQ}" -ge 2138
+    echo "equiv points: ${NEQ} (>= 2173 or the proof is vacuous)"
+    test "${NEQ}" -ge 2173
     echo "EQUIV CORE: PASS - the stitcher is out of the trusted base"
 fi
 
