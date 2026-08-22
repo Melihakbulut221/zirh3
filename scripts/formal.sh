@@ -143,6 +143,13 @@ $YOSYS -q -p "
   write_smt2 formal/out/boot_cover.smt2"
 # anti-vacuity: safety theorems about a loader that can never rule are
 # free. Both verdicts must be REACHABLE in the same free-input machine.
+# the version-refusal cover lives at step 36 - a commit, then a second
+# header judged under the risen floor - and a shared-runner BMC walks
+# those steps slowly. The default 300s cap killed exactly this hunt on
+# CI while the three cheaper covers were already in hand (exit 124,
+# Cycle 47); the cap below is this stage's own, sized from the runner
+# pace actually measured, and the 45-minute job budget absorbs it.
+SMT_CAP=1500 \
 smt "boot verdicts reachable" $SMTBMC -s z3 --presat -c -t 40 \
     --dump-vcd formal/out/boot_rule.vcd formal/out/boot_cover.smt2
 echo "    PROVEN: a bank turns bootable only out of VERIFY; GOLDEN is"
