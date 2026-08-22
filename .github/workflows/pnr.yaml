@@ -279,11 +279,11 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
-      - name: Download the CONFIRMED layout (Cycle 20 seal run)
+      - name: Download the CONFIRMED layout (Cycle 46 refresh)
         run: |
           mkdir -p confirm_in confirm_out
           for i in 1 2 3 4; do
-            gh run download 32295970007 -R ${{ github.repository }} \
+            gh run download 32576486193 -R ${{ github.repository }} \
               -n pnr_vextmr_confirm -D boot_dl && break
             echo "download attempt $i failed; retrying in 30s"
             rm -rf boot_dl; sleep 30
