@@ -139,12 +139,12 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
-      - name: Download the layout's own netlist (Cycle 21 boot run)
+      - name: Download the layout's own netlist (Cycle 46 boot run)
         # artifacts expire; when this one does, re-dispatch tmrboot to
         # mint a fresh netlist from the confirmed ODB and repoint
         run: |
           for i in 1 2 3 4; do
-            gh run download 32330298237 -R ${{ github.repository }} \
+            gh run download 32579134474 -R ${{ github.repository }} \
               -n pnr_vextmr_boot -D eq_dl && break
             echo "download attempt $i failed; retrying in 30s"
             rm -rf eq_dl; sleep 30
