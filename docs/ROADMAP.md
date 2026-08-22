@@ -1403,3 +1403,30 @@ the die, and two things wrong with the instrument that had been
 measuring it. That makes four instruments corrected this week, and
 it is worth naming the pattern - every one of them was found by
 pointing the tool somewhere it had never been asked to look.
+
+## Cycle 45 (2026-08-22): the contract three files had been citing
+
+`zirh_boot_ctrl.v` opens by saying "docs/BOOT.md is the contract" and
+defers to it again for the fault model; `zirh_qspi.v` defers to it for
+where sector-level CRC belongs. The file had never existed - not in
+the working tree, not in any commit on any branch. Cycle 39's audit
+found the dangling citation and this cycle writes it, derived from
+the code rather than from memory: the wire format out of the header
+assembly and the reference encoder in the ISP suite, the bounds out of
+the acceptance test, the ruling and the revert ladder out of the state
+machine, and the theorems out of formal/f_boot.sv.
+
+Two things in it are worth having written down beyond tidiness. The
+handshake clause says what a byte being "taken" means, and names the
+one place it bites - the host-mode wake, where the loader raises no
+ready and a sender that assumes steady readiness loses the image's
+first byte; that cost Cycle 44 a wrong turn before the sender was
+fixed. And the fault model says plainly that the stream is transport
+while the STORED image is the truth, which is the reason the CRC is
+computed over words read back through the corrected port rather than
+over the bytes as they arrived.
+
+The honest limits are in it too: the version field is parsed and
+ignored with no rollback rule, and the signature gate is hardwired
+true in both instantiations on this die - the port exists so a product
+part can put a real verifier behind it without touching the loader.
