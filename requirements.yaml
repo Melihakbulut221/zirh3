@@ -653,7 +653,8 @@ requirements:
     text: The compute die shall boot AUTONOMOUSLY - PORTA 31 sampled
       after reset selects the image transport, and when it reads
       high the die streams its own boot image from external MRAM
-      over a four-pin x1 QSPI leg on PORTA 30..27, through the same
+      over a four-wire x1 QSPI leg on PORTA 30..27 - five pins
+      counting the source strap on PORTA 31 - through the same
       loader contract (framing, CRC, one ruling per reset) the UART
       path proves, with zero new pads and the ground path untouched.
     tests:
@@ -698,3 +699,27 @@ requirements:
       the revert ladder swapped banks forever instead of falling to
       the mask ROM; the fixed design closes induction, the original
       fails it
+  - id: Z3-R49
+    text: The pad-ring power budget shall be DERIVED from the die's
+      own measured numbers rather than from a ratio copied off the
+      yardstick: twenty-two ground pads (12 VSSIO interleaved
+      between the GPIO banks, 8 core VSS two per side, 2 array),
+      sized against a core-rail band scaled from the campaign's
+      measured cluster power and against the worst simultaneous
+      switching this design can produce - 56 outputs in one
+      nanosecond - with the IO ring committed to slew-limited pads
+      as the condition that makes twelve IO grounds sufficient.
+    tests:
+      - docs/SCOPE.md
+    evidence: the derivation is written out in SCOPE with its
+      assumptions exposed - 20.72 mW measured internal cluster
+      power scaled by real flop count to a 100-165 mA core band at
+      or above the VA10805's 105 mA typical; a 3.3 V pad into 20 pF
+      peaking near 26 mA and 21 mA/ns, against roughly 6 nH per
+      pin, which needs over twenty IO grounds at fast slew and
+      twelve at the committed 5 ns edge; total 118 pads on an
+      LQFP-128 frame with ten spare; the two runs that would
+      REPLACE the arithmetic - a full-die power analysis on the
+      routed netlist and an SSO simulation with the real package
+      and pad models - are named as open items rather than implied
+      to have been done

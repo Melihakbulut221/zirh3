@@ -1219,3 +1219,50 @@ rather than quietly carried:
     hand-written cases rather than on the storm.
   * docs/BOOT.md is cited as the contract by three RTL files and has
     never existed in any commit on any branch.
+
+## Cycle 40 (2026-08-22): twenty-two grounds, derived rather than copied
+
+The ground question came back with numbers behind it, and the
+answer changed. An earlier revision had moved the pad-ring plan to
+sixteen grounds for one reason: the VA10805 carries about 19 VSS
+among its 128 pins, a 1:4.6 ratio, and matching it felt like
+matching the yardstick. That reasoning was wrong. A ratio says
+nothing about the two quantities that actually set the number, and
+on both of them this die is not the yardstick's peer.
+
+The core rail first. The measured anchor still stands - the
+stitched cluster draws 24.41 mW at 1.20 V, 20.72 mW internal - but
+what surrounds it has grown through eleven cycles into 51,651
+flops with a timer bank that counts every cycle and four queued
+serial engines. Scaled by real flop count and derated for idle
+peripherals, the full-die core rail lands somewhere in 100-165 mA:
+at or above the VA10805's 105 mA typical, while the old budget
+planned for 40-60. Then the pins. The worst simultaneous switching
+this design can produce is not a rule of thumb but a program - a
+32-bit PORTA store landing on the same edge as a 24-channel PWM
+rollover puts 56 outputs into transition at once. A 3.3 V pad into
+20 pF peaks near 26 mA at about 21 mA/ns; against 6 nH per pin,
+holding the bounce under a tenth of VDDIO would take more than
+twenty grounds in the IO ring ALONE.
+
+So the plan now says something it did not say before: the ground
+count and the pad's edge rate buy the same thing, and this ring
+commits to slew-limited IO cells, which is what brings the same
+worst case inside twelve IO grounds. Twelve IO, eight core (two
+per side, for di/dt rather than DC), two array - twenty-two
+grounds against 74 signal pads, a 1:3.4 ratio, deliberately
+tighter than the part we measure against because we carry an order
+of magnitude more state than its Cortex-M0. With mirrored supplies
+that is 118 pads on an LQFP-128 frame, ten spare, and the grounds
+must be interleaved between the GPIO banks: twelve grounds in one
+corner carry the inductance of one.
+
+The cycle also closes a small honesty debt from Cycle 38. The
+autonomous boot leg was described as four pins; it is four wires
+and five pins, because the source strap on PORTA 31 is a pin the
+boot owns too. And the section ends where an engineering document
+should: naming the two runs that would replace arithmetic with
+measurement - a full-die power analysis on the routed netlist, and
+an SSO simulation with the real package and pad models. Until those
+exist, twenty-two is a defensible budget, not a result, and the
+document says so in those words.

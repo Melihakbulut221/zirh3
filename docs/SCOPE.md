@@ -92,26 +92,80 @@ violations. The full die adds the 80-macro bank (few macros active
 per access) and the periphery; planning bound: 2-3x the cluster,
 call it 40-60 mA on the core rail.
 
+That first budget - twelve grounds at a 1:6 ratio - was written
+when this die was the compute cluster plus a bank. Cycles 27-38
+grew it to 51,651 flops with a 24-channel timer bank that counts
+every cycle, three queued SPI masters, two I2C controllers with
+slave chairs, a second UART and 56 driven pins. Two of its numbers
+went stale at once: the core current it assumed, and the number of
+outputs that can switch on one clock edge. Both are re-derived
+below, and the ground count moves from twelve to TWENTY-TWO.
+
+CORE RAIL. The measured anchor stands: the stitched cluster draws
+24.41 mW at 1.20 V (20.3 mA), 20.72 mW of it internal. What
+changed is what surrounds it. Scaling that internal figure by the
+die's real flop count - 51,651 total, of which roughly 17.7k are
+the behavioral icache arrays that become macros rather than flops -
+against the cluster's own, and derating for peripherals that idle,
+lands the full-die core rail in a 100-165 mA band. That is AT OR
+ABOVE the VA10805's 105 mA typical, not the 40-60 mA the first
+budget planned for, and it is the single most important correction
+here. It remains an estimate: only a full-die power run on the
+routed netlist replaces it, and that run is the open item this
+section names.
+
+SIMULTANEOUS SWITCHING. The worst case this design can actually
+produce is not a rule of thumb, it is a program: a 32-bit PORTA
+store landing on the same edge as a 24-channel PWM rollover puts
+up to 56 outputs into transition in the same nanosecond. Take a
+3.3 V pad into a 20 pF flight load; a fast pad turns that in about
+2.5 ns, so each pad peaks near 26 mA and pushes roughly 21 mA/ns.
+With bond wire and lead frame together near 6 nH per pin and M
+grounds in parallel, the bounce is (6/M) nH x 56 x 21 mA/ns, and
+holding it under a tenth of VDDIO would demand M above twenty
+grounds FOR THE IO RING ALONE.
+
+That is the trade this plan makes explicit: the ground count and
+the pad's edge rate buy the same thing. Committing the ring to
+SLEW-LIMITED IO cells - about 5 ns at 20 pF - halves the di/dt and
+brings the same worst case inside twelve IO grounds. The plan takes
+that commitment, and the twelve below are therefore contingent on
+it: a fast-pad ring needs roughly twice as many.
+
 PLANNED pad pairs, and why:
-  core VDD/VSS      4 pairs - one per side; 60 mA is trivial for a
-                    single pad, DISTRIBUTION and loop inductance are
-                    what the four-sided spread buys
-  VDDARRAY/VSS      1 pair - electrically the core rail (the PDN
+  core VDD/VSS      8 pairs - two per side. Not for DC (165 mA over
+                    eight pads is nothing) but for di/dt and for the
+                    ring's IR profile with a TMR'd die whose flop
+                    count tripled
+  VDDARRAY/VSS      2 pairs - electrically the core rail (the PDN
                     ties them), padded separately so the retention
                     experiment stays possible on the bench
-  VDDIO/VSSIO       7 pairs - the SSO rule (one pair per ~8
-                    simultaneously switching outputs) applied to the
-                    56 GPIO at 3.3 V; UART/JTAG/events are slow and
-                    ride the same rail without adding pairs
-  ground total      ~12 ground pads against ~74 signal pads, a 1:6
-                    ratio - conservative against the 1:8 SSO rule
+  VDDIO/VSSIO       12 pairs - the SSO derivation above, at the
+                    committed slew, for the 56 GPIO at 3.3 V. They
+                    must be INTERLEAVED between the GPIO banks, not
+                    clumped at the corners: twelve grounds in one
+                    corner carry the same inductance as one
+  ground total      22 ground pads against 74 signal pads, a 1:3.4
+                    ratio - deliberately tighter than the VA10805's
+                    1:4.6, because that part's Cortex-M0 carries a
+                    few thousand flops against this die's tens of
+                    thousands and its ring was characterized on
+                    qualified silicon while ours is arithmetic
 
-Signal + power lands near 98 pads: an LQFP-100/128-class frame,
-consistent with the VA10805's 128-pin package carrying the same 56
-GPIO plus its larger peripheral set and its own power population.
-The OpenMPW slot's pad budget is the binding constraint to check
-when the frame is drawn; if it cannot carry 98, GPIO width is the
-knob that scales (PORTB drops first), not the ground ratio.
+Signal + power lands at 118 pads (74 signal, 22 VSS, 22 VDD): an
+LQFP-128-class frame with ten spare, consistent with the VA10805's
+128-pin package carrying the same 56 GPIO plus its larger
+peripheral set. The OpenMPW slot's pad budget is the binding
+constraint to check when the frame is drawn; if it cannot carry
+118, GPIO width is the knob that scales (PORTB drops first), never
+the ground count.
+
+WHAT WOULD SETTLE IT. Two runs, neither of which this repository
+can do today: a full-die power analysis on the routed netlist to
+replace the scaled core-current band, and an SSO simulation with
+the real package model and the chosen pad cells to replace the
+inductance arithmetic. Until those exist the twenty-two is a
+DEFENSIBLE budget, not a measurement, and this section says so.
 
 ## Architectural equivalents (datasheet features the open PDK cannot build)
 
@@ -135,10 +189,17 @@ none is pretended at in the parity ledger:
   reset delay (POR_CYCLES); the numbers differ, the architecture
   is the same and the delay is a parameter.
 
-## Ground budget revision (datasheet-informed)
+## Ground budget: why ratio-matching was the wrong instrument
 
 The VA10805's LQFP-128 carries roughly 19 VSS among ~40
-power/ground pins - a ground-to-signal ratio near 1:4.6 against
-this plan's original 1:6 budget. The pad-ring plan moves to
-sixteen grounds (~1:4.6) to match the yardstick's measured
-practice; SSO analysis at pad-time makes the final call.
+power/ground pins, a ground-to-signal ratio near 1:4.6, and an
+earlier revision of this document moved to sixteen grounds simply
+to match it. That reasoning was wrong and is recorded here as a
+lesson rather than deleted: a ratio says nothing about the two
+quantities that actually set the number - how much current the core
+draws and how many outputs can switch on one edge. This die carries
+an order of magnitude more state than the yardstick's Cortex-M0 and
+can put 56 pins into transition on a single clock, so it needs MORE
+ground than the part it is measured against, not the same
+proportion. The pad-ring plan above derives twenty-two from those
+two quantities directly.
