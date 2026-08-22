@@ -809,3 +809,28 @@ requirements:
       a second bench defect surfaced with it - the verdict is a
       one-cycle pulse and the gap loop was not watching, so a
       committed image read as never-committed
+  - id: Z3-R54
+    text: The place-and-route proof chain - timing closure, the
+      self-healing confirm, the layout-netlist boot and the
+      post-layout equivalence - shall be minted from the CURRENT die,
+      with every hand-pinned guard reading the measured count, so
+      that no leg of the custody chain compares against geometry the
+      RTL has outgrown.
+    tests:
+      - pnr/vextmr/config.json
+      - scripts/gl_pnr_boot.sh
+      - scripts/formal_equiv.sh
+    evidence: the Cycle 46 refresh - guards moved 2138/6414 to
+      2173/6519 by measurement before any dispatch; the campaign
+      reproduced the original round 2 (setup closed everywhere,
+      fast-corner hold -0.172 vs -0.156); the confirm loop closed
+      HOLD +0.20 / SETUP +1.29 at every corner with 2173 rail nets
+      per replica counted by name in the confirmed DEF; the layout's
+      own netlist booted wounded and healed at 2173/2173 with the
+      rails independently re-counted after download; and the
+      post-layout equivalence re-proved at 7020 points against a
+      stitched netlist rebuilt from today's RTL, with the
+      anti-vacuity minimum raised to the new flop count; the first
+      dispatch's three-minute death is part of the evidence - the
+      config did not know the die's 32 new interrupt pins, and the
+      fix timed them in the SDC rather than merely placing them

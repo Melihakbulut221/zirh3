@@ -136,8 +136,8 @@ if run_stage pnr; then
         equiv_status -assert" 2>&1 | tee "${BUILD}/pnr.log"
     grep -aq "Equivalence successfully proven" "${BUILD}/pnr.log"
     NEQ=$(grep -aoE "Found [0-9]+ .equiv cells" "${BUILD}/pnr.log" | grep -oE "[0-9]+" | tail -1)
-    echo "equiv points: ${NEQ} (>= 6414 or the proof is vacuous)"
-    test "${NEQ}" -ge 6414
+    echo "equiv points: ${NEQ} (>= 6519 or the proof is vacuous)"
+    test "${NEQ}" -ge 6519
     echo "EQUIV PNR: PASS - place-and-route preserved the stitched function"
 fi
 

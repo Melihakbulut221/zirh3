@@ -21,7 +21,7 @@ stated only where the conditions are like for like.
 |---|---|---|---|
 | CPU class | Cortex-M0 (Thumb, 3-stage) | VexRiscv RV32IM (pipelined, cached) | IPC parity measured in the Cycle 14 campaign; RV32IM carries hardware multiply/divide |
 | clock | up to 50 MHz | 50 MHz closed through P&R, every corner, routed + extracted | Cycles 15-18 (plain), Cycle 20 (stitched) |
-| protection | HARDSIL process hardening | tool-stitched voted-feedback TMR, every flop (2138 triples) | different philosophies: process vs architecture; ZIRH-3's is proven by wound (Cycle 19) and survives P&R (Cycles 20-21) |
+| protection | HARDSIL process hardening | tool-stitched voted-feedback TMR, every flop (2173 triples since the interrupt array came alive) | different philosophies: process vs architecture; ZIRH-3's is proven by wound (Cycle 19), survives P&R (Cycles 20-21), and the whole layout chain was re-minted for the current die in Cycle 46 |
 | data memory | 32 KB SRAM | 256 KB bank, 5-slice SECDED + scrubber + address-in-ECC | Cycle 17; SECDED proven formally and by the lying-memory scenario |
 | program execution | flash/ROM + SRAM | loaded programs run FROM the protected bank | Cycle 17 fetch proof |
 | debug | SWD | IEEE 1149.1 TAP + RISC-V DTM/DM behind the flight lock | F27 |

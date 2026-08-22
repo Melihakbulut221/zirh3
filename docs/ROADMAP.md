@@ -1430,3 +1430,45 @@ The honest limits are in it too: the version field is parsed and
 ignored with no rollback rule, and the signature gate is hardwired
 true in both instantiations on this die - the port exists so a product
 part can put a real verifier behind it without touching the loader.
+
+## Cycle 46 (2026-08-22): the layout chain, re-minted for the die that exists
+
+The place-and-route artifacts had been pinned to the Cycle 33 die
+since the interrupt fabric landed: the stitched wrapper grew from
+2138 to 2173 flops when the core's external interrupt array came
+alive, and every downstream proof - the confirm loop, the netlist
+boot, the equivalence leg - kept consuming geometry that no longer
+matched the RTL beside it. This cycle re-minted the whole chain,
+and the refresh itself did most of the finding.
+
+The guards moved first, by measurement: 2138/6414 became 2173/6519,
+and the routed rail check stopped being one && chain that bash -e
+does not police - a lesson this repository wrote down in Cycle 20
+and had kept the shape of anyway. The first dispatch then died in
+three minutes, because the P&R config did not know the 32 ext_irq_i
+pins the die had grown; the fix that mattered was the second half -
+adding them to the SDC as well, since placing them without timing
+them would have bought a green five-hour run in which thirty-two
+inputs were never checked. The flow then reproduced the original
+campaign's round 2 almost exactly: setup closing everywhere,
+fast-corner hold at -0.172 against the old -0.156, thirty-five more
+flops and thirty-two newly timed inputs barely moving the
+trajectory. It was not chased with margin knobs, for the reason the
+campaign log already gives.
+
+The confirm loop closed it the way it closed the original: three
+passes, 149 hold buffers, HOLD +0.20 / SETUP +1.29 at every corner,
+routed and extracted, with 2173 tmrA, tmrB and tmrC rail nets
+counted by name in the confirmed DEF. The layout's own netlist then
+booted the full ISP story and survived the wound trio, 2173/2173
+healing, its rails re-counted independently after download. And the
+last link is the one the refresh existed to restore: the netlist the
+layout handed back is formally equivalent to a stitched netlist
+rebuilt from today's RTL - 7020 equivalence points, successfully
+proven, where the stale chain had been comparing against a die that
+stopped existing eight cycles ago. The pnr anti-vacuity minimum
+moved with the flop count, so the proof cannot silently shrink.
+
+What was handed to the flow, what the flow closed, and what the flow
+handed back are one proven thing again - and this time the sentence
+is about the die that will actually fly.
